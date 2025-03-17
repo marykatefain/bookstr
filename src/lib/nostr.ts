@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 // Types
@@ -9,6 +8,7 @@ export interface NostrProfile {
   displayName?: string;
   picture?: string;
   about?: string;
+  relays?: string[];
 }
 
 export interface NostrEvent {
@@ -19,36 +19,6 @@ export interface NostrEvent {
   tags: string[][];
   content: string;
   sig: string;
-}
-
-export interface Book {
-  id: string;
-  title: string;
-  author: string;
-  coverUrl: string;
-  description: string;
-  isbn?: string;
-  pubDate?: string;
-  pageCount?: number;
-  categories?: string[];
-}
-
-export interface BookReview {
-  id: string;
-  bookId: string;
-  pubkey: string;
-  rating: number;
-  content: string;
-  createdAt: number;
-}
-
-export interface ReadingStatus {
-  bookId: string;
-  status: 'want-to-read' | 'reading' | 'read' | 'dnf';
-  dateAdded: number;
-  dateStarted?: number;
-  dateFinished?: number;
-  rating?: number;
 }
 
 // Mock data for development
@@ -121,19 +91,58 @@ export const mockBooks: Book[] = [
   }
 ];
 
+// Default relay
+export const DEFAULT_RELAYS = ["wss://ditto.pub/relay"];
+let userRelays = [...DEFAULT_RELAYS];
+
 // Local storage keys
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
+const NOSTR_RELAYS_KEY = 'bookverse_nostr_relays';
 
 // Nostr login state management
 let currentUser: NostrProfile | null = null;
 
+// Helper to parse profile content
+const parseProfileContent = (content: string): Partial<NostrProfile> => {
+  try {
+    const profileData = JSON.parse(content);
+    return {
+      name: profileData.name,
+      displayName: profileData.display_name || profileData.displayName,
+      picture: profileData.picture,
+      about: profileData.about
+    };
+  } catch (error) {
+    console.error("Failed to parse profile data:", error);
+    return {};
+  }
+};
+
 // Initialize Nostr
 export async function initNostr() {
   try {
+    // Load saved relays
+    const savedRelays = localStorage.getItem(NOSTR_RELAYS_KEY);
+    if (savedRelays) {
+      userRelays = JSON.parse(savedRelays);
+    }
+
     // Check if user is already logged in
     const savedUser = localStorage.getItem(NOSTR_USER_KEY);
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
+      
+      // If logged in, try to fetch latest profile data
+      if (currentUser?.pubkey) {
+        fetchProfileData(currentUser.pubkey)
+          .then(profileData => {
+            if (profileData) {
+              updateUserProfile(profileData);
+            }
+          })
+          .catch(err => console.error("Error fetching profile on init:", err));
+      }
+      
       return currentUser;
     }
     return null;
@@ -141,6 +150,120 @@ export async function initNostr() {
     console.error("Failed to initialize Nostr:", error);
     return null;
   }
+}
+
+// Connect to relay and fetch data
+async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket[]> {
+  const connections: WebSocket[] = [];
+  
+  for (const relayUrl of relays) {
+    try {
+      const socket = new WebSocket(relayUrl);
+      
+      // Wait for connection to establish
+      await new Promise((resolve, reject) => {
+        socket.onopen = resolve;
+        socket.onerror = reject;
+        
+        // Set timeout
+        setTimeout(() => reject(new Error(`Connection timeout for ${relayUrl}`)), 5000);
+      });
+      
+      connections.push(socket);
+    } catch (error) {
+      console.error(`Failed to connect to ${relayUrl}:`, error);
+    }
+  }
+  
+  if (connections.length === 0) {
+    throw new Error("Could not connect to any relays");
+  }
+  
+  return connections;
+}
+
+// Fetch profile data from relays
+export async function fetchProfileData(pubkey: string): Promise<Partial<NostrProfile> | null> {
+  try {
+    const relayConnections = await connectToRelays();
+    
+    // Create a promise that will be resolved with the profile data
+    return new Promise((resolve, reject) => {
+      // Set timeout
+      const timeout = setTimeout(() => {
+        relayConnections.forEach(socket => socket.close());
+        resolve(null);
+      }, 5000);
+      
+      // Handle messages from relays
+      relayConnections.forEach(socket => {
+        // Subscribe to Kind 0 events for the pubkey
+        const subscriptionId = `profile-${Math.random().toString(36).substring(2, 15)}`;
+        const requestMessage = JSON.stringify([
+          "REQ", 
+          subscriptionId,
+          {
+            "kinds": [0],
+            "authors": [pubkey],
+            "limit": 1
+          }
+        ]);
+        
+        socket.send(requestMessage);
+        
+        socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            // Check if it's an EVENT message with our subscription ID
+            if (message[0] === "EVENT" && message[1] === subscriptionId) {
+              const profileEvent = message[2] as NostrEvent;
+              
+              if (profileEvent.kind === 0 && profileEvent.pubkey === pubkey) {
+                // Parse profile content
+                const profileData = parseProfileContent(profileEvent.content);
+                
+                // Close connections and resolve promise
+                clearTimeout(timeout);
+                relayConnections.forEach(s => s.close());
+                resolve({
+                  ...profileData,
+                  pubkey
+                });
+              }
+            }
+            
+            // Handle EOSE (End of Stored Events)
+            if (message[0] === "EOSE" && message[1] === subscriptionId) {
+              // If we get EOSE and haven't found a profile, close one connection
+              socket.close();
+            }
+          } catch (error) {
+            console.error("Error processing relay message:", error);
+          }
+        };
+        
+        socket.onerror = (error) => {
+          console.error("Relay connection error:", error);
+          socket.close();
+        };
+      });
+    });
+  } catch (error) {
+    console.error("Failed to fetch profile data:", error);
+    return null;
+  }
+}
+
+// Update current user profile with new data
+function updateUserProfile(profileData: Partial<NostrProfile>): void {
+  if (!currentUser || !profileData.pubkey) return;
+  
+  currentUser = {
+    ...currentUser,
+    ...profileData
+  };
+  
+  localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
 }
 
 // Login with Nostr
@@ -170,16 +293,26 @@ export async function loginWithNostr() {
     // Create npub from pubkey
     const npub = pubkeyToNpub(pubkey);
 
-    // Create user profile
-    const userProfile: NostrProfile = {
+    // Create initial user profile
+    let userProfile: NostrProfile = {
       npub,
       pubkey,
-      // These would normally be fetched from Nostr, using mockups for now
+      // Default values until we fetch from relay
       name: "Nostr User",
       displayName: "Nostr Book Lover",
       picture: "https://i.pravatar.cc/300",
-      about: "I love reading books and sharing my thoughts on Nostr!"
+      about: "I love reading books and sharing my thoughts on Nostr!",
+      relays: [...userRelays]
     };
+
+    // Try to fetch profile data from relays
+    const profileData = await fetchProfileData(pubkey);
+    if (profileData) {
+      userProfile = {
+        ...userProfile,
+        ...profileData
+      };
+    }
 
     // Save user to local storage
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(userProfile));
@@ -200,6 +333,94 @@ export async function loginWithNostr() {
     });
     return null;
   }
+}
+
+// Get user relays
+export function getUserRelays(): string[] {
+  return userRelays;
+}
+
+// Add a relay
+export function addRelay(relayUrl: string): boolean {
+  if (userRelays.includes(relayUrl)) {
+    return false;
+  }
+  
+  try {
+    // Test connection to relay
+    const ws = new WebSocket(relayUrl);
+    ws.onopen = () => {
+      userRelays.push(relayUrl);
+      localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
+      ws.close();
+      
+      // Update user relays in profile
+      if (currentUser) {
+        currentUser.relays = [...userRelays];
+        localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+      }
+      
+      toast({
+        title: "Relay added",
+        description: `Added ${relayUrl} to your relays`,
+      });
+    };
+    
+    ws.onerror = () => {
+      toast({
+        title: "Invalid relay",
+        description: `Could not connect to ${relayUrl}`,
+        variant: "destructive",
+      });
+      ws.close();
+    };
+    
+    return true;
+  } catch (error) {
+    console.error("Error adding relay:", error);
+    return false;
+  }
+}
+
+// Remove a relay
+export function removeRelay(relayUrl: string): boolean {
+  if (!userRelays.includes(relayUrl) || relayUrl === DEFAULT_RELAYS[0]) {
+    // Don't allow removing the default relay
+    return false;
+  }
+  
+  userRelays = userRelays.filter(r => r !== relayUrl);
+  localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
+  
+  // Update user relays in profile
+  if (currentUser) {
+    currentUser.relays = [...userRelays];
+    localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+  }
+  
+  toast({
+    title: "Relay removed",
+    description: `Removed ${relayUrl} from your relays`,
+  });
+  
+  return true;
+}
+
+// Reset relays to default
+export function resetRelays(): void {
+  userRelays = [...DEFAULT_RELAYS];
+  localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
+  
+  // Update user relays in profile
+  if (currentUser) {
+    currentUser.relays = [...userRelays];
+    localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+  }
+  
+  toast({
+    title: "Relays reset",
+    description: "Your relays have been reset to default",
+  });
 }
 
 // Logout from Nostr

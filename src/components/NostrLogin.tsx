@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { loginWithNostr, getCurrentUser } from "@/lib/nostr";
+import { loginWithNostr, getCurrentUser, initNostr } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 
 interface NostrLoginProps {
@@ -13,6 +13,17 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
   const { toast } = useToast();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // Initialize Nostr on component mount
+  useEffect(() => {
+    initNostr()
+      .then(() => {
+        console.info("Nostr initialized");
+      })
+      .catch(error => {
+        console.error("Nostr initialization error:", error);
+      });
+  }, []);
+
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
@@ -22,7 +33,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
       if (user) {
         toast({
           title: "Login successful",
-          description: "Welcome to BookVerse!"
+          description: `Welcome to BookVerse, ${user.name || user.displayName || "Nostr User"}!`
         });
         onLoginComplete?.();
       }

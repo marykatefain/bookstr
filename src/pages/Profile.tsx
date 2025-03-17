@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -6,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, Edit, BookOpen, BookMarked, Send, Share2, Link } from "lucide-react";
-import { getCurrentUser, mockBooks, isLoggedIn } from "@/lib/nostr";
+import { Book, Star, Edit, BookOpen, BookMarked, Send, Share2, Link, Settings } from "lucide-react";
+import { getCurrentUser, mockBooks, isLoggedIn, fetchProfileData } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
+import { RelaySettings } from "@/components/RelaySettings";
 
 const mockReadingStatuses = [
   { bookId: "1", status: "read", dateAdded: Date.now() - 1000000000, dateStarted: Date.now() - 900000000, dateFinished: Date.now() - 800000000, rating: 4 },
@@ -18,10 +18,24 @@ const mockReadingStatuses = [
 
 const Profile = () => {
   const { toast } = useToast();
-  const user = getCurrentUser();
+  const [user, setUser] = useState(getCurrentUser());
   const [activeTab, setActiveTab] = useState("reading");
+  const [showRelaySettings, setShowRelaySettings] = useState(false);
   
-  // Redirect if not logged in
+  useEffect(() => {
+    if (user?.pubkey) {
+      fetchProfileData(user.pubkey)
+        .then(profileData => {
+          if (profileData) {
+            setUser(prev => prev ? { ...prev, ...profileData } : prev);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching profile data:", error);
+        });
+    }
+  }, []);
+  
   if (!isLoggedIn()) {
     return <Navigate to="/" />;
   }
@@ -39,7 +53,6 @@ const Profile = () => {
   const wantToReadBooks = filteredBooks("want-to-read");
 
   const copyProfileLink = () => {
-    // In a real app, this would copy a profile link with the user's npub
     navigator.clipboard.writeText(`https://bookverse.app/profile/${user?.npub}`);
     toast({
       title: "Link copied!",
@@ -47,11 +60,14 @@ const Profile = () => {
     });
   };
 
+  const toggleRelaySettings = () => {
+    setShowRelaySettings(!showRelaySettings);
+  };
+
   return (
     <Layout>
       <div className="container px-4 md:px-6 py-8">
         <div className="flex flex-col space-y-8">
-          {/* Profile header */}
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-muted flex-shrink-0">
               <img
@@ -79,13 +95,22 @@ const Profile = () => {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
+                <Button variant="outline" size="sm" onClick={toggleRelaySettings}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Relays
+                </Button>
               </div>
             </div>
           </div>
 
+          {showRelaySettings && (
+            <div className="animate-in fade-in slide-in-from-top-5 duration-300">
+              <RelaySettings />
+            </div>
+          )}
+
           <Separator />
 
-          {/* Reading stats summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-6">
@@ -116,7 +141,6 @@ const Profile = () => {
             </Card>
           </div>
 
-          {/* Bookshelf tabs */}
           <Tabs defaultValue="reading" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b rounded-none justify-start space-x-8">
               <TabsTrigger value="reading" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
@@ -265,7 +289,6 @@ const Profile = () => {
   );
 };
 
-// Empty state component
 const EmptyBookshelf = ({ type }: { type: string }) => {
   const messages = {
     reading: {
