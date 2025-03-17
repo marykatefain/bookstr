@@ -82,8 +82,9 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       }
     ];
     
-    // Fetch events from all relays
-    const events = await pool.list(relays, filters);
+    // Use the correct method to fetch events
+    // The SimplePool.list() method has been replaced with SimplePool.querySync()
+    const events = await pool.querySync(relays, filters);
     
     // Group books by reading status
     const tbrBooks: Book[] = [];
