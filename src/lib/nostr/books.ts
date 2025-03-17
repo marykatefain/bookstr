@@ -11,7 +11,9 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
     tags: [
       ["d", "tbr"],
       ["t", "books"],
-      ["item", book.isbn, book.title, book.author]
+      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+      ["title", book.title],
+      ["author", book.author]
     ],
     content: `Added ${book.title} by ${book.author} to my TBR list`
   };
@@ -30,7 +32,9 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     tags: [
       ["d", "reading"],
       ["t", "books"],
-      ["item", book.isbn, book.title, book.author],
+      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+      ["title", book.title],
+      ["author", book.author],
       ["started_at", now]
     ],
     content: `Started reading ${book.title} by ${book.author}`
@@ -48,7 +52,9 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
   const tags = [
     ["d", "read-books"],
     ["t", "books"],
-    ["item", book.isbn, book.title, book.author],
+    ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+    ["title", book.title],
+    ["author", book.author],
     ["finished_at", now]
   ];
   
@@ -80,7 +86,9 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
     tags: [
       ["d", `rating:${book.isbn}`],
       ["t", "book-rating"],
-      ["subject", book.isbn, book.title, book.author],
+      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+      ["title", book.title],
+      ["author", book.author],
       ["r", rating.toString()],
       ["context", "bookverse"]
     ],
@@ -91,12 +99,14 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
 }
 
 /**
- * Post a review for a book
+ * Post a review for a book (using NIP-22 for long-form content)
  */
 export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
   const tags = [
     ["t", "book-review"],
-    ["book", book.isbn, book.title, book.author]
+    ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+    ["title", book.title],
+    ["author", book.author]
   ];
   
   // Add rating tag if provided
@@ -104,19 +114,11 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     tags.push(["rating", rating.toString()]);
   }
   
-  // For longer reviews, use Long Form Content kind
-  const useNIP23 = reviewText.length > 280;
-  
+  // Use NIP-22 (Kind 1111) for reviews instead of regular notes or long-form content
   const event = {
-    kind: useNIP23 ? NOSTR_KINDS.LONG_FORM : NOSTR_KINDS.TEXT_NOTE,
+    kind: NOSTR_KINDS.REVIEW,
     tags,
-    content: useNIP23 
-      ? JSON.stringify({
-          title: `Review: ${book.title}`,
-          published_at: Math.floor(Date.now() / 1000),
-          content: reviewText
-        })
-      : reviewText
+    content: reviewText
   };
   
   return publishToNostr(event);

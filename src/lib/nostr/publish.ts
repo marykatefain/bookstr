@@ -1,8 +1,7 @@
 
 import { toast } from "@/hooks/use-toast";
-import { SimplePool, validateEvent, getEventHash } from "nostr-tools";
-import type { UnsignedEvent, Event } from "nostr-tools";
-import { NostrEventData, NOSTR_KINDS, Book } from "./types";
+import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
+import { NostrEventData, NOSTR_KINDS } from "./types";
 import { getCurrentUser, isLoggedIn } from "./user";
 import { getUserRelays } from "./relay";
 
@@ -67,8 +66,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     try {
       // Use Promise.allSettled instead of Promise.any for better compatibility
       const publishPromises = relayUrls.map(url => {
-        // Fixed: SimplePool.publish expects ([string], event) not (string, event)
-        return pool.publish([url], signedEvent);
+        return pool.publish([url], signedEvent as Event);
       });
       
       const results = await Promise.allSettled(publishPromises);

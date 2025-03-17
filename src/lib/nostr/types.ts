@@ -1,4 +1,3 @@
-
 // Types
 export interface NostrProfile {
   npub?: string;
@@ -53,7 +52,8 @@ export const NOSTR_KINDS = {
   BOOK_READ: 30001, // Custom kind for books read
   BOOK_TBR: 30002,  // Custom kind for to-be-read books
   LONG_FORM: 30023,
-  BOOK_RATING: 31337 // As per proposed NIP for ratings
+  BOOK_RATING: 31337, // As per proposed NIP for ratings
+  REVIEW: 1111 // NIP-22 Reviews
 };
 
 export const mockBooks: Book[] = [
@@ -129,7 +129,7 @@ declare global {
   interface Window {
     nostr?: {
       getPublicKey: () => Promise<string>;
-      signEvent: (event: Partial<NostrEventData>) => Promise<Event>;
+      signEvent: (event: Partial<NostrEventData>) => Promise<any>;
       getRelays: () => Promise<Record<string, { read: boolean; write: boolean }>>;
     };
   }
