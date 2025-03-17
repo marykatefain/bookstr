@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 // Types
@@ -14,6 +13,7 @@ export interface NostrProfile {
   website?: string;
   lud06?: string;
   lud16?: string;
+  relays?: string[];
 }
 
 export interface NostrEvent {
@@ -26,7 +26,6 @@ export interface NostrEvent {
   sig: string;
 }
 
-// Define Book interface that was missing
 export interface Book {
   id: string;
   title: string;
@@ -39,7 +38,6 @@ export interface Book {
   categories: string[];
 }
 
-// Mock data for development
 export const mockBooks: Book[] = [
   {
     id: "1",
@@ -109,18 +107,14 @@ export const mockBooks: Book[] = [
   }
 ];
 
-// Default relay
 export const DEFAULT_RELAYS = ["wss://ditto.pub/relay"];
 let userRelays = [...DEFAULT_RELAYS];
 
-// Local storage keys
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 const NOSTR_RELAYS_KEY = 'bookverse_nostr_relays';
 
-// Nostr login state management
 let currentUser: NostrProfile | null = null;
 
-// Helper to parse profile content
 const parseProfileContent = (content: string): Partial<NostrProfile> => {
   try {
     const profileData = JSON.parse(content);
@@ -136,21 +130,17 @@ const parseProfileContent = (content: string): Partial<NostrProfile> => {
   }
 };
 
-// Initialize Nostr
 export async function initNostr() {
   try {
-    // Load saved relays
     const savedRelays = localStorage.getItem(NOSTR_RELAYS_KEY);
     if (savedRelays) {
       userRelays = JSON.parse(savedRelays);
     }
 
-    // Check if user is already logged in
     const savedUser = localStorage.getItem(NOSTR_USER_KEY);
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
       
-      // If logged in, try to fetch latest profile data
       if (currentUser?.pubkey) {
         fetchProfileData(currentUser.pubkey)
           .then(profileData => {
@@ -170,7 +160,6 @@ export async function initNostr() {
   }
 }
 
-// Connect to relay and fetch data
 async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket[]> {
   const connections: WebSocket[] = [];
   
@@ -178,12 +167,10 @@ async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket
     try {
       const socket = new WebSocket(relayUrl);
       
-      // Wait for connection to establish
       await new Promise((resolve, reject) => {
         socket.onopen = resolve;
         socket.onerror = reject;
         
-        // Set timeout
         setTimeout(() => reject(new Error(`Connection timeout for ${relayUrl}`)), 5000);
       });
       
@@ -200,22 +187,17 @@ async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket
   return connections;
 }
 
-// Fetch profile data from relays
 export async function fetchProfileData(pubkey: string): Promise<Partial<NostrProfile> | null> {
   try {
     const relayConnections = await connectToRelays();
     
-    // Create a promise that will be resolved with the profile data
     return new Promise((resolve, reject) => {
-      // Set timeout
       const timeout = setTimeout(() => {
         relayConnections.forEach(socket => socket.close());
         resolve(null);
       }, 5000);
       
-      // Handle messages from relays
       relayConnections.forEach(socket => {
-        // Subscribe to Kind 0 events for the pubkey
         const subscriptionId = `profile-${Math.random().toString(36).substring(2, 15)}`;
         const requestMessage = JSON.stringify([
           "REQ", 
@@ -232,15 +214,12 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
         socket.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            // Check if it's an EVENT message with our subscription ID
             if (message[0] === "EVENT" && message[1] === subscriptionId) {
               const profileEvent = message[2] as NostrEvent;
               
               if (profileEvent.kind === 0 && profileEvent.pubkey === pubkey) {
-                // Parse profile content
                 const profileData = parseProfileContent(profileEvent.content);
                 
-                // Close connections and resolve promise
                 clearTimeout(timeout);
                 relayConnections.forEach(s => s.close());
                 resolve({
@@ -250,9 +229,7 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
               }
             }
             
-            // Handle EOSE (End of Stored Events)
             if (message[0] === "EOSE" && message[1] === subscriptionId) {
-              // If we get EOSE and haven't found a profile, close one connection
               socket.close();
             }
           } catch (error) {
@@ -272,7 +249,6 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
   }
 }
 
-// Update current user profile with new data
 function updateUserProfile(profileData: Partial<NostrProfile>): void {
   if (!currentUser || !profileData.pubkey) return;
   
@@ -284,7 +260,6 @@ function updateUserProfile(profileData: Partial<NostrProfile>): void {
   localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
 }
 
-// Login with Nostr
 export async function loginWithNostr() {
   try {
     if (typeof window.nostr === 'undefined') {
@@ -296,7 +271,6 @@ export async function loginWithNostr() {
       return null;
     }
 
-    // Request public key
     const pubkey = await window.nostr.getPublicKey();
     
     if (!pubkey) {
@@ -308,14 +282,11 @@ export async function loginWithNostr() {
       return null;
     }
 
-    // Create npub from pubkey
     const npub = pubkeyToNpub(pubkey);
 
-    // Create initial user profile
     let userProfile: NostrProfile = {
       npub,
       pubkey,
-      // Default values until we fetch from relay
       name: "Nostr User",
       displayName: "Nostr Book Lover",
       picture: "https://i.pravatar.cc/300",
@@ -323,7 +294,6 @@ export async function loginWithNostr() {
       relays: [...userRelays]
     };
 
-    // Try to fetch profile data from relays
     const profileData = await fetchProfileData(pubkey);
     if (profileData) {
       userProfile = {
@@ -332,7 +302,6 @@ export async function loginWithNostr() {
       };
     }
 
-    // Save user to local storage
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(userProfile));
     currentUser = userProfile;
 
@@ -353,26 +322,22 @@ export async function loginWithNostr() {
   }
 }
 
-// Get user relays
 export function getUserRelays(): string[] {
   return userRelays;
 }
 
-// Add a relay
 export function addRelay(relayUrl: string): boolean {
   if (userRelays.includes(relayUrl)) {
     return false;
   }
   
   try {
-    // Test connection to relay
     const ws = new WebSocket(relayUrl);
     ws.onopen = () => {
       userRelays.push(relayUrl);
       localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
       ws.close();
       
-      // Update user relays in profile
       if (currentUser) {
         currentUser.relays = [...userRelays];
         localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
@@ -400,17 +365,14 @@ export function addRelay(relayUrl: string): boolean {
   }
 }
 
-// Remove a relay
 export function removeRelay(relayUrl: string): boolean {
   if (!userRelays.includes(relayUrl) || relayUrl === DEFAULT_RELAYS[0]) {
-    // Don't allow removing the default relay
     return false;
   }
   
   userRelays = userRelays.filter(r => r !== relayUrl);
   localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
   
-  // Update user relays in profile
   if (currentUser) {
     currentUser.relays = [...userRelays];
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
@@ -424,12 +386,10 @@ export function removeRelay(relayUrl: string): boolean {
   return true;
 }
 
-// Reset relays to default
 export function resetRelays(): void {
   userRelays = [...DEFAULT_RELAYS];
   localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
   
-  // Update user relays in profile
   if (currentUser) {
     currentUser.relays = [...userRelays];
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
@@ -441,7 +401,6 @@ export function resetRelays(): void {
   });
 }
 
-// Logout from Nostr
 export function logoutNostr() {
   localStorage.removeItem(NOSTR_USER_KEY);
   currentUser = null;
@@ -451,7 +410,6 @@ export function logoutNostr() {
   });
 }
 
-// Get current user
 export function getCurrentUser(): NostrProfile | null {
   if (currentUser) return currentUser;
   
@@ -464,19 +422,14 @@ export function getCurrentUser(): NostrProfile | null {
   return null;
 }
 
-// Check if user is logged in
 export function isLoggedIn(): boolean {
   return getCurrentUser() !== null;
 }
 
-// Utility functions
 function pubkeyToNpub(pubkey: string): string {
-  // In a real app, this would convert a pubkey to npub format
-  // For now, we'll just return a mock npub
   return `npub1${pubkey.substring(0, 20)}`;
 }
 
-// Declare global Window interface with Nostr
 declare global {
   interface Window {
     nostr?: {
