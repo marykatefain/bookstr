@@ -7,8 +7,22 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Book as BookIcon, Star, PlusCircle, BookOpen, Search, Filter } from "lucide-react";
-import { mockBooks, isLoggedIn } from "@/lib/nostr";
+import { 
+  Book as BookIcon, 
+  Star, 
+  PlusCircle, 
+  BookOpen, 
+  Search, 
+  Filter, 
+  Loader2 
+} from "lucide-react";
+import { 
+  mockBooks, 
+  isLoggedIn, 
+  addBookToTBR, 
+  markBookAsReading, 
+  Book 
+} from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 
 const categories = [
@@ -25,10 +39,11 @@ const categories = [
 
 const Books = () => {
   const { toast } = useToast();
-  const [books, setBooks] = useState(mockBooks);
+  const [books, setBooks] = useState<Book[]>(mockBooks);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [filteredBooks, setFilteredBooks] = useState(books);
+  const [filteredBooks, setFilteredBooks] = useState<Book[]>(books);
+  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let results = books;
@@ -52,7 +67,7 @@ const Books = () => {
     setFilteredBooks(results);
   }, [searchQuery, activeCategory, books]);
 
-  const addToLibrary = (bookId: string, status: 'want-to-read' | 'reading') => {
+  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -65,10 +80,39 @@ const Books = () => {
     const book = books.find(b => b.id === bookId);
     if (!book) return;
 
-    toast({
-      title: `Added to your ${status === 'want-to-read' ? 'want to read' : 'currently reading'} list`,
-      description: `${book.title} has been added to your library`
-    });
+    // Set pending state for this book
+    setPendingActions(prev => ({ ...prev, [bookId]: status }));
+
+    try {
+      let result: string | null;
+      
+      if (status === 'want-to-read') {
+        result = await addBookToTBR(book);
+      } else {
+        result = await markBookAsReading(book);
+      }
+
+      if (result) {
+        toast({
+          title: `Added to your ${status === 'want-to-read' ? 'TBR' : 'currently reading'} list`,
+          description: `${book.title} has been added to your library and published to Nostr`
+        });
+      }
+    } catch (error) {
+      console.error("Error adding book:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error processing your request",
+        variant: "destructive"
+      });
+    } finally {
+      // Clear pending state
+      setPendingActions(prev => {
+        const newState = { ...prev };
+        delete newState[bookId];
+        return newState;
+      });
+    }
   };
 
   return (
@@ -155,16 +199,26 @@ const Books = () => {
                           variant="outline"
                           className="flex-1"
                           onClick={() => addToLibrary(book.id, 'want-to-read')}
+                          disabled={!!pendingActions[book.id]}
                         >
-                          <PlusCircle className="mr-1 h-4 w-4" />
+                          {pendingActions[book.id] === 'want-to-read' ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlusCircle className="mr-1 h-4 w-4" />
+                          )}
                           TBR
                         </Button>
                         <Button
                           size="sm"
                           className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
                           onClick={() => addToLibrary(book.id, 'reading')}
+                          disabled={!!pendingActions[book.id]}
                         >
-                          <BookOpen className="mr-1 h-4 w-4" />
+                          {pendingActions[book.id] === 'reading' ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : (
+                            <BookOpen className="mr-1 h-4 w-4" />
+                          )}
                           Read
                         </Button>
                       </div>

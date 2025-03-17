@@ -1,4 +1,7 @@
+
 import { toast } from "@/hooks/use-toast";
+import { relayInit, getEventHash, validateEvent, verifySignature } from "nostr-tools";
+import type { Event, UnsignedEvent } from "nostr-tools";
 
 // Types
 export interface NostrProfile {
@@ -37,6 +40,24 @@ export interface Book {
   pageCount: number;
   categories: string[];
 }
+
+// Nostr event kinds
+export const NOSTR_KINDS = {
+  METADATA: 0,
+  TEXT_NOTE: 1,
+  RECOMMENDED_SERVER: 2,
+  CONTACTS: 3,
+  ENCRYPTED_DIRECT_MESSAGE: 4,
+  DELETION: 5,
+  REPOST: 6,
+  REACTION: 7,
+  BADGE_AWARD: 8,
+  GENERIC_LIST: 30000,
+  BOOK_READ: 30001, // Custom kind for books read
+  BOOK_TBR: 30002,  // Custom kind for to-be-read books
+  LONG_FORM: 30023,
+  BOOK_RATING: 31337 // As per proposed NIP for ratings
+};
 
 export const mockBooks: Book[] = [
   {
@@ -428,6 +449,239 @@ export function isLoggedIn(): boolean {
 
 function pubkeyToNpub(pubkey: string): string {
   return `npub1${pubkey.substring(0, 20)}`;
+}
+
+// New functions for publishing Nostr events
+
+/**
+ * Publish an event to Nostr relays
+ */
+export async function publishToNostr(event: Partial<NostrEvent>): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to perform this action",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    if (typeof window.nostr === 'undefined') {
+      toast({
+        title: "Nostr extension not found",
+        description: "Please install a Nostr extension like nos2x or Alby",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Prepare the event
+    const unsignedEvent: UnsignedEvent = {
+      kind: event.kind || NOSTR_KINDS.TEXT_NOTE,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: event.tags || [],
+      content: event.content || "",
+      pubkey: currentUser?.pubkey || ""
+    };
+
+    // Sign the event with the extension
+    const signedEvent = await window.nostr.signEvent(unsignedEvent);
+    
+    if (!signedEvent) {
+      throw new Error("Failed to sign event");
+    }
+
+    // Validate the event
+    const eventHash = getEventHash(signedEvent);
+    if (eventHash !== signedEvent.id) {
+      throw new Error("Event validation failed: incorrect hash");
+    }
+
+    const isValid = validateEvent(signedEvent);
+    const isSigValid = verifySignature(signedEvent);
+    
+    if (!isValid || !isSigValid) {
+      throw new Error("Event validation failed: invalid signature");
+    }
+
+    // Publish to relays
+    const promises = getUserRelays().map(async (relayUrl) => {
+      try {
+        const relay = relayInit(relayUrl);
+        await relay.connect();
+        
+        return new Promise<void>((resolve, reject) => {
+          const pub = relay.publish(signedEvent);
+          pub.on('ok', () => {
+            console.log(`Event published to ${relayUrl}`);
+            relay.close();
+            resolve();
+          });
+          
+          pub.on('failed', (reason: string) => {
+            console.error(`Failed to publish to ${relayUrl}: ${reason}`);
+            relay.close();
+            reject(new Error(reason));
+          });
+          
+          // Add a timeout
+          setTimeout(() => {
+            relay.close();
+            reject(new Error(`Timeout publishing to ${relayUrl}`));
+          }, 10000);
+        });
+      } catch (error) {
+        console.error(`Error with relay ${relayUrl}:`, error);
+        return Promise.reject(error);
+      }
+    });
+
+    // Wait for at least one relay to succeed
+    try {
+      await Promise.any(promises);
+      
+      toast({
+        title: "Published successfully",
+        description: "Your action has been published to Nostr"
+      });
+      
+      return signedEvent.id;
+    } catch (error) {
+      console.error("Failed to publish to any relay:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error publishing to Nostr:", error);
+    
+    toast({
+      title: "Publishing failed",
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
+    });
+    
+    return null;
+  }
+}
+
+/**
+ * Add a book to the "Want to Read" list
+ */
+export async function addBookToTBR(book: Book): Promise<string | null> {
+  const event: Partial<NostrEvent> = {
+    kind: NOSTR_KINDS.GENERIC_LIST,
+    tags: [
+      ["d", "tbr"],
+      ["t", "books"],
+      ["item", book.isbn, book.title, book.author]
+    ],
+    content: `Added ${book.title} by ${book.author} to my TBR list`
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Mark a book as currently reading
+ */
+export async function markBookAsReading(book: Book): Promise<string | null> {
+  const now = new Date().toISOString();
+  
+  const event: Partial<NostrEvent> = {
+    kind: NOSTR_KINDS.GENERIC_LIST,
+    tags: [
+      ["d", "reading"],
+      ["t", "books"],
+      ["item", book.isbn, book.title, book.author],
+      ["started_at", now]
+    ],
+    content: `Started reading ${book.title} by ${book.author}`
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Mark a book as read
+ */
+export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
+  const now = new Date().toISOString();
+  
+  const tags = [
+    ["d", "read-books"],
+    ["t", "books"],
+    ["item", book.isbn, book.title, book.author],
+    ["finished_at", now]
+  ];
+  
+  // Add rating if provided
+  if (rating !== undefined && rating >= 1 && rating <= 5) {
+    tags.push(["rating", rating.toString()]);
+  }
+  
+  const event: Partial<NostrEvent> = {
+    kind: NOSTR_KINDS.GENERIC_LIST,
+    tags,
+    content: `Finished reading ${book.title} by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Rate a book separately (using the proposed NIP for ratings)
+ */
+export async function rateBook(book: Book, rating: number): Promise<string | null> {
+  if (rating < 1 || rating > 5) {
+    throw new Error("Rating must be between 1 and 5");
+  }
+  
+  // Using the proposed NIP format for ratings
+  const event: Partial<NostrEvent> = {
+    kind: NOSTR_KINDS.BOOK_RATING,
+    tags: [
+      ["d", `rating:${book.isbn}`],
+      ["t", "book-rating"],
+      ["subject", book.isbn, book.title, book.author],
+      ["r", rating.toString()],
+      ["context", "bookverse"]
+    ],
+    content: `${rating} Stars${rating < 3 ? " - Could be better" : rating < 5 ? " - Pretty good" : " - Amazing!"}`
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Post a review for a book
+ */
+export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
+  const tags = [
+    ["t", "book-review"],
+    ["book", book.isbn, book.title, book.author]
+  ];
+  
+  // Add rating tag if provided
+  if (rating !== undefined && rating >= 1 && rating <= 5) {
+    tags.push(["rating", rating.toString()]);
+  }
+  
+  // For longer reviews, use Long Form Content kind
+  const useNIP23 = reviewText.length > 280;
+  
+  const event: Partial<NostrEvent> = {
+    kind: useNIP23 ? NOSTR_KINDS.LONG_FORM : NOSTR_KINDS.TEXT_NOTE,
+    tags,
+    content: useNIP23 
+      ? JSON.stringify({
+          title: `Review: ${book.title}`,
+          published_at: Math.floor(Date.now() / 1000),
+          content: reviewText
+        })
+      : reviewText
+  };
+  
+  return publishToNostr(event);
 }
 
 declare global {
