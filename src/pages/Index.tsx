@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, PlusCircle, Bookmark, BookOpen } from "lucide-react";
+import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import { mockBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
