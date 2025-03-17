@@ -65,11 +65,11 @@ export default {
 				},
 				// BookVerse specific colors
 				bookverse: {
-					paper: '#F5F2E9',
-					cream: '#EDEBD7',
-					ink: '#1C2C3B',
-					accent: '#7F5E32',
-					highlight: '#CF9E52'
+					paper: '#FFFFFF',
+					cream: '#FFF8E7',
+					ink: '#4E2A84', // Purple
+					accent: '#F58025', // Orange
+					highlight: '#F9B775' // Light Orange
 				}
 			},
 			borderRadius: {
