@@ -1,4 +1,3 @@
-import { toast } from "@/components/ui/use-toast";
 
 // Types
 export interface NostrProfile {
@@ -19,6 +18,19 @@ export interface NostrEvent {
   tags: string[][];
   content: string;
   sig: string;
+}
+
+// Define Book interface that was missing
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  coverUrl: string;
+  description: string;
+  isbn: string;
+  pubDate: string;
+  pageCount: number;
+  categories: string[];
 }
 
 // Mock data for development
