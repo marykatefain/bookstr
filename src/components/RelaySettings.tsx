@@ -11,7 +11,14 @@ import {
   CardContent, 
   CardFooter 
 } from "@/components/ui/card";
-import { DEFAULT_RELAYS, getUserRelays, addRelay, removeRelay, resetRelays } from "@/lib/nostr";
+import { 
+  DEFAULT_RELAYS, 
+  getUserRelays, 
+  addRelay, 
+  removeRelay, 
+  resetRelays,
+  getCurrentUser 
+} from "@/lib/nostr";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -19,6 +26,7 @@ export function RelaySettings() {
   const { toast } = useToast();
   const [relayUrl, setRelayUrl] = useState("");
   const [relays, setRelays] = useState<string[]>(getUserRelays());
+  const currentUser = getCurrentUser();
 
   const handleAddRelay = () => {
     // Basic validation
@@ -31,14 +39,14 @@ export function RelaySettings() {
       return;
     }
 
-    if (addRelay(relayUrl)) {
+    if (addRelay(relayUrl, currentUser)) {
       setRelays(getUserRelays());
       setRelayUrl("");
     }
   };
 
   const handleRemoveRelay = (relay: string) => {
-    if (removeRelay(relay)) {
+    if (removeRelay(relay, currentUser)) {
       setRelays(getUserRelays());
     } else if (relay === DEFAULT_RELAYS[0]) {
       toast({
@@ -50,7 +58,7 @@ export function RelaySettings() {
   };
 
   const handleResetRelays = () => {
-    resetRelays();
+    resetRelays(currentUser);
     setRelays(getUserRelays());
   };
 
