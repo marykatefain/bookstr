@@ -157,7 +157,7 @@ const Books = () => {
                           onClick={() => addToLibrary(book.id, 'want-to-read')}
                         >
                           <PlusCircle className="mr-1 h-4 w-4" />
-                          Want to Read
+                          TBR
                         </Button>
                         <Button
                           size="sm"
