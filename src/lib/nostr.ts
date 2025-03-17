@@ -509,10 +509,12 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     // Publish to relays
     try {
       // Use Promise.allSettled instead of Promise.any for better compatibility
-      const results = await Promise.allSettled(
-        // Fix: Ensure we're passing each URL separately, not the whole array
-        relayUrls.map(url => pool.publish(url, signedEvent))
-      );
+      const publishPromises = relayUrls.map(url => {
+        // Fixed: SimplePool.publish expects ([string], event) not (string, event)
+        return pool.publish([url], signedEvent);
+      });
+      
+      const results = await Promise.allSettled(publishPromises);
       
       // Check if at least one relay accepted the event
       const success = results.some(result => 
