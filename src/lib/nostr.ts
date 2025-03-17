@@ -1,13 +1,19 @@
 
+import { toast } from "@/hooks/use-toast";
+
 // Types
 export interface NostrProfile {
-  npub: string;
-  pubkey: string;
+  npub?: string;
+  pubkey?: string;
   name?: string;
   displayName?: string;
+  nip05?: string;
   picture?: string;
+  banner?: string;
   about?: string;
-  relays?: string[];
+  website?: string;
+  lud06?: string;
+  lud16?: string;
 }
 
 export interface NostrEvent {

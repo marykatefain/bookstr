@@ -91,31 +91,13 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="flex flex-1">
         {/* Sidebar for non-mobile screens */}
         <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
-          <div className="flex items-center space-x-2 mb-8">
+          <div className="flex items-center space-x-2 mb-4">
             <Book className="h-6 w-6 text-bookverse-accent" />
             <h1 className="text-xl font-serif font-bold text-bookverse-ink">BookVerse</h1>
           </div>
-
-          <nav className="flex-1 space-y-1">
-            {filteredLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  location.pathname === link.path
-                    ? "bg-bookverse-cream text-bookverse-accent font-medium"
-                    : "text-bookverse-ink hover:bg-bookverse-cream"
-                }`}
-              >
-                <link.icon className="h-5 w-5" />
-                <span>{link.label}</span>
-              </Link>
-            ))}
-          </nav>
-
-          <Separator className="my-4" />
-
-          <div className="mt-auto">
+          
+          {/* User profile or login - moved to top */}
+          <div className="mb-4">
             {user ? (
               <div className="space-y-3">
                 <div className="flex items-center space-x-3 p-3">
@@ -145,6 +127,27 @@ export const Layout = ({ children }: LayoutProps) => {
               <NostrLogin />
             )}
           </div>
+
+          <Separator className="my-4" />
+
+          <nav className="flex-1 space-y-1">
+            {filteredLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  location.pathname === link.path
+                    ? "bg-bookverse-cream text-bookverse-accent font-medium"
+                    : "text-bookverse-ink hover:bg-bookverse-cream"
+                }`}
+              >
+                <link.icon className="h-5 w-5" />
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </nav>
+
+          {/* Removed the user section from bottom */}
         </aside>
 
         {/* Mobile Sidebar (slide-in) */}
@@ -164,27 +167,8 @@ export const Layout = ({ children }: LayoutProps) => {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-
-              <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                {filteredLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm transition-colors ${
-                      location.pathname === link.path
-                        ? "bg-bookverse-cream text-bookverse-accent font-medium"
-                        : "text-bookverse-ink hover:bg-bookverse-cream"
-                    }`}
-                    onClick={closeMobileSidebar}
-                  >
-                    <link.icon className="h-5 w-5" />
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </nav>
-
-              <Separator className="my-2" />
-
+              
+              {/* User profile or login - moved to top for mobile too */}
               <div className="p-4">
                 {user ? (
                   <div className="space-y-3">
@@ -218,6 +202,28 @@ export const Layout = ({ children }: LayoutProps) => {
                   <NostrLogin onLoginComplete={closeMobileSidebar} />
                 )}
               </div>
+
+              <Separator className="my-2" />
+
+              <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                {filteredLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm transition-colors ${
+                      location.pathname === link.path
+                        ? "bg-bookverse-cream text-bookverse-accent font-medium"
+                        : "text-bookverse-ink hover:bg-bookverse-cream"
+                    }`}
+                    onClick={closeMobileSidebar}
+                  >
+                    <link.icon className="h-5 w-5" />
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </nav>
+              
+              {/* Removed the user section from bottom of mobile sidebar */}
             </div>
             <div 
               className="flex-1 bg-black bg-opacity-50" 
