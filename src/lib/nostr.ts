@@ -1,6 +1,6 @@
 import { toast } from "@/hooks/use-toast";
-import { SimplePool, Event as NostrEvent, nip19, validateEvent, getEventHash } from "nostr-tools";
-import type { UnsignedEvent } from "nostr-tools";
+import { SimplePool, nip19, validateEvent, getEventHash } from "nostr-tools";
+import type { UnsignedEvent, Event } from "nostr-tools";
 
 // Types
 export interface NostrProfile {
@@ -18,7 +18,8 @@ export interface NostrProfile {
   relays?: string[];
 }
 
-export interface NostrEvent {
+// Rename our local interface to avoid conflict with imported type
+export interface NostrEventData {
   id: string;
   pubkey: string;
   created_at: number;
@@ -235,7 +236,7 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
           try {
             const message = JSON.parse(event.data);
             if (message[0] === "EVENT" && message[1] === subscriptionId) {
-              const profileEvent = message[2] as NostrEvent;
+              const profileEvent = message[2] as NostrEventData;
               
               if (profileEvent.kind === 0 && profileEvent.pubkey === pubkey) {
                 const profileData = parseProfileContent(profileEvent.content);
@@ -453,7 +454,7 @@ function pubkeyToNpub(pubkey: string): string {
 /**
  * Publish an event to Nostr relays
  */
-export async function publishToNostr(event: Partial<NostrEvent>): Promise<string | null> {
+export async function publishToNostr(event: Partial<NostrEventData>): Promise<string | null> {
   try {
     if (!isLoggedIn()) {
       toast({
@@ -509,6 +510,7 @@ export async function publishToNostr(event: Partial<NostrEvent>): Promise<string
     try {
       // Use Promise.allSettled instead of Promise.any for better compatibility
       const results = await Promise.allSettled(
+        // Fix: Ensure we're passing each URL separately, not the whole array
         relayUrls.map(url => pool.publish(url, signedEvent))
       );
       
@@ -551,7 +553,7 @@ export async function publishToNostr(event: Partial<NostrEvent>): Promise<string
  * Add a book to the "Want to Read" list
  */
 export async function addBookToTBR(book: Book): Promise<string | null> {
-  const event: Partial<NostrEvent> = {
+  const event: Partial<NostrEventData> = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags: [
       ["d", "tbr"],
@@ -570,7 +572,7 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
 export async function markBookAsReading(book: Book): Promise<string | null> {
   const now = new Date().toISOString();
   
-  const event: Partial<NostrEvent> = {
+  const event: Partial<NostrEventData> = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags: [
       ["d", "reading"],
@@ -602,7 +604,7 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
     tags.push(["rating", rating.toString()]);
   }
   
-  const event: Partial<NostrEvent> = {
+  const event: Partial<NostrEventData> = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags,
     content: `Finished reading ${book.title} by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
@@ -620,7 +622,7 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
   }
   
   // Using the proposed NIP format for ratings
-  const event: Partial<NostrEvent> = {
+  const event: Partial<NostrEventData> = {
     kind: NOSTR_KINDS.BOOK_RATING,
     tags: [
       ["d", `rating:${book.isbn}`],
@@ -652,7 +654,7 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   // For longer reviews, use Long Form Content kind
   const useNIP23 = reviewText.length > 280;
   
-  const event: Partial<NostrEvent> = {
+  const event: Partial<NostrEventData> = {
     kind: useNIP23 ? NOSTR_KINDS.LONG_FORM : NOSTR_KINDS.TEXT_NOTE,
     tags,
     content: useNIP23 
@@ -671,7 +673,7 @@ declare global {
   interface Window {
     nostr?: {
       getPublicKey: () => Promise<string>;
-      signEvent: (event: Partial<NostrEvent>) => Promise<NostrEvent>;
+      signEvent: (event: Partial<NostrEventData>) => Promise<Event>;
       getRelays: () => Promise<Record<string, { read: boolean; write: boolean }>>;
     };
   }
