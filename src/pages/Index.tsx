@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn } from "lucide-react"
 import { Link } from "react-router-dom";
 import { mockBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
+import { NostrLogin } from "@/components/NostrLogin";
 
 const Index = () => {
   const { toast } = useToast();
@@ -47,6 +47,13 @@ const Index = () => {
                 Discover, track, and share your reading journey on the Nostr network. Take control of your book data.
               </p>
             </div>
+            
+            {!isLoggedIn() && (
+              <div className="w-full max-w-md mt-4">
+                <NostrLogin />
+              </div>
+            )}
+            
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/books">
                 <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
@@ -199,10 +206,9 @@ const Index = () => {
                 BookVerse connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
               </p>
               {!isLoggedIn() && (
-                <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Sign in with Nostr
-                </Button>
+                <div className="w-full max-w-md">
+                  <NostrLogin />
+                </div>
               )}
             </div>
             <div className="md:w-1/2 flex justify-center md:justify-end">

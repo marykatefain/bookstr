@@ -16,6 +16,8 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
+      // The nostr-login package will handle the UI and connection
+      // We just need to call window.nostr.getPublicKey()
       const user = await loginWithNostr();
       if (user) {
         toast({
@@ -43,10 +45,11 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
   return (
     <Button 
       onClick={handleLogin} 
-      className="w-full" 
+      className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
+      size="lg"
       disabled={isLoggingIn}
     >
-      <LogIn className="h-4 w-4 mr-2" />
+      <LogIn className="h-5 w-5 mr-2" />
       {isLoggingIn ? "Connecting..." : "Sign in with Nostr"}
     </Button>
   );
