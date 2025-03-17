@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// BookVerse specific colors
+				bookverse: {
+					paper: '#F5F2E9',
+					cream: '#EDEBD7',
+					ink: '#1C2C3B',
+					accent: '#7F5E32',
+					highlight: '#CF9E52'
 				}
 			},
 			borderRadius: {
@@ -84,11 +93,20 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'page-turn': {
+					'0%': { transform: 'rotateY(0deg)' },
+					'100%': { transform: 'rotateY(-10deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'page-turn': 'page-turn 1.5s ease-in-out'
+			},
+			fontFamily: {
+				serif: ['Merriweather', 'Georgia', 'serif'],
+				sans: ['Inter', 'system-ui', 'sans-serif']
 			}
 		}
 	},
