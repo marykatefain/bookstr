@@ -1,3 +1,4 @@
+
 // Types
 export interface NostrProfile {
   npub?: string;
@@ -25,6 +26,14 @@ export interface NostrEventData {
   sig: string;
 }
 
+export interface ReadingStatus {
+  status: 'tbr' | 'reading' | 'read';
+  dateAdded: number;
+  dateStarted?: number;
+  dateFinished?: number;
+  rating?: number;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -35,6 +44,7 @@ export interface Book {
   pubDate: string;
   pageCount: number;
   categories: string[];
+  readingStatus?: ReadingStatus;
 }
 
 // Nostr event kinds

@@ -34,3 +34,9 @@ export {
   rateBook,
   reviewBook
 } from "./books";
+
+// Export fetch functions
+export {
+  fetchUserBooks,
+  fetchBooksByISBN
+} from "./fetch";
