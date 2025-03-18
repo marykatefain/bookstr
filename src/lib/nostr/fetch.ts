@@ -74,17 +74,15 @@ export async function fetchUserBooks(pubkey: string): Promise<{
   const pool = new SimplePool();
   
   try {
-    const filters: Filter[] = [
-      {
-        kinds: [NOSTR_KINDS.GENERIC_LIST],
-        authors: [pubkey],
-        "#t": ["books"]
-      }
-    ];
+    // Create a single Filter object instead of an array
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.GENERIC_LIST],
+      authors: [pubkey],
+      "#t": ["books"]
+    };
     
-    // Use the correct method to fetch events
-    // The SimplePool.list() method has been replaced with SimplePool.querySync()
-    const events = await pool.querySync(relays, filters);
+    // Pass a single Filter object to querySync
+    const events = await pool.querySync(relays, filter);
     
     // Group books by reading status
     const tbrBooks: Book[] = [];
