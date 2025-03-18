@@ -184,6 +184,7 @@ const Books = () => {
                     key={book.id} 
                     book={book} 
                     showDescription={false}
+                    size="small"
                     onUpdate={() => console.log("Book updated")}
                   />
                 ))
