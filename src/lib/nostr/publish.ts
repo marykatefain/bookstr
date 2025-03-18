@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
 import { getCurrentUser, isLoggedIn } from "./user";
-import { getUserRelays, ensureConnections } from "./relay";
+import { getUserRelays, ensureConnections, getActiveConnections } from "./relay";
 
 /**
  * Publish an event to Nostr relays
@@ -47,11 +47,36 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
 
     console.log("Unsigned event:", unsignedEvent);
 
-    // Sign the event with the extension
+    // Ensure we have active connections to relays before signing
     try {
-      // Ensure we have active connections to relays before signing
+      // This will wait for connections to be established
       await ensureConnections();
       
+      // Verify we have active connections before proceeding
+      const activeConnections = getActiveConnections();
+      if (activeConnections.length === 0) {
+        throw new Error("No relay connections available");
+      }
+      
+      // Check that at least one connection is open
+      const openConnections = activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
+      if (openConnections.length === 0) {
+        throw new Error("All relay connections are closed");
+      }
+      
+      console.log(`Proceeding with ${openConnections.length} open relay connections`);
+    } catch (connError) {
+      console.error("Error with relay connections:", connError);
+      toast({
+        title: "Connection error",
+        description: "Failed to establish relay connections. Please try again.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    // Sign the event with the extension
+    try {
       const signedEvent = await window.nostr.signEvent(unsignedEvent);
       
       if (!signedEvent) {
