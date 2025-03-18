@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Book, MessageCircle, Heart, Star } from "lucide-react";
@@ -9,6 +8,7 @@ import { SocialActivity } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { reactToContent, isLoggedIn } from "@/lib/nostr";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ActivityCardProps {
   activity: SocialActivity;
@@ -17,6 +17,7 @@ interface ActivityCardProps {
 
 export function ActivityCard({ activity, onReaction }: ActivityCardProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const formatPubkey = (pubkey: string): string => {
     try {
@@ -195,12 +196,14 @@ export function ActivityCard({ activity, onReaction }: ActivityCardProps) {
           <MessageCircle className="mr-1 h-4 w-4" />
           <span>Reply</span>
         </Button>
-        <Link to={`/book/${activity.book.isbn}`} className="ml-auto">
-          <Button variant="ghost" size="sm">
-            <Book className="mr-1 h-4 w-4" />
-            <span>View Book</span>
-          </Button>
-        </Link>
+        {!isMobile && (
+          <Link to={`/book/${activity.book.isbn}`} className="ml-auto">
+            <Button variant="ghost" size="sm">
+              <Book className="mr-1 h-4 w-4" />
+              <span>View Book</span>
+            </Button>
+          </Link>
+        )}
       </CardFooter>
     </Card>
   );
