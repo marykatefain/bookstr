@@ -89,6 +89,15 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
+  // Determine button text based on size
+  const getTbrButtonText = () => {
+    return size === "small" ? "TBR" : "To Be Read";
+  };
+
+  const getStartReadingButtonText = () => {
+    return size === "small" ? "Start" : "Start Reading";
+  };
+
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 h-full">
@@ -167,7 +176,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               ) : (
                 <PlusCircle className="mr-1 h-4 w-4" />
               )}
-              {size === 'small' ? 'TBR' : 'To Be Read'}
+              {getTbrButtonText()}
             </Button>
             <Button
               size="sm"
@@ -180,7 +189,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               ) : (
                 <BookOpen className="mr-1 h-4 w-4" />
               )}
-              {size === 'small' ? 'Start' : 'Start Reading'}
+              {getStartReadingButtonText()}
             </Button>
           </div>
         </div>
