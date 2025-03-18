@@ -31,7 +31,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
 
   const getCardClasses = () => {
-    const baseClasses = "overflow-hidden h-full book-card";
+    const baseClasses = "overflow-hidden h-full";
     if (size === "small") return `${baseClasses} max-w-[200px]`;
     if (size === "large") return `${baseClasses} max-w-[300px]`;
     return baseClasses; // medium size
@@ -108,7 +108,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 h-full">
-        <div className="relative aspect-[2/3] book-cover overflow-hidden">
+        <div className="relative aspect-[2/3] overflow-hidden">
           <Link to={`/book/${book.isbn}`}>
             <img
               src={book.coverUrl}
@@ -178,11 +178,11 @@ export const BookCard: React.FC<BookCardProps> = ({
             <p className="text-sm line-clamp-2">{book.description}</p>
           )}
           
-          <div className="pt-2 flex space-x-2">
+          <div className="pt-2 flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="flex-1"
+              className="flex-1 min-w-20"
               onClick={() => handleAction('want-to-read')}
               disabled={!!pendingAction}
             >
@@ -195,7 +195,7 @@ export const BookCard: React.FC<BookCardProps> = ({
             </Button>
             <Button
               size="sm"
-              className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+              className="flex-1 min-w-20 bg-bookverse-accent hover:bg-bookverse-highlight"
               onClick={() => handleAction('reading')}
               disabled={!!pendingAction}
             >

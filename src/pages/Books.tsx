@@ -5,9 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Book as BookIcon, Search, Filter, Loader2 } from "lucide-react";
 import { Book } from "@/lib/nostr";
-import { searchBooks, searchBooksByGenre, getTrendingBooks } from "@/lib/openlibrary";
+import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { BookCard } from "@/components/BookCard";
+import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 
 const categories = [
   "All",
@@ -28,28 +29,15 @@ const Books = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const { books: weeklyTrendingBooks, loading: loadingTrending } = useWeeklyTrendingBooks(20);
 
   // Initial loading of trending books
   useEffect(() => {
-    const loadTrendingBooks = async () => {
-      setIsLoading(true);
-      try {
-        const trending = await getTrendingBooks(20);
-        setBooks(trending);
-      } catch (error) {
-        console.error("Error loading trending books:", error);
-        toast({
-          title: "Error loading books",
-          description: "There was a problem fetching books. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTrendingBooks();
-  }, [toast]);
+    if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+      setBooks(weeklyTrendingBooks);
+      setIsLoading(false);
+    }
+  }, [weeklyTrendingBooks, loadingTrending]);
 
   // Handle search debounce
   useEffect(() => {
@@ -64,9 +52,11 @@ const Books = () => {
   useEffect(() => {
     const performSearch = async () => {
       if (!debouncedSearch && activeCategory === "All") {
-        // If search is cleared and category is All, load trending books
-        const trending = await getTrendingBooks(20);
-        setBooks(trending);
+        // If search is cleared and category is All, use the weekly trending books
+        if (weeklyTrendingBooks.length > 0) {
+          setBooks(weeklyTrendingBooks);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -96,7 +86,7 @@ const Books = () => {
     };
 
     performSearch();
-  }, [debouncedSearch, activeCategory, toast]);
+  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks]);
 
   // Handle category change
   useEffect(() => {
@@ -107,8 +97,10 @@ const Books = () => {
       setIsLoading(true);
       try {
         if (activeCategory === "All") {
-          const trending = await getTrendingBooks(20);
-          setBooks(trending);
+          // Use weekly trending books for the "All" category
+          if (weeklyTrendingBooks.length > 0) {
+            setBooks(weeklyTrendingBooks);
+          }
         } else {
           const genreBooks = await searchBooksByGenre(activeCategory, 20);
           setBooks(genreBooks);
@@ -126,7 +118,7 @@ const Books = () => {
     };
 
     loadCategoryBooks();
-  }, [activeCategory, toast, debouncedSearch]);
+  }, [activeCategory, toast, debouncedSearch, weeklyTrendingBooks]);
 
   return (
     <Layout>
@@ -171,7 +163,7 @@ const Books = () => {
             </div>
           </div>
 
-          {isLoading ? (
+          {isLoading || loadingTrending ? (
             <div className="flex justify-center items-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-bookverse-accent" />
               <span className="ml-2 text-bookverse-ink">Loading books...</span>

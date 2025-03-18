@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap');
 
 @tailwind base;
@@ -101,19 +100,11 @@
   }
 }
 
-.book-card {
-  perspective: 1000px;
-  transform-style: preserve-3d;
-}
-
+/* Removed the perspective and transform styles that were causing the weird hover effect */
 .book-cover {
   transition: transform 0.5s ease;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
 }
 
-.book-card:hover .book-cover {
-  transform: rotateY(-10deg);
-  /* The transform is now only applied to the cover element, not affecting the overall size */
+.book-cover:hover {
+  transform: scale(1.05);
 }
-
