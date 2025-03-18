@@ -264,7 +264,7 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
           profileMap.set(profileEvent.pubkey, {
             name: profileData.name || profileData.display_name,
             picture: profileData.picture,
-            npub: profileEvent.pubkey // Will be converted to npub in the UI
+            npub: profileEvent.pubkey
           });
         } catch (e) {
           console.error("Error parsing profile data:", e);
@@ -679,3 +679,4 @@ export async function ensureBookMetadata(book: Book): Promise<string | null> {
   console.log("Book metadata is no longer needed in the simplified approach");
   return "placeholder"; // Return a non-null value to avoid errors
 }
+

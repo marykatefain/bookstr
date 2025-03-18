@@ -36,8 +36,8 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
           subscriptionId,
           {
             "kinds": [0],
-            "authors": [pubkey],
-            "limit": 1
+            "authors": [pubkey]
+            // Removed the "limit": 1 parameter to get all available events
           }
         ]);
         
