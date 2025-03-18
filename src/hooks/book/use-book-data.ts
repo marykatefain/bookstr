@@ -3,38 +3,49 @@ import { useState, useEffect } from "react";
 import { Book } from "@/lib/nostr/types";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export const useBookData = (isbn: string | undefined) => {
-  const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
 
+  const { 
+    data: book = null, 
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['book', isbn],
+    queryFn: async () => {
+      if (!isbn) return null;
+      return await fetchBookByISBN(isbn);
+    },
+    enabled: !!isbn,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    cacheTime: 1000 * 60 * 60 * 24, // 24 hours
+    retry: 2,
+    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000),
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Could not load book details",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Set read status when book data is available
   useEffect(() => {
-    const fetchData = async () => {
-      if (!isbn) return;
-      
-      setLoading(true);
-      try {
-        const bookData = await fetchBookByISBN(isbn);
-        if (bookData) {
-          setBook(bookData);
-          setIsRead(bookData.readingStatus?.status === 'finished');
-        }
-      } catch (error) {
-        console.error("Error fetching book data:", error);
-        toast({
-          title: "Error",
-          description: "Could not load book details",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [isbn, toast]);
+    if (book) {
+      setIsRead(book.readingStatus?.status === 'finished');
+    }
+  }, [book]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching book data:", error);
+    }
+  }, [error]);
 
   return {
     book,

@@ -3,6 +3,10 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 
+// Simple in-memory cache for book details
+const bookCache: Record<string, { data: Book | null; timestamp: number }> = {};
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 /**
  * Get details for a specific book by ISBN
  */
@@ -12,8 +16,23 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     return null;
   }
 
+  // Check cache first
+  const now = Date.now();
+  const cached = bookCache[isbn];
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    console.log(`Using cached data for ISBN ${isbn}`);
+    return cached.data;
+  }
+
   try {
-    const response = await fetch(`${BASE_URL}/isbn/${isbn}.json`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    const response = await fetch(`${BASE_URL}/isbn/${isbn}.json`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -21,37 +40,49 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     const data = await response.json();
     const workKey = data.works?.[0]?.key;
     
+    let workData = null;
     if (workKey) {
-      const workResponse = await fetch(`${BASE_URL}${workKey}.json`);
-      const work = await workResponse.json();
-      
-      return {
-        id: work.key,
-        title: data.title,
-        author: data.authors?.[0]?.name || "Unknown Author",
-        isbn: isbn, // Ensure we keep the ISBN
-        coverUrl: getCoverUrl(isbn, data.covers?.[0]),
-        description: typeof work.description === 'string' ? work.description : work.description?.value || "",
-        pubDate: data.publish_date || work.first_publish_date || "",
-        pageCount: data.number_of_pages || 0,
-        categories: work.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
-      };
+      try {
+        const workTimeoutId = setTimeout(() => controller.abort(), 8000);
+        const workResponse = await fetch(`${BASE_URL}${workKey}.json`, {
+          signal: controller.signal
+        });
+        clearTimeout(workTimeoutId);
+        
+        if (workResponse.ok) {
+          workData = await workResponse.json();
+        }
+      } catch (workError) {
+        console.error("Error fetching work data:", workError);
+        // Continue with partial data
+      }
     }
     
-    // If we can't get work data, at least return book with ISBN
-    return {
-      id: `isbn:${isbn}`,
+    // Create book object with available data
+    const book: Book = {
+      id: workData?.key || `isbn:${isbn}`,
       title: data.title || "Unknown Title",
       author: data.authors?.[0]?.name || "Unknown Author",
       isbn: isbn,
       coverUrl: getCoverUrl(isbn, data.covers?.[0]),
-      description: "",
-      pubDate: data.publish_date || "",
+      description: typeof workData?.description === 'string' ? workData.description : workData?.description?.value || "",
+      pubDate: data.publish_date || workData?.first_publish_date || "",
       pageCount: data.number_of_pages || 0,
-      categories: []
+      categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
+
+    // Cache the result
+    bookCache[isbn] = { data: book, timestamp: now };
+    
+    return book;
   } catch (error) {
     console.error("Error fetching book by ISBN:", error);
+    
+    // Cache the error state to prevent repeated failed requests
+    if (!bookCache[isbn]) {
+      bookCache[isbn] = { data: null, timestamp: now - (CACHE_TTL - 60000) }; // Cache for 1 minute on errors
+    }
+    
     return null;
   }
 }
@@ -122,7 +153,44 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
     return [];
   }
 
-  const bookPromises = validIsbns.map(isbn => getBookByISBN(isbn));
-  const books = await Promise.all(bookPromises);
-  return books.filter((book): book is Book => book !== null);
+  // Check cache first for all books
+  const now = Date.now();
+  const cachedBooks: Book[] = [];
+  const isbnsToFetch: string[] = [];
+  
+  validIsbns.forEach(isbn => {
+    const cached = bookCache[isbn];
+    if (cached && cached.data && (now - cached.timestamp < CACHE_TTL)) {
+      cachedBooks.push(cached.data);
+    } else {
+      isbnsToFetch.push(isbn);
+    }
+  });
+  
+  // If all books are cached, return them immediately
+  if (isbnsToFetch.length === 0) {
+    return cachedBooks;
+  }
+  
+  // Fetch missing books with concurrency limit
+  const fetchBook = async (isbn: string): Promise<Book | null> => {
+    try {
+      return await getBookByISBN(isbn);
+    } catch (error) {
+      console.error(`Error fetching book ${isbn}:`, error);
+      return null;
+    }
+  };
+  
+  // Fetch in batches of 5 to avoid overwhelming the API
+  const batchSize = 5;
+  const fetchedBooks: Book[] = [];
+  
+  for (let i = 0; i < isbnsToFetch.length; i += batchSize) {
+    const batch = isbnsToFetch.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fetchBook));
+    fetchedBooks.push(...batchResults.filter((book): book is Book => book !== null));
+  }
+  
+  return [...cachedBooks, ...fetchedBooks];
 }

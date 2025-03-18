@@ -85,60 +85,91 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
  * Get weekly trending books from OpenLibrary's trending API
  */
 export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]> {
-  // If we have cached data less than 30 minutes old, use it
+  // If we have cached data less than 60 minutes old, use it (increased from 30 minutes)
   const now = Date.now();
-  if (weeklyTrendingCache.books.length > 0 && (now - weeklyTrendingCache.timestamp) < 30 * 60 * 1000) {
+  if (weeklyTrendingCache.books.length > 0 && (now - weeklyTrendingCache.timestamp) < 60 * 60 * 1000) {
     console.log("Using cached weekly trending books data");
     return weeklyTrendingCache.books.slice(0, limit);
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      console.warn(`Weekly trending API returned status ${response.status}, falling back to cached data or alternative method`);
+      
+      // Try to use cached data even if expired
+      if (weeklyTrendingCache.books.length > 0) {
+        console.log("Using expired weekly trending cache as fallback");
+        // Update timestamp to prevent immediate retry, but allow retry after 10 minutes
+        weeklyTrendingCache.timestamp = now - (50 * 60 * 1000);
+        return weeklyTrendingCache.books.slice(0, limit);
+      }
+      
+      return await getTrendingBooks(limit);
     }
     
     const data = await response.json();
     const works = data.works || [];
     
-    const books = await Promise.all(
-      works
-        .filter((work: any) => work.cover_id || work.cover_edition_key)
-        .map(async (work: any) => {
-          let isbn = work.availability?.isbn || "";
-          
-          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
-          if (!isbn && work.cover_edition_key) {
-            console.log(`Fetching ISBN for weekly trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
+    // Process works in batches to avoid too many concurrent requests
+    const batchSize = 5;
+    const allBooks: Book[] = [];
+    
+    for (let i = 0; i < works.length; i += batchSize) {
+      const batch = works.slice(i, i + batchSize)
+        .filter((work: any) => work.cover_id || work.cover_edition_key);
+      
+      const batchPromises = batch.map(async (work: any) => {
+        let isbn = work.availability?.isbn || "";
+        
+        if (!isbn && work.cover_edition_key) {
+          try {
             isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
-            if (isbn) {
-              console.log(`Found ISBN for weekly trending book ${work.title}: ${isbn}`);
-            }
+          } catch (error) {
+            // Fail silently on ISBN fetch errors
+            console.warn(`Could not fetch ISBN for edition key ${work.cover_edition_key}`);
           }
-          
-          return {
-            id: work.key,
-            title: work.title,
-            author: work.authors?.[0]?.name || "Unknown Author",
-            isbn: isbn,
-            coverUrl: getCoverUrl(isbn, work.cover_id),
-            description: work.description?.value || "",
-            pubDate: work.first_publish_year?.toString() || "",
-            pageCount: 0,
-            categories: ["Trending"]
-          };
-        })
-    );
+        }
+        
+        return {
+          id: work.key,
+          title: work.title,
+          author: work.authors?.[0]?.name || "Unknown Author",
+          isbn: isbn,
+          coverUrl: getCoverUrl(isbn, work.cover_id),
+          description: work.description?.value || "",
+          pubDate: work.first_publish_year?.toString() || "",
+          pageCount: 0,
+          categories: ["Trending"]
+        };
+      });
+      
+      const batchBooks = await Promise.all(batchPromises);
+      allBooks.push(...batchBooks);
+    }
     
     // Update cache
-    weeklyTrendingCache.books = books;
+    weeklyTrendingCache.books = allBooks;
     weeklyTrendingCache.timestamp = now;
     
-    return books;
+    return allBooks.slice(0, limit);
   } catch (error) {
     console.error("Error fetching weekly trending books:", error);
-    // Fallback to the older trending books method if the weekly API fails
-    return getTrendingBooks(limit);
+    
+    // If we have any cached data, use it as fallback even if expired
+    if (weeklyTrendingCache.books.length > 0) {
+      console.log("Using expired cache as fallback after error");
+      return weeklyTrendingCache.books.slice(0, limit);
+    }
+    
+    return await getTrendingBooks(limit);
   }
 }
 

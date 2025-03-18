@@ -12,16 +12,19 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
     data: books = [], 
     isLoading: loading, 
     refetch, 
-    error 
+    error,
+    isFetching 
   } = useQuery({
     queryKey: ['weeklyTrendingBooks', limit],
     queryFn: () => getWeeklyTrendingBooks(limit),
-    staleTime: 60 * 60 * 1000, // 60 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes (reduced from 60 to keep data fresher)
     gcTime: 120 * 60 * 1000, // 2 hours
-    retry: 1,
+    retry: 2,
+    retryDelay: attempt => Math.min(attempt > 1 ? 3000 : 1000, 30 * 1000),
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    initialData: [], // Provide empty array as initial data to avoid undefined
   });
 
   // Handle errors outside the query config
@@ -30,7 +33,7 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
       console.error("Error loading weekly trending books:", error);
       toast({
         title: "Error loading books",
-        description: "There was a problem fetching trending books.",
+        description: "There was a problem fetching trending books. Showing cached results.",
         variant: "destructive"
       });
     }
@@ -40,5 +43,9 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
     refetch();
   }, [refetch]);
 
-  return { books, loading, refreshBooks };
+  return { 
+    books, 
+    loading: loading || (isFetching && books.length === 0), // Only show loading state if no data
+    refreshBooks 
+  };
 }
