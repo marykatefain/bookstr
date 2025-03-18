@@ -11,7 +11,7 @@ import { useRecentBooks } from "@/hooks/use-recent-books";
 
 const Index = () => {
   const { books: trendingBooks, loading: loadingTrending, refreshBooks: refreshTrending } = useWeeklyTrendingBooks(20);
-  const { books: recentlyAdded, loading: loadingRecent, refreshBooks: refreshRecent } = useRecentBooks(3);
+  const { books: recentlyAdded, loading: loadingRecent, refreshBooks: refreshRecent } = useRecentBooks(4);
 
   return (
     <Layout>

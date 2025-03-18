@@ -79,11 +79,11 @@ export function BookSection({
         <Carousel className="w-full relative">
           <CarouselContent className="-ml-4">
             {books.map(book => (
-              <CarouselItem key={book.id} className="pl-4 md:basis-1/3">
+              <CarouselItem key={book.id} className="pl-4 md:basis-1/3 lg:basis-1/4">
                 <BookCard 
                   key={book.id} 
                   book={book}
-                  showDescription={true}
+                  showDescription={false}
                   size="medium"
                   onUpdate={() => onUpdate()}
                 />
@@ -101,12 +101,12 @@ export function BookSection({
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {books.map(book => (
           <BookCard 
             key={book.id} 
             book={book}
-            showDescription={true}
+            showDescription={false}
             size="medium"
             onUpdate={() => onUpdate()}
           />
