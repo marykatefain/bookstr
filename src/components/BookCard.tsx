@@ -1,12 +1,15 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Star, BookOpen, PlusCircle, Loader2, Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/components/ui/use-toast";
 import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead } from "@/lib/nostr";
-import { Link } from "react-router-dom";
+
+import { BookCover } from "./book/BookCover";
+import { BookRating } from "./book/BookRating";
+import { BookCategories } from "./book/BookCategories";
+import { BookActionButtons } from "./book/BookActionButtons";
 
 interface BookCardProps {
   book: Book;
@@ -96,43 +99,19 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
-  const getTbrButtonText = () => {
-    return size === "small" ? "TBR" : "To Be Read";
-  };
-
-  const getStartReadingButtonText = () => {
-    return size === "small" ? "Start" : "Start Reading";
-  };
-
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 h-full">
-        <div className="relative aspect-[2/3] overflow-hidden">
-          <Link to={`/book/${book.isbn}`}>
-            <img
-              src={book.coverUrl}
-              alt={`${book.title} by ${book.author}`}
-              className="object-cover w-full h-full cursor-pointer book-cover"
-              onError={(e) => {
-                e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
-              }}
-            />
-          </Link>
-          <button
-            onClick={() => handleAction('read')}
-            className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
-              ${isRead 
-                ? "bg-green-500 text-white" 
-                : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
-            title="Mark as read"
-          >
-            {pendingAction === 'read' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-          </button>
-        </div>
+        <BookCover 
+          isbn={book.isbn}
+          title={book.title}
+          author={book.author}
+          coverUrl={book.coverUrl}
+          isRead={isRead}
+          pendingAction={pendingAction}
+          onReadAction={() => handleAction('read')}
+        />
+        
         <div className="p-4 space-y-2">
           <h3 className={getTitleClasses()}>
             <Link 
@@ -145,67 +124,23 @@ export const BookCard: React.FC<BookCardProps> = ({
           <p className="text-sm text-muted-foreground">by {book.author}</p>
           
           {showRating && (
-            <div className="flex items-center space-x-1">
-              {book.readingStatus?.rating ? (
-                [...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < (book.readingStatus?.rating || 0) 
-                        ? "text-bookverse-highlight fill-bookverse-highlight" 
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                ))
-              ) : (
-                <span className="text-xs text-muted-foreground">No ratings yet</span>
-              )}
-            </div>
+            <BookRating rating={book.readingStatus?.rating} />
           )}
           
-          {showCategories && book.categories && book.categories.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {book.categories.slice(0, 2).map((category, index) => (
-                <Badge key={`${category}-${index}`} variant="outline" className="text-xs">
-                  {category}
-                </Badge>
-              ))}
-            </div>
+          {showCategories && (
+            <BookCategories categories={book.categories} />
           )}
           
           {showDescription && book.description && (
             <p className="text-sm line-clamp-2">{book.description}</p>
           )}
           
-          <div className="pt-2 flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 text-xs md:text-sm"
-              onClick={() => handleAction('want-to-read')}
-              disabled={!!pendingAction}
-            >
-              {pendingAction === 'want-to-read' ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <PlusCircle className="mr-1 h-4 w-4" />
-              )}
-              {getTbrButtonText()}
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 text-xs md:text-sm bg-bookverse-accent hover:bg-bookverse-highlight"
-              onClick={() => handleAction('reading')}
-              disabled={!!pendingAction}
-            >
-              {pendingAction === 'reading' ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <BookOpen className="mr-1 h-4 w-4" />
-              )}
-              {getStartReadingButtonText()}
-            </Button>
-          </div>
+          <BookActionButtons 
+            size={size}
+            pendingAction={pendingAction}
+            onAddToTbr={() => handleAction('want-to-read')}
+            onStartReading={() => handleAction('reading')}
+          />
         </div>
       </CardContent>
     </Card>
