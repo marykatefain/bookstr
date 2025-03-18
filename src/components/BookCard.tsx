@@ -26,10 +26,8 @@ export const BookCard: React.FC<BookCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  // Update to check for 'finished' instead of 'read'
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
 
-  // Determine styles based on size
   const getCardClasses = () => {
     const baseClasses = "overflow-hidden h-full book-card";
     if (size === "small") return `${baseClasses} max-w-[200px]`;
@@ -54,7 +52,6 @@ export const BookCard: React.FC<BookCardProps> = ({
       return;
     }
 
-    // Check if book has a valid ISBN
     if (!book.isbn) {
       toast({
         title: "Invalid book data",
@@ -98,7 +95,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
-  // Determine button text based on size
   const getTbrButtonText = () => {
     return size === "small" ? "TBR" : "To Be Read";
   };
@@ -119,7 +115,6 @@ export const BookCard: React.FC<BookCardProps> = ({
               e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
             }}
           />
-          {/* Transparent/white check mark button that turns green when active */}
           <button
             onClick={() => handleAction('read')}
             className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 

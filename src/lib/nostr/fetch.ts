@@ -1,4 +1,3 @@
-
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
@@ -68,7 +67,7 @@ async function findBookMetadata(isbn: string): Promise<Event | null> {
     // Query for existing book metadata
     const filter: Filter = {
       kinds: [NOSTR_KINDS.BOOK_METADATA],
-      "#d": [`isbn:${isbn}`],
+      "#i": [`isbn:${isbn}`],
       limit: 5
     };
     

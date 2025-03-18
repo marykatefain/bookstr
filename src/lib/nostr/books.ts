@@ -1,4 +1,3 @@
-
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr } from "./publish";
 import { ensureBookMetadata } from "./fetch";
@@ -15,7 +14,7 @@ export async function publishBookMetadata(book: Book): Promise<string | null> {
   const event = {
     kind: NOSTR_KINDS.BOOK_METADATA,
     tags: [
-      ["d", `isbn:${book.isbn}`],
+      ["i", `isbn:${book.isbn}`], // Changed from "d" to "i" for NIP-73 compliance
       ["t", "book"],
       ["name", book.title],
       ["author", book.author],
@@ -219,7 +218,7 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   
   const tags = [
     ["t", "book-review"],
-    ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+    ["i", `isbn:${book.isbn}`], // Changed from ["i", `isbn:${book.isbn}`] to follow NIP-73
     ["title", book.title],
     ["author", book.author]
   ];
