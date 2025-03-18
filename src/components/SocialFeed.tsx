@@ -92,7 +92,7 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
 
   const handleFindFriends = () => {
     // Find and click the find-friends tab
-    const findFriendsTab = document.querySelector('[data-value="find-friends"]');
+    const findFriendsTab = document.querySelector('[value="find-friends"]');
     if (findFriendsTab && findFriendsTab instanceof HTMLElement) {
       findFriendsTab.click();
     }

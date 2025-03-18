@@ -42,9 +42,9 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/user/:pubkey" element={<UserProfile />} />
             <Route path="/stats" element={<Stats />} />
-            <Route path="/activity" element={<SocialHub />} />
             <Route path="/social" element={<SocialHub />} />
             <Route path="/library" element={<Profile />} />
+            <Route path="/activity" element={<Navigate to="/social" replace />} />
             <Route path="/users" element={<Navigate to="/social" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

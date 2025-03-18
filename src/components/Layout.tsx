@@ -11,7 +11,7 @@ import {
   LogIn,
   Menu,
   X,
-  Activity
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -58,7 +58,7 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: "/", label: "Home", icon: Home },
     { path: "/books", label: "Discover", icon: Book },
     { path: "/library", label: "Library", icon: Library },
-    { path: "/activity", label: "Activity", icon: Activity },
+    { path: "/social", label: "Social", icon: Users },
     { path: "/stats", label: "Stats", icon: BarChart2 },
     { path: "/profile", label: "Profile", icon: User, requiresAuth: true },
   ];
