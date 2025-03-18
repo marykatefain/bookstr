@@ -145,8 +145,6 @@ const Library: React.FC = () => {
             </TabsList>
             
             <TabsContent value="posts">
-              <h2 className="text-2xl font-serif font-semibold mb-4">My Book Posts</h2>
-              
               {postsLoading ? (
                 <div className="space-y-4">
                   {[...Array(4)].map((_, i) => (
