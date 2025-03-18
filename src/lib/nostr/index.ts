@@ -49,5 +49,6 @@ export {
   fetchFollowingList,
   fetchUserProfile,
   fetchSocialFeed,
+  fetchUserReviews,
   ensureBookMetadata
 } from "./fetch";
