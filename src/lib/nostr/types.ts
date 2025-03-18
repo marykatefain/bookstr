@@ -1,4 +1,3 @@
-
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -35,8 +34,44 @@ export interface Book {
   readingStatus?: {
     status: 'tbr' | 'reading' | 'finished';
     dateAdded: number;
-    rating?: number;  // Add the rating property to fix the error
+    rating?: number;
   };
+}
+
+export interface BookReview {
+  id: string;
+  pubkey: string;
+  author?: {
+    name?: string;
+    picture?: string;
+    npub?: string;
+  };
+  content: string;
+  rating?: number;
+  createdAt: number;
+}
+
+export interface SocialActivity {
+  id: string;
+  pubkey: string;
+  type: 'review' | 'rating' | 'tbr' | 'reading' | 'finished';
+  book: Book;
+  content?: string;
+  rating?: number;
+  createdAt: number;
+  author?: {
+    name?: string;
+    picture?: string;
+    npub?: string;
+  };
+  reactions?: {
+    count: number;
+    userReacted: boolean;
+  };
+}
+
+export interface FollowList {
+  follows: string[];
 }
 
 export const mockBooks: Book[] = [
@@ -156,7 +191,7 @@ export const DEFAULT_PROFILE: NostrProfile = {
   npub: "npub1Default",
   pubkey: "Default",
   name: "BookVerse User",
-  display_name: "Bookworm",  // Fixed to match the interface
+  display_name: "Bookworm",
   picture: "https://i.pravatar.cc/300",
   about: "I love books!",
   relays: []
@@ -175,9 +210,8 @@ export const NOSTR_KINDS = {
   LONG_FORM: 30023,
   BOOK_METADATA: 73,
   GENERIC_LIST: 30000,
-  BOOK_RATING: 7000,
-  REVIEW: 1985,
-  // Adding new book action kinds
+  BOOK_RATING: 1080,
+  REVIEW: 1111,
   BOOK_READ: 10073,
   BOOK_READING: 10074,
   BOOK_TBR: 10075

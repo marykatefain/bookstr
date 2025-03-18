@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Books from "./pages/Books";
 import Profile from "./pages/Profile";
 import Stats from "./pages/Stats";
+import BookDetail from "./pages/BookDetail";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,7 +37,9 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/books" element={<Books />} />
+            <Route path="/book/:isbn" element={<BookDetail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/user/:pubkey" element={<UserProfile />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/library" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

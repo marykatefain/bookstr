@@ -1,5 +1,5 @@
 import { SimplePool, type Filter, type Event } from "nostr-tools";
-import { Book, NOSTR_KINDS, NostrProfile } from "./types";
+import { Book, NOSTR_KINDS, NostrProfile, BookReview, SocialActivity, FollowList } from "./types";
 import { getUserRelays } from "./relay";
 import { getCurrentUser } from "./user";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
@@ -15,6 +15,20 @@ function extractISBNFromTags(event: Event): string | null {
   }
   
   return null;
+}
+
+/**
+ * Extract rating from tags
+ */
+function extractRatingFromTags(event: Event): number | undefined {
+  const ratingTag = event.tags.find(tag => tag[0] === 'rating');
+  if (ratingTag && ratingTag[1]) {
+    const rating = parseInt(ratingTag[1], 10);
+    if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+      return rating;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -186,6 +200,412 @@ export async function fetchBooksByISBN(isbns: string[]): Promise<Book[]> {
     return [];
   }
   return getBooksByISBN(validIsbns);
+}
+
+/**
+ * Fetch a single book by ISBN
+ */
+export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
+  if (!isbn || isbn.trim() === '') {
+    return null;
+  }
+  return getBookByISBN(isbn);
+}
+
+/**
+ * Fetch reviews for a specific book
+ */
+export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
+  if (!isbn) {
+    console.error("Cannot fetch reviews: ISBN is missing");
+    return [];
+  }
+  
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.REVIEW],
+      "#i": [`isbn:${isbn}`]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    const reviews: BookReview[] = [];
+    
+    for (const event of events) {
+      const rating = extractRatingFromTags(event);
+      
+      reviews.push({
+        id: event.id,
+        pubkey: event.pubkey,
+        content: event.content,
+        rating,
+        createdAt: event.created_at * 1000
+      });
+    }
+    
+    // Fetch author profiles for the reviews
+    const authorPubkeys = [...new Set(reviews.map(review => review.pubkey))];
+    if (authorPubkeys.length > 0) {
+      const profileFilter: Filter = {
+        kinds: [NOSTR_KINDS.SET_METADATA],
+        authors: authorPubkeys
+      };
+      
+      const profileEvents = await pool.querySync(relays, profileFilter);
+      
+      // Create a map of pubkey to profile data
+      const profileMap = new Map<string, { name?: string; picture?: string; npub?: string }>();
+      
+      for (const profileEvent of profileEvents) {
+        try {
+          const profileData = JSON.parse(profileEvent.content);
+          profileMap.set(profileEvent.pubkey, {
+            name: profileData.name || profileData.display_name,
+            picture: profileData.picture,
+            npub: profileEvent.pubkey // Will be converted to npub in the UI
+          });
+        } catch (e) {
+          console.error("Error parsing profile data:", e);
+        }
+      }
+      
+      // Add author info to reviews
+      reviews.forEach(review => {
+        if (profileMap.has(review.pubkey)) {
+          review.author = profileMap.get(review.pubkey);
+        }
+      });
+    }
+    
+    return reviews.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching book reviews:", error);
+    return [];
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
+ * Fetch ratings for a specific book
+ */
+export async function fetchBookRatings(isbn: string): Promise<BookReview[]> {
+  if (!isbn) {
+    console.error("Cannot fetch ratings: ISBN is missing");
+    return [];
+  }
+  
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.BOOK_RATING],
+      "#i": [`isbn:${isbn}`]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    const ratings: BookReview[] = [];
+    
+    for (const event of events) {
+      const rating = extractRatingFromTags(event);
+      
+      if (rating) {
+        ratings.push({
+          id: event.id,
+          pubkey: event.pubkey,
+          content: event.content,
+          rating,
+          createdAt: event.created_at * 1000
+        });
+      }
+    }
+    
+    // Fetch author profiles for the ratings (similar to reviews)
+    const authorPubkeys = [...new Set(ratings.map(rating => rating.pubkey))];
+    if (authorPubkeys.length > 0) {
+      const profileFilter: Filter = {
+        kinds: [NOSTR_KINDS.SET_METADATA],
+        authors: authorPubkeys
+      };
+      
+      const profileEvents = await pool.querySync(relays, profileFilter);
+      
+      // Create a map of pubkey to profile data
+      const profileMap = new Map<string, { name?: string; picture?: string; npub?: string }>();
+      
+      for (const profileEvent of profileEvents) {
+        try {
+          const profileData = JSON.parse(profileEvent.content);
+          profileMap.set(profileEvent.pubkey, {
+            name: profileData.name || profileData.display_name,
+            picture: profileData.picture,
+            npub: profileEvent.pubkey
+          });
+        } catch (e) {
+          console.error("Error parsing profile data:", e);
+        }
+      }
+      
+      // Add author info to ratings
+      ratings.forEach(rating => {
+        if (profileMap.has(rating.pubkey)) {
+          rating.author = profileMap.get(rating.pubkey);
+        }
+      });
+    }
+    
+    return ratings.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching book ratings:", error);
+    return [];
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
+ * Get the list of users a person follows
+ */
+export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.CONTACTS],
+      authors: [pubkey]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Use the most recent CONTACTS event
+    const latestEvent = events.sort((a, b) => b.created_at - a.created_at)[0];
+    
+    if (!latestEvent) {
+      return { follows: [] };
+    }
+    
+    // Extract followed pubkeys from p tags
+    const follows = latestEvent.tags
+      .filter(tag => tag[0] === 'p')
+      .map(tag => tag[1]);
+    
+    return { follows };
+  } catch (error) {
+    console.error("Error fetching following list:", error);
+    return { follows: [] };
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
+ * Fetch profile for a user
+ */
+export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | null> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.SET_METADATA],
+      authors: [pubkey]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Use the most recent profile event
+    const latestEvent = events.sort((a, b) => b.created_at - a.created_at)[0];
+    
+    if (!latestEvent) {
+      return null;
+    }
+    
+    try {
+      const profileData = JSON.parse(latestEvent.content);
+      
+      return {
+        npub: pubkey, // This will be converted to npub format in the UI
+        pubkey: pubkey,
+        name: profileData.name,
+        display_name: profileData.display_name,
+        picture: profileData.picture,
+        about: profileData.about,
+        website: profileData.website,
+        lud16: profileData.lud16,
+        banner: profileData.banner,
+        relays: []
+      };
+    } catch (error) {
+      console.error("Error parsing profile data:", error);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
+ * Fetch social activity from people you follow
+ */
+export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
+  const currentUser = getCurrentUser();
+  
+  if (!currentUser) {
+    console.log("Cannot fetch social feed: User not logged in");
+    return [];
+  }
+  
+  // First, get the list of people the user follows
+  const { follows } = await fetchFollowingList(currentUser.pubkey);
+  
+  if (follows.length === 0) {
+    console.log("User doesn't follow anyone yet");
+    return [];
+  }
+  
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    // Fetch book-related events from followed users
+    const filter: Filter = {
+      kinds: [
+        NOSTR_KINDS.BOOK_TBR,
+        NOSTR_KINDS.BOOK_READING, 
+        NOSTR_KINDS.BOOK_READ,
+        NOSTR_KINDS.BOOK_RATING,
+        NOSTR_KINDS.REVIEW
+      ],
+      authors: follows,
+      limit
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Get all unique pubkeys to fetch profiles
+    const uniquePubkeys = [...new Set(events.map(event => event.pubkey))];
+    
+    // Fetch profiles for these pubkeys
+    const profileFilter: Filter = {
+      kinds: [NOSTR_KINDS.SET_METADATA],
+      authors: uniquePubkeys
+    };
+    
+    const profileEvents = await pool.querySync(relays, profileFilter);
+    
+    // Create a map of pubkey to profile data
+    const profileMap = new Map<string, { name?: string; picture?: string; npub?: string }>();
+    
+    for (const profileEvent of profileEvents) {
+      try {
+        const profileData = JSON.parse(profileEvent.content);
+        profileMap.set(profileEvent.pubkey, {
+          name: profileData.name || profileData.display_name,
+          picture: profileData.picture,
+          npub: profileEvent.pubkey
+        });
+      } catch (e) {
+        console.error("Error parsing profile data:", e);
+      }
+    }
+    
+    // Extract all ISBNs to fetch book details
+    const isbns = events
+      .map(event => extractISBNFromTags(event))
+      .filter((isbn): isbn is string => isbn !== null);
+    
+    // Fetch book details
+    const books = await getBooksByISBN([...new Set(isbns)]);
+    
+    // Create a map of ISBN to book details
+    const bookMap = new Map<string, Book>();
+    books.forEach(book => {
+      if (book.isbn) {
+        bookMap.set(book.isbn, book);
+      }
+    });
+    
+    // Convert events to social activities
+    const socialFeed: SocialActivity[] = [];
+    
+    for (const event of events) {
+      const isbn = extractISBNFromTags(event);
+      
+      if (!isbn) {
+        continue; // Skip events without ISBN
+      }
+      
+      // Get book details from the map or create a basic book object
+      let book = bookMap.get(isbn);
+      
+      if (!book) {
+        // Basic book object if we couldn't fetch details
+        book = {
+          id: `isbn:${isbn}`,
+          title: "Unknown Book",
+          author: "Unknown Author",
+          isbn,
+          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+        };
+      }
+      
+      // Determine activity type based on event kind
+      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished';
+      
+      switch (event.kind) {
+        case NOSTR_KINDS.REVIEW:
+          activityType = 'review';
+          break;
+        case NOSTR_KINDS.BOOK_RATING:
+          activityType = 'rating';
+          break;
+        case NOSTR_KINDS.BOOK_TBR:
+          activityType = 'tbr';
+          break;
+        case NOSTR_KINDS.BOOK_READING:
+          activityType = 'reading';
+          break;
+        case NOSTR_KINDS.BOOK_READ:
+          activityType = 'finished';
+          break;
+        default:
+          continue; // Skip unknown event kinds
+      }
+      
+      // Create social activity object
+      const activity: SocialActivity = {
+        id: event.id,
+        pubkey: event.pubkey,
+        type: activityType,
+        book,
+        content: event.content,
+        rating: extractRatingFromTags(event),
+        createdAt: event.created_at * 1000,
+        author: profileMap.get(event.pubkey),
+        reactions: {
+          count: 0,
+          userReacted: false
+        }
+      };
+      
+      socialFeed.push(activity);
+    }
+    
+    // Sort by creation date, newest first
+    return socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching social feed:", error);
+    return [];
+  } finally {
+    pool.close(relays);
+  }
 }
 
 /**

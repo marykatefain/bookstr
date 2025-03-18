@@ -32,12 +32,22 @@ export {
   markBookAsReading,
   markBookAsRead,
   rateBook,
-  reviewBook
+  reviewBook,
+  reactToContent,
+  replyToContent,
+  followUser,
+  addBookToList
 } from "./books";
 
 // Export fetch functions
 export {
   fetchUserBooks,
   fetchBooksByISBN,
+  fetchBookByISBN,
+  fetchBookReviews,
+  fetchBookRatings,
+  fetchFollowingList,
+  fetchUserProfile,
+  fetchSocialFeed,
   ensureBookMetadata
 } from "./fetch";

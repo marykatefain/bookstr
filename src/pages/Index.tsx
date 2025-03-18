@@ -3,14 +3,15 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Book, LogIn, Loader2 } from "lucide-react";
+import { Book, LogIn, Loader2, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { isLoggedIn } from "@/lib/nostr";
 import { getTrendingBooks, getRecentBooks } from "@/lib/openlibrary";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
 import { Book as BookType } from "@/lib/nostr/types";
 import { BookCard } from "@/components/BookCard";
+import { SocialFeed } from "@/components/SocialFeed";
 
 const Index = () => {
   const { toast } = useToast();
@@ -108,11 +109,11 @@ const Index = () => {
                   Discover Books
                 </Button>
               </Link>
-              {!isLoggedIn() && (
-                <Link to="/library">
+              {isLoggedIn() && (
+                <Link to="/profile">
                   <Button size="lg" variant="outline">
                     <Book className="mr-2 h-5 w-5" />
-                    Start Your Library
+                    Your Library
                   </Button>
                 </Link>
               )}
@@ -120,6 +121,47 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Social Feed (for logged in users) */}
+      {isLoggedIn() && (
+        <section className="py-12 bg-bookverse-paper">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
+                  <Users className="mr-2 h-5 w-5" />
+                  Reading Community
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <SocialFeed />
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <h3 className="text-xl font-bold font-serif mb-4">Reading Together</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Connect with friends and discover what they're reading on the decentralized Nostr network.
+                  </p>
+                  <div className="space-y-2">
+                    <p className="flex items-start">
+                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
+                      <span>Follow your friends and favorite readers</span>
+                    </p>
+                    <p className="flex items-start">
+                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
+                      <span>Discover new books through recommendations</span>
+                    </p>
+                    <p className="flex items-start">
+                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
+                      <span>Share your thoughts and ratings</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Featured Books */}
       <section className="py-12">
@@ -196,7 +238,7 @@ const Index = () => {
             <div className="space-y-4 md:w-1/2">
               <h2 className="text-3xl font-bold font-serif text-bookverse-ink">Join the decentralized reading community</h2>
               <p className="text-muted-foreground">
-                Bookstr connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
+                Bookverse connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
               </p>
               {!isLoggedIn() && (
                 <div className="w-full max-w-md">
@@ -209,7 +251,7 @@ const Index = () => {
                 <div className="absolute -top-2 -left-2 w-full h-full bg-bookverse-accent rounded-lg"></div>
                 <div className="absolute -bottom-2 -right-2 w-full h-full bg-bookverse-highlight rounded-lg"></div>
                 <div className="relative bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-xl font-bold font-serif mb-3">Why Bookstr?</h3>
+                  <h3 className="text-xl font-bold font-serif mb-3">Why Bookverse?</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
                       <span className="mr-2 mt-1 text-bookverse-accent">✓</span>

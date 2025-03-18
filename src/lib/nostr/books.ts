@@ -1,5 +1,5 @@
 
-import { Book, NOSTR_KINDS, BookActionType } from "./types";
+import { Book, NOSTR_KINDS, BookActionType, BookReview } from "./types";
 import { publishToNostr } from "./publish";
 
 /**
@@ -150,6 +150,57 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     kind: NOSTR_KINDS.REVIEW,
     tags,
     content: reviewText
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * React to content (review, rating, etc)
+ */
+export async function reactToContent(eventId: string): Promise<string | null> {
+  const event = {
+    kind: NOSTR_KINDS.REACTION,
+    tags: [
+      ["e", eventId]
+    ],
+    content: "+"
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Reply to content (review, rating, etc)
+ */
+export async function replyToContent(eventId: string, pubkey: string, replyText: string): Promise<string | null> {
+  const event = {
+    kind: NOSTR_KINDS.REVIEW,
+    tags: [
+      ["e", eventId, "", "reply"],
+      ["p", pubkey]
+    ],
+    content: replyText
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Follow a user
+ */
+export async function followUser(pubkey: string): Promise<string | null> {
+  if (!pubkey) {
+    console.error("Cannot follow user: pubkey is missing");
+    return null;
+  }
+  
+  const event = {
+    kind: NOSTR_KINDS.CONTACTS,
+    tags: [
+      ["p", pubkey]
+    ],
+    content: ""
   };
   
   return publishToNostr(event);
