@@ -8,53 +8,83 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchSocialFeed, isLoggedIn } from "@/lib/nostr";
 import { SocialActivity } from "@/lib/nostr/types";
 import { Users, Globe } from "lucide-react";
+import { mockFollowersActivities, mockGlobalActivities } from "@/lib/nostr/mockData";
 
 export default function Activity() {
   const [followersActivity, setFollowersActivity] = useState<SocialActivity[]>([]);
   const [globalActivity, setGlobalActivity] = useState<SocialActivity[]>([]);
   const [followersLoading, setFollowersLoading] = useState(true);
   const [globalLoading, setGlobalLoading] = useState(true);
+  const [useMockData, setUseMockData] = useState(true); // State to control mock data usage
 
   useEffect(() => {
-    const loadFollowersActivity = async () => {
-      if (!isLoggedIn()) {
-        setFollowersLoading(false);
-        return;
-      }
-      
-      try {
-        const feed = await fetchSocialFeed(20);
-        setFollowersActivity(feed);
-      } catch (error) {
-        console.error("Error loading followers feed:", error);
-      } finally {
-        setFollowersLoading(false);
+    // Function to load real data
+    const loadRealData = async () => {
+      const loadFollowersActivity = async () => {
+        if (!isLoggedIn()) {
+          setFollowersLoading(false);
+          return;
+        }
+        
+        try {
+          const feed = await fetchSocialFeed(20);
+          setFollowersActivity(feed);
+        } catch (error) {
+          console.error("Error loading followers feed:", error);
+        } finally {
+          setFollowersLoading(false);
+        }
+      };
+
+      const loadGlobalActivity = async () => {
+        try {
+          // For now, we'll use the same endpoint but in a real implementation
+          // this would fetch from a global activity endpoint
+          const feed = await fetchSocialFeed(20);
+          setGlobalActivity(feed);
+        } catch (error) {
+          console.error("Error loading global feed:", error);
+        } finally {
+          setGlobalLoading(false);
+        }
+      };
+
+      if (!useMockData) {
+        loadFollowersActivity();
+        loadGlobalActivity();
       }
     };
 
-    const loadGlobalActivity = async () => {
-      try {
-        // For now, we'll use the same endpoint but in a real implementation
-        // this would fetch from a global activity endpoint
-        // Instead of passing a second argument, we'll use the same function
-        // In a real app, this would be a different API call
-        const feed = await fetchSocialFeed(20);
-        setGlobalActivity(feed);
-      } catch (error) {
-        console.error("Error loading global feed:", error);
-      } finally {
+    // Function to load mock data
+    const loadMockData = () => {
+      setTimeout(() => {
+        setFollowersActivity(mockFollowersActivities);
+        setFollowersLoading(false);
+        
+        setGlobalActivity(mockGlobalActivities);
         setGlobalLoading(false);
-      }
+      }, 800); // Artificial delay to simulate loading
     };
 
-    loadFollowersActivity();
-    loadGlobalActivity();
-  }, []);
+    if (useMockData) {
+      loadMockData();
+    } else {
+      loadRealData();
+    }
+  }, [useMockData]);
 
   return (
     <Layout>
       <div className="container py-6 md:py-10 max-w-4xl">
-        <h1 className="text-3xl font-serif font-bold text-bookverse-ink mb-6">Activity Feed</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-serif font-bold text-bookverse-ink">Activity Feed</h1>
+          <button 
+            onClick={() => setUseMockData(!useMockData)}
+            className="text-sm px-3 py-1 rounded bg-bookverse-paper border border-bookverse-ink/20 hover:bg-bookverse-ink/10"
+          >
+            {useMockData ? "Switch to Real Data" : "Switch to Mock Data"}
+          </button>
+        </div>
         
         <Tabs defaultValue="followers" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
