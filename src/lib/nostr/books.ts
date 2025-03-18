@@ -1,43 +1,9 @@
+
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr } from "./publish";
-import { ensureBookMetadata } from "./fetch";
 
 /**
- * Publish book metadata according to NIP-73
- */
-export async function publishBookMetadata(book: Book): Promise<string | null> {
-  if (!book.isbn) {
-    console.error("Cannot publish book metadata: ISBN is missing");
-    return null;
-  }
-
-  const event = {
-    kind: NOSTR_KINDS.BOOK_METADATA,
-    tags: [
-      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
-      ["t", "book"],
-      ["name", book.title],
-      ["author", book.author],
-      // Include other metadata tags if available
-      ...(book.pageCount ? [["pages", book.pageCount.toString()]] : []),
-      ...(book.pubDate ? [["published", book.pubDate]] : []),
-      ...(book.categories?.length ? book.categories.map(cat => ["category", cat]) : [])
-    ],
-    content: book.description || `Metadata for ${book.title} by ${book.author}`
-  };
-  
-  return publishToNostr(event);
-}
-
-/**
- * Helper function to create a nostr address reference for the book metadata
- */
-function createBookReference(metadataId: string): string {
-  return `naddr1${metadataId.substring(0, 20)}`;  // Create a simplified nostr address from the event id
-}
-
-/**
- * Add a book to the "TBR" list (formerly "Want to Read")
+ * Add a book to the "TBR" list
  */
 export async function addBookToTBR(book: Book): Promise<string | null> {
   console.log("==== Adding book to TBR ====");
@@ -47,29 +13,13 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
     console.error("Cannot add book to TBR: ISBN is missing");
     return null;
   }
-
-  // First ensure book metadata exists on the network
-  const metadataId = await ensureBookMetadata(book);
-  console.log("Book metadata ensured with ID:", metadataId);
-  
-  // Create a direct Kind 30000 list event
-  const now = new Date();
-  
-  // Only proceed if we have a metadata reference
-  if (!metadataId) {
-    console.error("Cannot add book to TBR: Failed to create or find metadata");
-    return null;
-  }
   
   const event = {
-    kind: NOSTR_KINDS.GENERIC_LIST,
+    kind: NOSTR_KINDS.BOOK_TBR,
     tags: [
-      ["d", "tbr"],
-      ["t", "books"],
-      ["r", createBookReference(metadataId)],
+      ["i", `isbn:${book.isbn}`],
       ["title", book.title],
-      ["author", book.author],
-      ["added_at", now.toISOString()]
+      ["author", book.author]
     ],
     content: `Added "${book.title}" by ${book.author} to my TBR list`
   };
@@ -98,28 +48,13 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     console.error("Cannot mark book as reading: ISBN is missing");
     return null;
   }
-
-  // First ensure book metadata exists on the network
-  const metadataId = await ensureBookMetadata(book);
-  console.log("Book metadata ensured with ID:", metadataId);
-  
-  // Only proceed if we have a metadata reference
-  if (!metadataId) {
-    console.error("Cannot mark book as reading: Failed to create or find metadata");
-    return null;
-  }
-  
-  const now = new Date().toISOString();
   
   const event = {
-    kind: NOSTR_KINDS.GENERIC_LIST,
+    kind: NOSTR_KINDS.BOOK_READING,
     tags: [
-      ["d", "reading"],
-      ["t", "books"],
-      ["r", createBookReference(metadataId)],
+      ["i", `isbn:${book.isbn}`],
       ["title", book.title],
-      ["author", book.author],
-      ["started_at", now]
+      ["author", book.author]
     ],
     content: `Started reading "${book.title}" by ${book.author}`
   };
@@ -148,26 +83,11 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
     console.error("Cannot mark book as read: ISBN is missing");
     return null;
   }
-
-  // First ensure book metadata exists on the network
-  const metadataId = await ensureBookMetadata(book);
-  console.log("Book metadata ensured with ID:", metadataId);
-  
-  // Only proceed if we have a metadata reference
-  if (!metadataId) {
-    console.error("Cannot mark book as read: Failed to create or find metadata");
-    return null;
-  }
-  
-  const now = new Date().toISOString();
   
   const tags = [
-    ["d", "read"],
-    ["t", "books"],
-    ["r", createBookReference(metadataId)],
+    ["i", `isbn:${book.isbn}`],
     ["title", book.title],
-    ["author", book.author],
-    ["finished_at", now]
+    ["author", book.author]
   ];
   
   // Add rating if provided
@@ -176,7 +96,7 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
   }
   
   const event = {
-    kind: NOSTR_KINDS.GENERIC_LIST,
+    kind: NOSTR_KINDS.BOOK_READ,
     tags,
     content: `Finished reading "${book.title}" by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
   };
@@ -195,7 +115,7 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
 }
 
 /**
- * Rate a book separately (using the proposed NIP for ratings)
+ * Rate a book separately
  */
 export async function rateBook(book: Book, rating: number): Promise<string | null> {
   if (rating < 1 || rating > 5) {
@@ -206,26 +126,14 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
     console.error("Cannot rate book: ISBN is missing");
     return null;
   }
-
-  // First ensure book metadata exists on the network
-  const metadataId = await ensureBookMetadata(book);
-  console.log("Book metadata ensured with ID:", metadataId);
   
-  // Only proceed if we have a metadata reference
-  if (!metadataId) {
-    console.error("Cannot rate book: Failed to create or find metadata");
-    return null;
-  }
-  
-  // Using the proposed NIP format for ratings
   const event = {
     kind: NOSTR_KINDS.BOOK_RATING,
     tags: [
-      ["d", `rating:${book.isbn}`],
-      ["t", "book-rating"],
-      ["r", createBookReference(metadataId)],
+      ["i", `isbn:${book.isbn}`],
       ["rating", rating.toString()],
-      ["context", "bookverse"]
+      ["title", book.title],
+      ["author", book.author]
     ],
     content: `${rating} Stars${rating < 3 ? " - Could be better" : rating < 5 ? " - Pretty good" : " - Amazing!"}`
   };
@@ -234,27 +142,16 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
 }
 
 /**
- * Post a review for a book (using NIP-22 for long-form content)
+ * Post a review for a book
  */
 export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
   if (!book.isbn) {
     console.error("Cannot review book: ISBN is missing");
     return null;
   }
-
-  // First ensure book metadata exists on the network
-  const metadataId = await ensureBookMetadata(book);
-  console.log("Book metadata ensured with ID:", metadataId);
-  
-  // Only proceed if we have a metadata reference
-  if (!metadataId) {
-    console.error("Cannot review book: Failed to create or find metadata");
-    return null;
-  }
   
   const tags = [
-    ["t", "book-review"],
-    ["r", createBookReference(metadataId)],
+    ["i", `isbn:${book.isbn}`],
     ["title", book.title],
     ["author", book.author]
   ];
@@ -264,7 +161,6 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     tags.push(["rating", rating.toString()]);
   }
   
-  // Use NIP-22 (Kind 1111) for reviews instead of regular notes or long-form content
   const event = {
     kind: NOSTR_KINDS.REVIEW,
     tags,
