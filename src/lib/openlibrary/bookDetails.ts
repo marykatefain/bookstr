@@ -76,7 +76,7 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
     // Try to get ISBN from the edition data
     let isbn = data.isbn_13?.[0] || data.isbn_10?.[0] || "";
     
-    // If no ISBN directly available, try to extract it using our utility
+    // If no ISBN directly available, try to extract it using identifiers
     if (!isbn && data.identifiers) {
       if (data.identifiers.isbn_13) isbn = data.identifiers.isbn_13[0];
       else if (data.identifiers.isbn_10) isbn = data.identifiers.isbn_10[0];
@@ -126,4 +126,3 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   const books = await Promise.all(bookPromises);
   return books.filter((book): book is Book => book !== null);
 }
-

@@ -8,6 +8,10 @@ import { searchBooks } from './search';
  * Search books by genre/subject
  */
 export async function searchBooksByGenre(genre: string, limit: number = 20): Promise<Book[]> {
+  if (!genre || genre.trim() === '') {
+    return [];
+  }
+  
   try {
     // Convert genre to lowercase and handle spaces for URL
     const formattedGenre = genre.toLowerCase().replace(/\s+/g, '_');
@@ -17,6 +21,7 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
     
     if (!response.ok) {
       // If genre not found, fall back to search
+      console.log(`Genre ${genre} not found, falling back to search`);
       return searchBooks(genre, limit);
     }
     
@@ -25,7 +30,7 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
     
     const books = await Promise.all(
       works
-        .filter((work: any) => work.cover_id)
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
         .map(async (work: any) => {
           // Try to get ISBN from availability first
           let isbn = work.availability?.isbn || "";

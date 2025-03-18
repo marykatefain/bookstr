@@ -19,7 +19,7 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
     
     const books = await Promise.all(
       works
-        .filter((work: any) => work.cover_id)
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
         .map(async (work: any) => {
           let isbn = work.availability?.isbn || "";
           

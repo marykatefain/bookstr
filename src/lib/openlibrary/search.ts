@@ -7,6 +7,10 @@ import { docToBook, fetchISBNFromEditionKey } from './utils';
  * Search books on OpenLibrary
  */
 export async function searchBooks(query: string, limit: number = 20): Promise<Book[]> {
+  if (!query || query.trim() === '') {
+    return [];
+  }
+  
   try {
     // Use the OpenLibrary search API with proper parameters
     const response = await fetch(`${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`);
@@ -20,7 +24,7 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     // Map the docs to our Book format, filtering out entries without covers
     const books = await Promise.all(
       data.docs
-        .filter(doc => doc.cover_i || (doc.isbn && doc.isbn.length > 0)) // Ensure we have cover ID or ISBN
+        .filter(doc => doc.cover_i || (doc.isbn && doc.isbn.length > 0) || doc.cover_edition_key) // Ensure we have cover ID, ISBN, or edition key
         .map(async (doc) => {
           const book = docToBook(doc);
           

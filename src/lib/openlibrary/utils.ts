@@ -1,3 +1,4 @@
+
 import { OpenLibraryDoc } from './types';
 import { Book } from "@/lib/nostr/types";
 
@@ -24,32 +25,45 @@ export function extractISBN(doc: OpenLibraryDoc): string {
     }
   }
   
-  // Method 4: If cover_edition_key exists, we could fetch it to get ISBN
-  // This is implemented as a separate async function to avoid making the main
-  // extraction function async, which would require bigger refactoring
-  
   // No ISBN found with any method
   return "";
 }
 
 /**
- * Fetch ISBN from a cover edition key (OL key)
- * This is used as a fallback when other methods fail
+ * Fetch ISBN from a cover edition key (OL key) using the Editions API
+ * This is the most reliable method to get ISBNs
  */
 export async function fetchISBNFromEditionKey(editionKey: string): Promise<string> {
   if (!editionKey) return "";
   
   try {
-    const response = await fetch(`https://openlibrary.org/api/books?bibkeys=${editionKey}&format=json`);
+    // Use the Editions API for direct access to edition details including ISBNs
+    const response = await fetch(`https://openlibrary.org/books/${editionKey}.json`);
     if (!response.ok) {
+      console.error(`Failed to fetch edition data for ${editionKey}: ${response.status}`);
       return "";
     }
     
     const data = await response.json();
-    const edition = data[editionKey];
+    console.log(`Edition data for ${editionKey}:`, data);
     
-    if (edition && edition.bib_key && edition.bib_key.startsWith('ISBN:')) {
-      return edition.bib_key.replace('ISBN:', '');
+    // Try to get ISBN-13 first (preferred), then ISBN-10
+    if (data.isbn_13 && data.isbn_13.length > 0) {
+      return data.isbn_13[0];
+    }
+    
+    if (data.isbn_10 && data.isbn_10.length > 0) {
+      return data.isbn_10[0];
+    }
+    
+    // Check identifiers object if direct properties aren't available
+    if (data.identifiers) {
+      if (data.identifiers.isbn_13 && data.identifiers.isbn_13.length > 0) {
+        return data.identifiers.isbn_13[0];
+      }
+      if (data.identifiers.isbn_10 && data.identifiers.isbn_10.length > 0) {
+        return data.identifiers.isbn_10[0];
+      }
     }
     
     return "";
