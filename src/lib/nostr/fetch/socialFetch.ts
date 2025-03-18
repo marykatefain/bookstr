@@ -1,6 +1,6 @@
 
 import { SimplePool, type Filter } from "nostr-tools";
-import { SocialActivity, NOSTR_KINDS } from "../types";
+import { SocialActivity, NOSTR_KINDS, Book } from "../types";
 import { getUserRelays } from "../relay";
 import { getCurrentUser } from "../user";
 import { fetchFollowingList } from "./profileFetch";

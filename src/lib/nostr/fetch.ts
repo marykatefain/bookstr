@@ -46,6 +46,3 @@ export {
   // Social functions
   fetchSocialFeed
 };
-
-// Fix missing import in socialFetch.ts
-import { Book } from '../types';
