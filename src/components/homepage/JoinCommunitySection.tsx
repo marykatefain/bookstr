@@ -7,9 +7,7 @@ export function JoinCommunitySection() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div className="space-y-4 md:w-1/2">
             <h2 className="text-3xl font-bold font-serif text-bookverse-ink">Join the decentralized reading community</h2>
-            <p className="text-muted-foreground">
-              Bookverse connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
-            </p>
+            <p className="text-muted-foreground">Bookstr connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.</p>
             {!isLoggedIn() && <div className="w-full max-w-md">
                 <NostrLogin />
               </div>}
