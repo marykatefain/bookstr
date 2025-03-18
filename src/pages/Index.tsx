@@ -4,17 +4,62 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn } from "lucide-react";
+import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { mockBooks, getCurrentUser, isLoggedIn, addBookToTBR, markBookAsReading } from "@/lib/nostr";
+import { getCurrentUser, isLoggedIn, addBookToTBR, markBookAsReading } from "@/lib/nostr";
+import { getTrendingBooks, getRecentBooks } from "@/lib/openlibrary/api";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
+import { Book as BookType } from "@/lib/nostr/types";
 
 const Index = () => {
   const { toast } = useToast();
-  const [featuredBooks, setFeaturedBooks] = useState(mockBooks.slice(0, 3));
-  const [recentlyAdded, setRecentlyAdded] = useState(mockBooks.slice(3, 6));
+  const [featuredBooks, setFeaturedBooks] = useState<BookType[]>([]);
+  const [recentlyAdded, setRecentlyAdded] = useState<BookType[]>([]);
   const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingRecent, setLoadingRecent] = useState(true);
+
+  useEffect(() => {
+    // Load featured books
+    const loadFeaturedBooks = async () => {
+      setLoadingFeatured(true);
+      try {
+        const books = await getTrendingBooks(3);
+        setFeaturedBooks(books);
+      } catch (error) {
+        console.error("Error loading featured books:", error);
+        toast({
+          title: "Error loading books",
+          description: "There was a problem fetching featured books.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+
+    // Load recent books
+    const loadRecentBooks = async () => {
+      setLoadingRecent(true);
+      try {
+        const books = await getRecentBooks(3);
+        setRecentlyAdded(books);
+      } catch (error) {
+        console.error("Error loading recent books:", error);
+        toast({
+          title: "Error loading books",
+          description: "There was a problem fetching recent books.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingRecent(false);
+      }
+    };
+
+    loadFeaturedBooks();
+    loadRecentBooks();
+  }, [toast]);
 
   const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
     if (!isLoggedIn()) {
@@ -26,7 +71,7 @@ const Index = () => {
       return;
     }
 
-    const book = mockBooks.find(b => b.id === bookId);
+    const book = [...featuredBooks, ...recentlyAdded].find(b => b.id === bookId);
     if (!book) return;
     
     setPendingActions(prev => ({ ...prev, [bookId]: status }));
@@ -65,6 +110,93 @@ const Index = () => {
       });
     }
   };
+
+  const renderBookCard = (book: BookType) => (
+    <Card key={book.id} className="overflow-hidden h-full book-card">
+      <CardContent className="p-0">
+        <div className="relative aspect-[2/3] book-cover">
+          <img
+            src={book.coverUrl}
+            alt={`${book.title} by ${book.author}`}
+            className="object-cover w-full h-full"
+            onError={(e) => {
+              e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+            }}
+          />
+        </div>
+        <div className="p-4 space-y-2">
+          <h3 className="font-bold font-serif truncate">{book.title}</h3>
+          <p className="text-sm text-muted-foreground">by {book.author}</p>
+          <div className="flex items-center space-x-1">
+            {book.readingStatus?.rating ? (
+              [...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < (book.readingStatus?.rating || 0) 
+                      ? "text-bookverse-highlight fill-bookverse-highlight" 
+                      : "text-muted-foreground"
+                  }`}
+                />
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">No ratings yet</span>
+            )}
+          </div>
+          <p className="text-sm line-clamp-2">{book.description || "No description available."}</p>
+          <div className="pt-2 flex space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => addToLibrary(book.id, 'want-to-read')}
+              disabled={!!pendingActions[book.id]}
+            >
+              {pendingActions[book.id] === 'want-to-read' ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Bookmark className="mr-1 h-4 w-4" />
+              )}
+              Want to Read
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+              onClick={() => addToLibrary(book.id, 'reading')}
+              disabled={!!pendingActions[book.id]}
+            >
+              {pendingActions[book.id] === 'reading' ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <BookOpen className="mr-1 h-4 w-4" />
+              )}
+              Start Reading
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderLoadingCard = () => (
+    <Card className="overflow-hidden h-full book-card">
+      <CardContent className="p-0">
+        <div className="relative aspect-[2/3] bg-gray-200 animate-pulse"></div>
+        <div className="p-4 space-y-2">
+          <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+          <div className="flex items-center space-x-1">
+            <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+          <div className="pt-2 flex space-x-2">
+            <div className="h-10 bg-gray-200 rounded flex-1 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded flex-1 animate-pulse"></div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <Layout>
@@ -118,56 +250,15 @@ const Index = () => {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredBooks.map((book) => (
-                <Card key={book.id} className="overflow-hidden h-full book-card">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[2/3] book-cover">
-                      <img
-                        src={book.coverUrl}
-                        alt={`${book.title} by ${book.author}`}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {book.author}</p>
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < 4 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-muted-foreground ml-1">4.0</span>
-                      </div>
-                      <p className="text-sm line-clamp-2">{book.description}</p>
-                      <div className="pt-2 flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'want-to-read')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          <Bookmark className="mr-1 h-4 w-4" />
-                          {pendingActions[book.id] === 'want-to-read' ? 'Adding...' : 'Want to Read'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                          onClick={() => addToLibrary(book.id, 'reading')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          <BookOpen className="mr-1 h-4 w-4" />
-                          {pendingActions[book.id] === 'reading' ? 'Adding...' : 'Start Reading'}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {loadingFeatured ? (
+                <>
+                  {renderLoadingCard()}
+                  {renderLoadingCard()}
+                  {renderLoadingCard()}
+                </>
+              ) : (
+                featuredBooks.map(book => renderBookCard(book))
+              )}
             </div>
           </div>
         </div>
@@ -186,56 +277,15 @@ const Index = () => {
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {recentlyAdded.map((book) => (
-                <Card key={book.id} className="overflow-hidden h-full book-card">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[2/3] book-cover">
-                      <img
-                        src={book.coverUrl}
-                        alt={`${book.title} by ${book.author}`}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {book.author}</p>
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < 3 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-muted-foreground ml-1">3.0</span>
-                      </div>
-                      <p className="text-sm line-clamp-2">{book.description}</p>
-                      <div className="pt-2 flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'want-to-read')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          <Bookmark className="mr-1 h-4 w-4" />
-                          {pendingActions[book.id] === 'want-to-read' ? 'Adding...' : 'Want to Read'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                          onClick={() => addToLibrary(book.id, 'reading')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          <BookOpen className="mr-1 h-4 w-4" />
-                          {pendingActions[book.id] === 'reading' ? 'Adding...' : 'Start Reading'}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {loadingRecent ? (
+                <>
+                  {renderLoadingCard()}
+                  {renderLoadingCard()}
+                  {renderLoadingCard()}
+                </>
+              ) : (
+                recentlyAdded.map(book => renderBookCard(book))
+              )}
             </div>
           </div>
         </div>

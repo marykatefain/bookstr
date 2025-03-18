@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +17,6 @@ import {
   Loader2 
 } from "lucide-react";
 import { 
-  mockBooks, 
   isLoggedIn, 
   addBookToTBR,
   markBookAsReading,
@@ -25,6 +25,7 @@ import {
   publishToNostr,
   NOSTR_KINDS
 } from "@/lib/nostr";
+import { searchBooks, getTrendingBooks } from "@/lib/openlibrary/api";
 import { useToast } from "@/components/ui/use-toast";
 
 const categories = [
@@ -41,31 +42,95 @@ const categories = [
 
 const Books = () => {
   const { toast } = useToast();
-  const [books, setBooks] = useState<Book[]>(mockBooks);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>(books);
+  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Initial loading of trending books
   useEffect(() => {
-    let results = books;
-    
-    if (searchQuery) {
-      results = results.filter(
-        book => 
-          book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          book.author.toLowerCase().includes(searchQuery.toLowerCase())
+    const loadTrendingBooks = async () => {
+      setIsLoading(true);
+      try {
+        const trending = await getTrendingBooks(20);
+        setBooks(trending);
+        setFilteredBooks(trending);
+      } catch (error) {
+        console.error("Error loading trending books:", error);
+        toast({
+          title: "Error loading books",
+          description: "There was a problem fetching books. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTrendingBooks();
+  }, [toast]);
+
+  // Handle search debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Handle search
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedSearch) {
+        // If search is cleared, load trending books
+        const trending = await getTrendingBooks(20);
+        setBooks(trending);
+        setFilteredBooks(trending);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const results = await searchBooks(debouncedSearch);
+        setBooks(results);
+        
+        // Apply category filter to search results
+        if (activeCategory === "All") {
+          setFilteredBooks(results);
+        } else {
+          setFilteredBooks(
+            results.filter(book => book.categories?.includes(activeCategory))
+          );
+        }
+      } catch (error) {
+        console.error("Error searching books:", error);
+        toast({
+          title: "Error searching",
+          description: "There was a problem with your search. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearch, toast]);
+
+  // Handle category filtering
+  useEffect(() => {
+    if (activeCategory === "All") {
+      setFilteredBooks(books);
+    } else {
+      setFilteredBooks(
+        books.filter(book => book.categories?.includes(activeCategory))
       );
     }
-    
-    if (activeCategory !== "All") {
-      results = results.filter(
-        book => book.categories?.includes(activeCategory)
-      );
-    }
-    
-    setFilteredBooks(results);
-  }, [searchQuery, activeCategory, books]);
+  }, [activeCategory, books]);
 
   const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading' | 'read') => {
     if (!isLoggedIn()) {
@@ -159,96 +224,111 @@ const Books = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredBooks.length > 0 ? (
-              filteredBooks.map((book) => (
-                <Card key={book.id} className="overflow-hidden h-full book-card">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[2/3] book-cover">
-                      <img
-                        src={book.coverUrl}
-                        alt={`${book.title} by ${book.author}`}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {book.author}</p>
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < 4 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-muted-foreground ml-1">4.0</span>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-bookverse-accent" />
+              <span className="ml-2 text-bookverse-ink">Loading books...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredBooks.length > 0 ? (
+                filteredBooks.map((book) => (
+                  <Card key={book.id} className="overflow-hidden h-full book-card">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-[2/3] book-cover">
+                        <img
+                          src={book.coverUrl}
+                          alt={`${book.title} by ${book.author}`}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+                          }}
+                        />
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {book.categories?.slice(0, 2).map((category) => (
-                          <Badge key={category} variant="outline" className="text-xs">
-                            {category}
-                          </Badge>
-                        ))}
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-bold font-serif truncate">{book.title}</h3>
+                        <p className="text-sm text-muted-foreground">by {book.author}</p>
+                        <div className="flex items-center space-x-1">
+                          {book.readingStatus?.rating ? (
+                            [...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${
+                                  i < (book.readingStatus?.rating || 0) 
+                                    ? "text-bookverse-highlight fill-bookverse-highlight" 
+                                    : "text-muted-foreground"
+                                }`}
+                              />
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No ratings yet</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {book.categories?.slice(0, 2).map((category, index) => (
+                            <Badge key={`${category}-${index}`} variant="outline" className="text-xs">
+                              {category}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="pt-2 flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => addToLibrary(book.id, 'want-to-read')}
+                            disabled={!!pendingActions[book.id]}
+                          >
+                            {pendingActions[book.id] === 'want-to-read' ? (
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                            ) : (
+                              <PlusCircle className="mr-1 h-4 w-4" />
+                            )}
+                            TBR
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+                            onClick={() => addToLibrary(book.id, 'reading')}
+                            disabled={!!pendingActions[book.id]}
+                          >
+                            {pendingActions[book.id] === 'reading' ? (
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                            ) : (
+                              <BookOpen className="mr-1 h-4 w-4" />
+                            )}
+                            Read
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="flex-1"
+                            onClick={() => addToLibrary(book.id, 'read')}
+                            disabled={!!pendingActions[book.id]}
+                          >
+                            {pendingActions[book.id] === 'read' ? (
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Star className="mr-1 h-4 w-4" />
+                            )}
+                            Finished
+                          </Button>
+                        </div>
                       </div>
-                      <div className="pt-2 flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'want-to-read')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          {pendingActions[book.id] === 'want-to-read' ? (
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          ) : (
-                            <PlusCircle className="mr-1 h-4 w-4" />
-                          )}
-                          TBR
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                          onClick={() => addToLibrary(book.id, 'reading')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          {pendingActions[book.id] === 'reading' ? (
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          ) : (
-                            <BookOpen className="mr-1 h-4 w-4" />
-                          )}
-                          Read
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'read')}
-                          disabled={!!pendingActions[book.id]}
-                        >
-                          {pendingActions[book.id] === 'read' ? (
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Star className="mr-1 h-4 w-4" />
-                          )}
-                          Finished
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No books found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filters to find what you're looking for.
-                </p>
-              </div>
-            )}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                  <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No books found</h3>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search or filters to find what you're looking for.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Layout>

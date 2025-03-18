@@ -1,7 +1,9 @@
+
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
 import { getCurrentUser } from "./user";
+import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary/api";
 
 /**
  * Convert a Nostr event to a Book object
@@ -115,19 +117,71 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    events.forEach(event => {
-      const book = eventToBook(event);
-      if (!book) return;
-      
-      const status = book.readingStatus?.status;
-      if (status === 'reading') {
-        readingBooks.push(book);
-      } else if (status === 'read') {
-        readBooks.push(book);
-      } else {
-        tbrBooks.push(book);
+    // Extract ISBNs from events
+    const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
+    const isbns = bookEvents.map(book => book.isbn);
+    
+    // Fetch additional book details from OpenLibrary if we have ISBNs
+    if (isbns.length > 0) {
+      try {
+        const bookDetails = await getBooksByISBN(isbns);
+        
+        // Create a map for quick lookup
+        const bookDetailsMap = new Map<string, Partial<Book>>();
+        bookDetails.forEach(book => {
+          if (book.isbn) {
+            bookDetailsMap.set(book.isbn, book);
+          }
+        });
+        
+        // Enhance books with OpenLibrary data
+        bookEvents.forEach(book => {
+          const details = bookDetailsMap.get(book.isbn);
+          if (details) {
+            // Merge the details while preserving the id and reading status
+            Object.assign(book, {
+              ...details,
+              id: book.id, // Keep the original Nostr event ID
+              readingStatus: book.readingStatus // Keep the reading status
+            });
+          }
+          
+          const status = book.readingStatus?.status;
+          if (status === 'reading') {
+            readingBooks.push(book);
+          } else if (status === 'read') {
+            readBooks.push(book);
+          } else {
+            tbrBooks.push(book);
+          }
+        });
+      } catch (error) {
+        console.error('Error enhancing books with OpenLibrary data:', error);
+        // Fall back to using basic book data without enhancements
+        bookEvents.forEach(book => {
+          const status = book.readingStatus?.status;
+          if (status === 'reading') {
+            readingBooks.push(book);
+          } else if (status === 'read') {
+            readBooks.push(book);
+          } else {
+            tbrBooks.push(book);
+          }
+        });
       }
-    });
+    } else {
+      // No ISBNs, just use the basic book data
+      bookEvents.forEach(book => {
+        const status = book.readingStatus?.status;
+        if (status === 'reading') {
+          readingBooks.push(book);
+        } else if (status === 'read') {
+          readBooks.push(book);
+        } else {
+          tbrBooks.push(book);
+        }
+      });
+    }
     
     return {
       tbr: tbrBooks,
@@ -146,13 +200,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
  * Fetch multiple books by their ISBNs
  */
 export async function fetchBooksByISBN(isbns: string[]): Promise<Book[]> {
-  // In a real app, you would call an external API here
-  // For now, we'll just search in our mock data
-  const { mockBooks } = await import('./types');
-  
-  return isbns
-    .map(isbn => mockBooks.find(book => book.isbn === isbn))
-    .filter(book => book !== undefined) as Book[];
+  return getBooksByISBN(isbns);
 }
 
 /**
