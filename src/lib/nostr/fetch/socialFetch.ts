@@ -1,3 +1,4 @@
+
 import { SimplePool, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book, Post } from "../types";
 import { getUserRelays } from "../relay";
@@ -192,8 +193,8 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
       limit
     };
     
-    // Add tag filter for ISBN
-    filter['i'] = [`isbn:${isbn}`];
+    // Add #i tag filter for ISBN using the exact format from the request
+    filter['#i'] = [`isbn:${isbn}`];
     
     const events = await pool.querySync(relays, filter);
     console.log(`Found ${events.length} events for ISBN ${isbn}`);

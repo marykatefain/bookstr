@@ -63,6 +63,7 @@ export const useBookDetail = (isbn: string | undefined) => {
         
         setLoadingActivity(true);
         try {
+          // Update to pass the proper format for fetching activities related to this ISBN
           const activity = await fetchBookActivity(isbn);
           setBookActivity(activity);
         } catch (activityError) {
