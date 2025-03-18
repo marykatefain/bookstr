@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Book, BookOpen, BookMarked, Share2, Link, Settings, MessageCircle, FileText } from "lucide-react";
+import { Book, BookOpen, BookMarked, Share2, Link, Settings, MessageCircle, FileText, BookmarkIcon } from "lucide-react";
 import { 
   getCurrentUser, 
   isLoggedIn, 
@@ -182,9 +182,9 @@ const Profile = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
-                  <MessageCircle className="h-8 w-8 text-bookverse-accent mb-2" />
-                  <div className="text-2xl font-bold">{reviews.length}</div>
-                  <p className="text-muted-foreground">Reviews</p>
+                  <BookMarked className="h-8 w-8 text-bookverse-accent mb-2" />
+                  <div className="text-2xl font-bold">{books.tbr.length}</div>
+                  <p className="text-muted-foreground">To Be Read</p>
                 </div>
               </CardContent>
             </Card>
