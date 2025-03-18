@@ -36,7 +36,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
     <img
       src={coverUrl}
       alt={`${title} by ${author}`}
-      className={`object-cover ${sizeClasses[size]} cursor-pointer book-cover`}
+      className={`object-cover w-full h-full ${sizeClasses[size]} book-cover`}
       onError={(e) => {
         e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
       }}
@@ -61,9 +61,9 @@ export const BookCover: React.FC<BookCoverProps> = ({
   ) : null;
 
   return (
-    <div className="relative aspect-[2/3] overflow-hidden">
+    <div className="relative aspect-[2/3] overflow-hidden h-full">
       {isbn ? (
-        <Link to={`/book/${isbn}`}>
+        <Link to={`/book/${isbn}`} className="block h-full">
           {coverElement}
         </Link>
       ) : (

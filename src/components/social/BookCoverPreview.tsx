@@ -11,7 +11,7 @@ interface BookCoverPreviewProps {
 export function BookCoverPreview({ isbn, title, coverUrl }: BookCoverPreviewProps) {
   return (
     <Link to={`/book/${isbn}`} className="shrink-0">
-      <div className="w-16 h-24 rounded overflow-hidden shadow-sm">
+      <div className="w-16 h-24 rounded overflow-hidden shadow-sm relative aspect-[2/3]">
         <img 
           src={coverUrl} 
           alt={title}
