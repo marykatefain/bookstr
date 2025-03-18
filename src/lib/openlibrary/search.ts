@@ -15,8 +15,11 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     }
     
     const data: OpenLibrarySearchResult = await response.json();
+    console.log("OpenLibrary search results:", data);
+    
+    // Map the docs to our Book format, filtering out entries without covers or ISBN
     return data.docs
-      .filter(doc => doc.isbn && doc.isbn.length > 0) // Ensure we have ISBN
+      .filter(doc => doc.cover_i || (doc.isbn && doc.isbn.length > 0)) // Ensure we have cover ID or ISBN
       .map(docToBook);
   } catch (error) {
     console.error("Error searching OpenLibrary:", error);
