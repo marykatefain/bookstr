@@ -16,6 +16,7 @@ import {
   fetchUserBooks,
   fetchUserReviews,
   fetchFollowingList,
+  fetchBookPosts,
   followUser,
   isLoggedIn,
   getCurrentUser 
@@ -23,7 +24,6 @@ import {
 import { NostrProfile, BookReview, Post } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
-import { fetchUserPosts } from "@/lib/nostr/posts";
 
 interface TabCountProps {
   label: string;
@@ -50,6 +50,7 @@ const UserProfile = () => {
   });
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -82,13 +83,15 @@ const UserProfile = () => {
         const userReviews = await fetchUserReviews(actualPubkey);
         setReviews(userReviews);
         
-        const userPosts = await fetchUserPosts(actualPubkey);
-        setPosts(userPosts);
-        
         if (currentUser) {
           const { follows } = await fetchFollowingList(currentUser.pubkey);
           setFollowing(follows.includes(actualPubkey));
         }
+        
+        setPostsLoading(true);
+        const userBookPosts = await fetchBookPosts(actualPubkey, 20);
+        setPosts(userBookPosts);
+        setPostsLoading(false);
       } catch (error) {
         console.error("Error fetching user profile:", error);
         toast({
@@ -265,7 +268,11 @@ const UserProfile = () => {
               <div className="space-y-6">
                 <h2 className="text-xl font-bold">Posts</h2>
                 
-                {posts.length === 0 ? (
+                {postsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
+                  </div>
+                ) : posts.length === 0 ? (
                   <p className="text-muted-foreground">No posts yet.</p>
                 ) : (
                   <div className="space-y-4">

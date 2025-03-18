@@ -1,11 +1,12 @@
 
 import { SimplePool, type Filter } from "nostr-tools";
-import { SocialActivity, NOSTR_KINDS, Book } from "../types";
+import { SocialActivity, NOSTR_KINDS, Book, Post } from "../types";
 import { getUserRelays } from "../relay";
 import { getCurrentUser } from "../user";
 import { fetchFollowingList } from "./profileFetch";
 import { extractISBNFromTags, extractRatingFromTags } from "../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
+import { fetchUserProfiles } from "../profile";
 
 /**
  * Fetch social activity from people you follow
@@ -161,5 +162,123 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     return [];
   } finally {
     pool.close(relays);
+  }
+}
+
+/**
+ * Fetch posts that have book tags (kind 1 with 'i' tag)
+ */
+export async function fetchBookPosts(pubkey?: string, limit = 20): Promise<Post[]> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    // Configure filter for posts with book tags
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      limit: limit
+    };
+    
+    // If pubkey is provided, only fetch posts from that user
+    if (pubkey) {
+      filter.authors = [pubkey];
+    }
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Process events to extract posts with book tags
+    const posts: Post[] = [];
+    const userPubkeys = new Set<string>();
+    
+    for (const event of events) {
+      // Only include posts that have book tags (i tags)
+      const bookTag = event.tags.find(tag => tag[0] === 'i');
+      if (!bookTag) continue;
+      
+      userPubkeys.add(event.pubkey);
+      
+      // Extract ISBN from the tag (could be in format "isbn:1234567890" or just the ISBN)
+      const isbnValue = bookTag[1];
+      const isbn = isbnValue.startsWith('isbn:') 
+        ? isbnValue.substring(5) 
+        : isbnValue;
+      
+      // Find optional media tags
+      const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      
+      // Create post object
+      const post: Post = {
+        id: event.id,
+        pubkey: event.pubkey,
+        content: event.content,
+        createdAt: event.created_at * 1000,
+        taggedBook: {
+          isbn: isbn,
+          title: "Book", // Will be updated when we fetch book details
+          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
+        },
+        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true",
+        reactions: {
+          count: 0,
+          userReacted: false
+        }
+      };
+      
+      posts.push(post);
+    }
+    
+    // Fetch user profiles for post authors
+    if (userPubkeys.size > 0) {
+      const profiles = await fetchUserProfiles(Array.from(userPubkeys));
+      
+      // Add author information to posts
+      for (const post of posts) {
+        const authorProfile = profiles.find(p => p.pubkey === post.pubkey);
+        if (authorProfile) {
+          post.author = {
+            name: authorProfile.name || authorProfile.display_name,
+            picture: authorProfile.picture,
+            npub: authorProfile.npub
+          };
+        }
+      }
+    }
+    
+    // Get all unique ISBNs to fetch book details
+    const isbns = posts
+      .map(post => post.taggedBook?.isbn)
+      .filter((isbn): isbn is string => Boolean(isbn));
+    
+    if (isbns.length > 0) {
+      try {
+        // Fetch book details
+        const books = await getBooksByISBN([...new Set(isbns)]);
+        
+        // Update post objects with book details
+        for (const post of posts) {
+          if (post.taggedBook?.isbn) {
+            const book = books.find(b => b.isbn === post.taggedBook?.isbn);
+            if (book) {
+              post.taggedBook = {
+                isbn: book.isbn,
+                title: book.title,
+                coverUrl: book.coverUrl || post.taggedBook.coverUrl
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching book details:", error);
+      }
+    }
+    
+    pool.close(relays);
+    return posts.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching book posts:", error);
+    return [];
   }
 }
