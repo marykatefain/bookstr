@@ -28,7 +28,7 @@ export const useBookData = (isbn: string | undefined) => {
           description: "Could not load book details",
           variant: "destructive"
         });
-        return null;
+        throw err;
       }
     },
     enabled: !!isbn,

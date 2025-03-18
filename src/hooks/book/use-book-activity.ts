@@ -18,8 +18,15 @@ export const useBookActivity = (isbn: string | undefined) => {
     queryKey: ['bookActivity', isbn],
     queryFn: async () => {
       if (!isbn) return [];
-      const activity = await fetchBookActivity(isbn);
-      return activity;
+      console.log(`Fetching activity for book ISBN: ${isbn}`);
+      try {
+        const activity = await fetchBookActivity(isbn);
+        console.log(`Retrieved ${activity.length} activities for book ISBN: ${isbn}`);
+        return activity;
+      } catch (err) {
+        console.error(`Error fetching book activity for ISBN: ${isbn}:`, err);
+        throw err;
+      }
     },
     enabled: !!isbn && activeTab === "activity",
     staleTime: 1000 * 60 * 5, // 5 minutes
