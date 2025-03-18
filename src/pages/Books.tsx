@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,7 +67,7 @@ const Books = () => {
     setFilteredBooks(results);
   }, [searchQuery, activeCategory, books]);
 
-  const addToLibrary = async (bookId: string, status: 'tbr' | 'reading') => {
+  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -85,7 +86,7 @@ const Books = () => {
     try {
       let result: string | null;
       
-      if (status === 'tbr') {
+      if (status === 'want-to-read') {
         result = await addBookToTBR(book);
       } else {
         result = await markBookAsReading(book);
@@ -93,7 +94,7 @@ const Books = () => {
 
       if (result) {
         toast({
-          title: `Added to your ${status === 'tbr' ? 'TBR' : 'currently reading'} list`,
+          title: `Added to your ${status === 'want-to-read' ? 'TBR' : 'currently reading'} list`,
           description: `${book.title} has been added to your library and published to Nostr`
         });
       }
@@ -197,10 +198,10 @@ const Books = () => {
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'tbr')}
+                          onClick={() => addToLibrary(book.id, 'want-to-read')}
                           disabled={!!pendingActions[book.id]}
                         >
-                          {pendingActions[book.id] === 'tbr' ? (
+                          {pendingActions[book.id] === 'want-to-read' ? (
                             <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                           ) : (
                             <PlusCircle className="mr-1 h-4 w-4" />
