@@ -1,4 +1,3 @@
-
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -33,7 +32,7 @@ export interface Book {
   pageCount?: number;
   categories?: string[];
   readingStatus?: {
-    status: 'tbr' | 'reading' | 'read';
+    status: 'tbr' | 'reading' | 'finished';
     dateAdded: number;
     rating?: number;  // Add the rating property to fix the error
   };
@@ -178,3 +177,5 @@ export const NOSTR_KINDS = {
   BOOK_RATING: 7000,
   REVIEW: 1985
 };
+
+export type BookActionType = 'tbr' | 'reading' | 'finished';

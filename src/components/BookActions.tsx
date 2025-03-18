@@ -5,7 +5,7 @@ import { Book, BookActionType } from '@/lib/nostr/types';
 import { addBookToList } from "@/lib/nostr/books";
 import { toast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookList, Eye, EyeOff, Check } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Check } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;
@@ -94,7 +94,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
           onClick={() => handleAction('tbr')}
           disabled={isLoading !== null}
         >
-          <BookList size={iconSize} />
+          <BookOpen size={iconSize} />
           {size !== 'small' && <span>To Be Read</span>}
         </Button>
         

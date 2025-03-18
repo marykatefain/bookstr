@@ -1,4 +1,3 @@
-
 import { Book, NOSTR_KINDS } from "./types";
 import { publishToNostr } from "./publish";
 import { ensureBookMetadata } from "./fetch";
@@ -237,4 +236,28 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   };
   
   return publishToNostr(event);
+}
+
+/**
+ * Unified function to add a book to any of the reading lists
+ */
+export async function addBookToList(book: Book, listType: BookActionType): Promise<string | null> {
+  console.log(`==== Adding book to ${listType} list ====`);
+  
+  if (!book.isbn) {
+    console.error(`Cannot add book to ${listType} list: ISBN is missing`);
+    return null;
+  }
+  
+  switch (listType) {
+    case 'tbr':
+      return addBookToTBR(book);
+    case 'reading':
+      return markBookAsReading(book);
+    case 'finished':
+      return markBookAsRead(book);
+    default:
+      console.error(`Unknown list type: ${listType}`);
+      return null;
+  }
 }
