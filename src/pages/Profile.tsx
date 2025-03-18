@@ -199,8 +199,16 @@ const Profile = () => {
             </Card>
           </div>
 
-          <Tabs defaultValue="reading" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b rounded-none justify-start space-x-8">
+              <TabsTrigger value="posts" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                Posts
+                <div className={`${activeTab === "posts" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                Reviews
+                <div className={`${activeTab === "reviews" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
+              </TabsTrigger>
               <TabsTrigger value="reading" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                 Currently Reading
                 <div className={`${activeTab === "reading" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
@@ -213,16 +221,68 @@ const Profile = () => {
                 Want to Read
                 <div className={`${activeTab === "want-to-read" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
               </TabsTrigger>
-              <TabsTrigger value="posts" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                Posts
-                <div className={`${activeTab === "posts" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
-              </TabsTrigger>
-              <TabsTrigger value="reviews" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                Reviews
-                <div className={`${activeTab === "reviews" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
-              </TabsTrigger>
             </TabsList>
             
+            <TabsContent value="posts" className="pt-6">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
+                </div>
+              ) : posts.length > 0 ? (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No posts yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    You haven't shared any posts yet
+                  </p>
+                  <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
+                    <Book className="mr-2 h-4 w-4" />
+                    Share What You're Reading
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="reviews" className="pt-6">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
+                </div>
+              ) : reviews.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {reviews.map((review) => (
+                    <ReviewCard 
+                      key={review.id} 
+                      review={review}
+                      bookTitle={review.bookTitle}
+                      showBookInfo={true}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No reviews yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    You haven't written any book reviews yet
+                  </p>
+                  <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
+                    <Book className="mr-2 h-4 w-4" />
+                    Discover Books to Review
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
             <TabsContent value="reading" className="pt-6">
               {loading ? (
                 <div className="flex justify-center py-12">
@@ -283,66 +343,6 @@ const Profile = () => {
                 </div>
               ) : (
                 <EmptyBookshelf type="want-to-read" />
-              )}
-            </TabsContent>
-            
-            <TabsContent value="posts" className="pt-6">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
-                </div>
-              ) : posts.length > 0 ? (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <PostCard 
-                      key={post.id} 
-                      post={post}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No posts yet</h3>
-                  <p className="text-muted-foreground mb-4 max-w-md">
-                    You haven't shared any posts yet
-                  </p>
-                  <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                    <Book className="mr-2 h-4 w-4" />
-                    Share What You're Reading
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="reviews" className="pt-6">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
-                </div>
-              ) : reviews.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {reviews.map((review) => (
-                    <ReviewCard 
-                      key={review.id} 
-                      review={review}
-                      bookTitle={review.bookTitle}
-                      showBookInfo={true}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No reviews yet</h3>
-                  <p className="text-muted-foreground mb-4 max-w-md">
-                    You haven't written any book reviews yet
-                  </p>
-                  <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                    <Book className="mr-2 h-4 w-4" />
-                    Discover Books to Review
-                  </Button>
-                </div>
               )}
             </TabsContent>
           </Tabs>

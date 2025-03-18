@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -187,208 +186,210 @@ const UserProfile = () => {
   return (
     <Layout>
       <div className="container px-4 py-8">
-        <div className="flex flex-col items-center space-y-4">
-          <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
-            <AvatarImage src={profile.picture} />
-            <AvatarFallback className="text-xl">
-              {(profile.name || profile.display_name || 'U')[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">
-              {profile.name || profile.display_name || formatPubkey(profile.pubkey)}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {formatPubkey(profile.pubkey)}
-            </p>
+        <div className="space-y-6">
+          <div className="flex flex-col items-center space-y-4">
+            <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
+              <AvatarImage src={profile.picture} />
+              <AvatarFallback className="text-xl">
+                {(profile.name || profile.display_name || 'U')[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="text-center">
+              <h1 className="text-2xl font-bold">
+                {profile.name || profile.display_name || formatPubkey(profile.pubkey)}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {formatPubkey(profile.pubkey)}
+              </p>
+            </div>
+            
+            {profile.about && (
+              <p className="text-center max-w-lg text-muted-foreground">
+                {profile.about}
+              </p>
+            )}
+            
+            {currentUser && currentUser.pubkey !== profile.pubkey && (
+              <Button 
+                onClick={handleFollow} 
+                disabled={following || followLoading}
+                variant={following ? "outline" : "default"}
+              >
+                {following ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
+            
+            <div className="flex justify-center gap-8 mt-2">
+              <TabCount label="Books" count={totalBooks} />
+              <TabCount label="Reading" count={userBooks.reading.length} />
+              <TabCount label="Posts" count={posts.length} />
+              <TabCount label="Reviews" count={reviews.length} />
+            </div>
           </div>
           
-          {profile.about && (
-            <p className="text-center max-w-lg text-muted-foreground">
-              {profile.about}
-            </p>
-          )}
+          <Separator className="my-6" />
           
-          {currentUser && currentUser.pubkey !== profile.pubkey && (
-            <Button 
-              onClick={handleFollow} 
-              disabled={following || followLoading}
-              variant={following ? "outline" : "default"}
-            >
-              {following ? (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Following
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Follow
-                </>
-              )}
-            </Button>
-          )}
-          
-          <div className="flex justify-center gap-8 mt-2">
-            <TabCount label="Books" count={totalBooks} />
-            <TabCount label="Reading" count={userBooks.reading.length} />
-            <TabCount label="Posts" count={posts.length} />
-            <TabCount label="Reviews" count={reviews.length} />
-          </div>
-        </div>
-        
-        <Separator className="my-6" />
-        
-        <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid grid-cols-5 mb-6">
-            <TabsTrigger value="library">
-              <Book className="mr-2 h-4 w-4" />
-              Library
-            </TabsTrigger>
-            <TabsTrigger value="posts">
-              <FileText className="mr-2 h-4 w-4" />
-              Posts
-            </TabsTrigger>
-            <TabsTrigger value="reviews">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Reviews
-            </TabsTrigger>
-            <TabsTrigger value="activity">
-              <Users className="mr-2 h-4 w-4" />
-              Activity
-            </TabsTrigger>
-            <TabsTrigger value="about">About</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="library">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-xl font-bold mb-4">Reading Now</h2>
-                {userBooks.reading.length === 0 ? (
-                  <p className="text-muted-foreground">No books currently being read.</p>
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className="grid grid-cols-5 mb-6">
+              <TabsTrigger value="posts">
+                <FileText className="mr-2 h-4 w-4" />
+                Posts
+              </TabsTrigger>
+              <TabsTrigger value="reviews">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Reviews
+              </TabsTrigger>
+              <TabsTrigger value="library">
+                <Book className="mr-2 h-4 w-4" />
+                Library
+              </TabsTrigger>
+              <TabsTrigger value="activity">
+                <Users className="mr-2 h-4 w-4" />
+                Activity
+              </TabsTrigger>
+              <TabsTrigger value="about">About</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="posts">
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold">Posts</h2>
+                
+                {posts.length === 0 ? (
+                  <p className="text-muted-foreground">No posts yet.</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {userBooks.reading.map(book => (
-                      <BookCard 
-                        key={book.id} 
-                        book={book} 
-                        size="small"
-                        showDescription={false}
-                        onUpdate={() => {}}
+                  <div className="space-y-4">
+                    {posts.map(post => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="reviews">
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold">Reviews</h2>
+                
+                {reviews.length === 0 ? (
+                  <p className="text-muted-foreground">No reviews written yet.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {reviews.map(review => (
+                      <ReviewCard 
+                        key={review.id} 
+                        review={review}
+                        bookTitle={review.bookTitle}
+                        showBookInfo={true}
                       />
                     ))}
                   </div>
                 )}
               </div>
-              
-              <div>
-                <h2 className="text-xl font-bold mb-4">Finished Reading</h2>
-                {userBooks.read.length === 0 ? (
-                  <p className="text-muted-foreground">No finished books yet.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {userBooks.read.map(book => (
-                      <BookCard 
-                        key={book.id} 
-                        book={book} 
-                        size="small"
-                        showDescription={false}
-                        onUpdate={() => {}}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <h2 className="text-xl font-bold mb-4">Want to Read</h2>
-                {userBooks.tbr.length === 0 ? (
-                  <p className="text-muted-foreground">No books on the TBR list yet.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {userBooks.tbr.map(book => (
-                      <BookCard 
-                        key={book.id} 
-                        book={book} 
-                        size="small"
-                        showDescription={false}
-                        onUpdate={() => {}}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="posts">
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold">Posts</h2>
-              
-              {posts.length === 0 ? (
-                <p className="text-muted-foreground">No posts yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {posts.map(post => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="reviews">
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold">Reviews</h2>
-              
-              {reviews.length === 0 ? (
-                <p className="text-muted-foreground">No reviews written yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {reviews.map(review => (
-                    <ReviewCard 
-                      key={review.id} 
-                      review={review}
-                      bookTitle={review.bookTitle}
-                      showBookInfo={true}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="activity">
-            <SocialFeed />
-          </TabsContent>
-          
-          <TabsContent value="about">
-            <div className="space-y-4 max-w-2xl">
-              <h2 className="text-xl font-bold">About</h2>
-              
-              {profile.about ? (
-                <p className="text-muted-foreground whitespace-pre-wrap">{profile.about}</p>
-              ) : (
-                <p className="text-muted-foreground">No bio available.</p>
-              )}
-              
-              {profile.website && (
+            </TabsContent>
+            
+            <TabsContent value="library">
+              <div className="space-y-8">
                 <div>
-                  <h3 className="font-medium mt-4">Website</h3>
-                  <a 
-                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-bookverse-accent hover:underline"
-                  >
-                    {profile.website}
-                  </a>
+                  <h2 className="text-xl font-bold mb-4">Reading Now</h2>
+                  {userBooks.reading.length === 0 ? (
+                    <p className="text-muted-foreground">No books currently being read.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {userBooks.reading.map(book => (
+                        <BookCard 
+                          key={book.id} 
+                          book={book} 
+                          size="small"
+                          showDescription={false}
+                          onUpdate={() => {}}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+                
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Finished Reading</h2>
+                  {userBooks.read.length === 0 ? (
+                    <p className="text-muted-foreground">No finished books yet.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {userBooks.read.map(book => (
+                        <BookCard 
+                          key={book.id} 
+                          book={book} 
+                          size="small"
+                          showDescription={false}
+                          onUpdate={() => {}}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Want to Read</h2>
+                  {userBooks.tbr.length === 0 ? (
+                    <p className="text-muted-foreground">No books on the TBR list yet.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {userBooks.tbr.map(book => (
+                        <BookCard 
+                          key={book.id} 
+                          book={book} 
+                          size="small"
+                          showDescription={false}
+                          onUpdate={() => {}}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="activity">
+              <SocialFeed />
+            </TabsContent>
+            
+            <TabsContent value="about">
+              <div className="space-y-4 max-w-2xl">
+                <h2 className="text-xl font-bold">About</h2>
+                
+                {profile.about ? (
+                  <p className="text-muted-foreground whitespace-pre-wrap">{profile.about}</p>
+                ) : (
+                  <p className="text-muted-foreground">No bio available.</p>
+                )}
+                
+                {profile.website && (
+                  <div>
+                    <h3 className="font-medium mt-4">Website</h3>
+                    <a 
+                      href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-bookverse-accent hover:underline"
+                    >
+                      {profile.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </Layout>
   );
