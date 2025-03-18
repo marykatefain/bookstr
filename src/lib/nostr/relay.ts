@@ -6,22 +6,36 @@ let userRelays = [...DEFAULT_RELAYS];
 let activeConnections: WebSocket[] = [];
 let connectionAttemptInProgress = false;
 let connectionPromise: Promise<WebSocket[]> | null = null;
+let lastConnectionAttempt = 0;
+const CONNECTION_COOLDOWN = 2000; // 2 seconds cooldown between connection attempts
 
 const NOSTR_RELAYS_KEY = 'bookverse_nostr_relays';
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 
 export async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket[]> {
-  // If a connection attempt is already in progress, return the existing promise
+  const now = Date.now();
+  
+  if (now - lastConnectionAttempt < CONNECTION_COOLDOWN) {
+    const openConnections = activeConnections.filter(
+      conn => conn.readyState === WebSocket.OPEN
+    );
+    
+    if (openConnections.length > 0) {
+      console.log(`Using ${openConnections.length} existing connections due to connection cooldown`);
+      return openConnections;
+    }
+  }
+  
   if (connectionPromise) {
+    console.log("Connection attempt already in progress, reusing promise");
     return connectionPromise;
   }
   
   connectionAttemptInProgress = true;
+  lastConnectionAttempt = now;
   
-  // Create a new promise for this connection attempt
   connectionPromise = new Promise(async (resolve, reject) => {
     try {
-      // Check if we already have active connections
       const openConnections = activeConnections.filter(
         conn => conn.readyState === WebSocket.OPEN
       );
@@ -33,7 +47,6 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
         return resolve(openConnections);
       }
       
-      // Close any existing connections to prevent resource leaks
       closeActiveConnections();
       
       const connections: WebSocket[] = [];
@@ -63,6 +76,7 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
             
             socket.onclose = (event) => {
               console.log(`Connection closed for ${relayUrl}: code=${event.code}, reason=${event.reason}`);
+              activeConnections = activeConnections.filter(conn => conn !== socket);
             };
           });
           
@@ -77,7 +91,6 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
         console.error(errorMsg);
         reject(new Error(errorMsg));
       } else {
-        // Store active connections for later use or cleanup
         activeConnections = [...connections];
         console.log(`Successfully connected to ${connections.length} relays`);
         resolve(connections);
@@ -95,10 +108,12 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
 }
 
 export function getActiveConnections(): WebSocket[] {
-  return activeConnections;
+  return activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
 }
 
 export function closeActiveConnections(): void {
+  console.log(`Closing ${activeConnections.length} active connections`);
+  
   for (const connection of activeConnections) {
     if (connection.readyState === WebSocket.OPEN || connection.readyState === WebSocket.CONNECTING) {
       try {
@@ -202,7 +217,6 @@ export function loadRelaysFromStorage(): void {
 }
 
 export async function ensureConnections(): Promise<WebSocket[]> {
-  // If we have active connections that are still open, use them
   const openConnections = activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
   
   if (openConnections.length > 0) {
@@ -210,7 +224,6 @@ export async function ensureConnections(): Promise<WebSocket[]> {
     return openConnections;
   } else {
     console.log("No open connections found, reconnecting to relays");
-    // Make sure we wait for connections to be established
     return await connectToRelays();
   }
 }

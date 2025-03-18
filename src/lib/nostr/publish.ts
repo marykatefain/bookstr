@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
@@ -104,36 +105,50 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       
       // Publish to relays
       try {
-        // Use Promise.allSettled instead of Promise.any for better compatibility
-        const publishPromises = relayUrls.map(url => {
-          return pool.publish([url], signedEvent as Event);
-        });
-        
-        const results = await Promise.allSettled(publishPromises);
-        
-        console.log("Publish results:", results);
-        
-        // Check if at least one relay accepted the event
-        const success = results.some(result => 
-          result.status === 'fulfilled'
-        );
-        
-        if (success) {
-          toast({
-            title: "Published successfully",
-            description: "Your action has been published to Nostr"
+        // Add a timeout to ensure we give enough time for the event to be published
+        const publishPromise = new Promise<string>((resolve, reject) => {
+          // Use Promise.allSettled to track all publish attempts
+          const publishPromises = relayUrls.map(url => {
+            return pool.publish([url], signedEvent as Event);
           });
           
-          return signedEvent.id;
-        } else {
-          throw new Error("Failed to publish to any relay");
-        }
+          Promise.allSettled(publishPromises).then(results => {
+            console.log("Publish results:", results);
+            
+            // Check if at least one relay accepted the event
+            const success = results.some(result => 
+              result.status === 'fulfilled'
+            );
+            
+            if (success) {
+              // Delay the resolution to ensure the message has time to propagate
+              setTimeout(() => {
+                resolve(signedEvent.id);
+              }, 1000);
+            } else {
+              reject(new Error("Failed to publish to any relay"));
+            }
+          });
+        });
+        
+        const eventId = await publishPromise;
+        
+        // Only close the pool after the timeout, giving events time to propagate
+        setTimeout(() => {
+          pool.close(relayUrls);
+        }, 2000);
+        
+        toast({
+          title: "Published successfully",
+          description: "Your action has been published to Nostr"
+        });
+        
+        return eventId;
       } catch (error) {
         console.error("Failed to publish to relays:", error);
-        throw error;
-      } finally {
-        // Clean up connections
+        // Still need to clean up the pool
         pool.close(relayUrls);
+        throw error;
       }
     } catch (signError) {
       console.error("Error signing event:", signError);
