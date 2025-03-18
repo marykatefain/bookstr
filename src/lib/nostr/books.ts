@@ -28,7 +28,8 @@ export async function publishBookMetadata(book: Book): Promise<string | null> {
  * Add a book to the "TBR" list (formerly "Want to Read")
  */
 export async function addBookToTBR(book: Book): Promise<string | null> {
-  console.log("Adding book to TBR:", book.title);
+  console.log("==== Adding book to TBR ====");
+  console.log("Book details:", book.title, book.author, book.isbn);
   
   // Create a direct Kind 30000 list event
   const now = new Date();
@@ -45,15 +46,25 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
     content: `Added "${book.title}" by ${book.author} to my TBR list`
   };
   
-  console.log("Publishing TBR event:", event);
-  return publishToNostr(event);
+  console.log("Publishing TBR event with tags:", event.tags);
+  console.log("Event kind:", event.kind);
+  
+  try {
+    const result = await publishToNostr(event);
+    console.log("TBR publish result:", result);
+    return result;
+  } catch (error) {
+    console.error("Error in addBookToTBR:", error);
+    throw error;
+  }
 }
 
 /**
  * Mark a book as currently reading
  */
 export async function markBookAsReading(book: Book): Promise<string | null> {
-  console.log("Marking book as reading:", book.title);
+  console.log("==== Marking book as reading ====");
+  console.log("Book details:", book.title, book.author, book.isbn);
   
   const now = new Date().toISOString();
   
@@ -70,15 +81,25 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     content: `Started reading "${book.title}" by ${book.author}`
   };
   
-  console.log("Publishing reading event:", event);
-  return publishToNostr(event);
+  console.log("Publishing reading event with tags:", event.tags);
+  console.log("Event kind:", event.kind);
+  
+  try {
+    const result = await publishToNostr(event);
+    console.log("Reading publish result:", result);
+    return result;
+  } catch (error) {
+    console.error("Error in markBookAsReading:", error);
+    throw error;
+  }
 }
 
 /**
  * Mark a book as read
  */
 export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
-  console.log("Marking book as read:", book.title);
+  console.log("==== Marking book as read ====");
+  console.log("Book details:", book.title, book.author, book.isbn);
   
   const now = new Date().toISOString();
   
@@ -102,8 +123,17 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
     content: `Finished reading "${book.title}" by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
   };
   
-  console.log("Publishing read event:", event);
-  return publishToNostr(event);
+  console.log("Publishing read event with tags:", event.tags);
+  console.log("Event kind:", event.kind);
+  
+  try {
+    const result = await publishToNostr(event);
+    console.log("Read publish result:", result);
+    return result;
+  } catch (error) {
+    console.error("Error in markBookAsRead:", error);
+    throw error;
+  }
 }
 
 /**

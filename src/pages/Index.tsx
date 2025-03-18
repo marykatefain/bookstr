@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
-import { mockBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
+import { mockBooks, getCurrentUser, isLoggedIn, addBookToTBR, markBookAsReading } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
 
@@ -13,8 +13,9 @@ const Index = () => {
   const { toast } = useToast();
   const [featuredBooks, setFeaturedBooks] = useState(mockBooks.slice(0, 3));
   const [recentlyAdded, setRecentlyAdded] = useState(mockBooks.slice(3, 6));
+  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
 
-  const addToLibrary = (bookId: string, status: 'want-to-read' | 'reading') => {
+  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -26,11 +27,42 @@ const Index = () => {
 
     const book = mockBooks.find(b => b.id === bookId);
     if (!book) return;
-
-    toast({
-      title: `Added to your ${status === 'want-to-read' ? 'want to read' : 'currently reading'} list`,
-      description: `${book.title} has been added to your library`
-    });
+    
+    setPendingActions(prev => ({ ...prev, [bookId]: status }));
+    
+    try {
+      let result: string | null;
+      
+      if (status === 'want-to-read') {
+        console.log("Calling addBookToTBR for:", book.title);
+        result = await addBookToTBR(book);
+      } else if (status === 'reading') {
+        console.log("Calling markBookAsReading for:", book.title);
+        result = await markBookAsReading(book);
+      }
+      
+      if (result) {
+        toast({
+          title: `Added to your ${status === 'want-to-read' ? 'TBR' : 'currently reading'} list`,
+          description: `${book.title} has been added to your library and published to Nostr`
+        });
+      } else {
+        throw new Error("Failed to publish event");
+      }
+    } catch (error) {
+      console.error("Error adding book:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error publishing to Nostr",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingActions(prev => {
+        const newState = { ...prev };
+        delete newState[bookId];
+        return newState;
+      });
+    }
   };
 
   return (
@@ -116,9 +148,10 @@ const Index = () => {
                           variant="outline"
                           className="flex-1"
                           onClick={() => addToLibrary(book.id, 'want-to-read')}
+                          disabled={!!pendingActions[book.id]}
                         >
                           <PlusCircle className="mr-1 h-4 w-4" />
-                          Want to Read
+                          {pendingActions[book.id] === 'want-to-read' ? 'Adding...' : 'Want to Read'}
                         </Button>
                       </div>
                     </div>
@@ -174,17 +207,19 @@ const Index = () => {
                           variant="outline"
                           className="flex-1"
                           onClick={() => addToLibrary(book.id, 'want-to-read')}
+                          disabled={!!pendingActions[book.id]}
                         >
                           <Bookmark className="mr-1 h-4 w-4" />
-                          Want to Read
+                          {pendingActions[book.id] === 'want-to-read' ? 'Adding...' : 'Want to Read'}
                         </Button>
                         <Button
                           size="sm"
                           className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
                           onClick={() => addToLibrary(book.id, 'reading')}
+                          disabled={!!pendingActions[book.id]}
                         >
                           <BookOpen className="mr-1 h-4 w-4" />
-                          Start Reading
+                          {pendingActions[book.id] === 'reading' ? 'Adding...' : 'Start Reading'}
                         </Button>
                       </div>
                     </div>
