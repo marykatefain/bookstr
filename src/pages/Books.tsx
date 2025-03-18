@@ -169,14 +169,14 @@ const Books = () => {
               <span className="ml-2 text-bookverse-ink">Loading books...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {books.length > 0 ? (
                 books.map((book) => (
                   <BookCard 
                     key={book.id} 
                     book={book} 
                     showDescription={false}
-                    size="small"
+                    size="medium"
                     onUpdate={() => console.log("Book updated")}
                   />
                 ))

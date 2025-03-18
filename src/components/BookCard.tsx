@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,9 +31,9 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   const getCardClasses = () => {
     const baseClasses = "overflow-hidden h-full";
-    if (size === "small") return `${baseClasses} max-w-[200px]`;
-    if (size === "large") return `${baseClasses} max-w-[300px]`;
-    return baseClasses; // medium size
+    if (size === "small") return `${baseClasses} max-w-[240px] w-full`;
+    if (size === "large") return `${baseClasses} max-w-[300px] w-full`;
+    return `${baseClasses} w-full`; // medium size - no max width, full responsive width
   };
 
   const getTitleClasses = () => {
@@ -113,7 +112,7 @@ export const BookCard: React.FC<BookCardProps> = ({
             <img
               src={book.coverUrl}
               alt={`${book.title} by ${book.author}`}
-              className="object-cover w-full h-full cursor-pointer transition-transform hover:scale-105"
+              className="object-cover w-full h-full cursor-pointer book-cover"
               onError={(e) => {
                 e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
               }}
@@ -178,11 +177,11 @@ export const BookCard: React.FC<BookCardProps> = ({
             <p className="text-sm line-clamp-2">{book.description}</p>
           )}
           
-          <div className="pt-2 flex flex-wrap gap-2">
+          <div className="pt-2 flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 min-w-20"
+              className="flex-1 text-xs md:text-sm"
               onClick={() => handleAction('want-to-read')}
               disabled={!!pendingAction}
             >
@@ -195,7 +194,7 @@ export const BookCard: React.FC<BookCardProps> = ({
             </Button>
             <Button
               size="sm"
-              className="flex-1 min-w-20 bg-bookverse-accent hover:bg-bookverse-highlight"
+              className="flex-1 text-xs md:text-sm bg-bookverse-accent hover:bg-bookverse-highlight"
               onClick={() => handleAction('reading')}
               disabled={!!pendingAction}
             >
