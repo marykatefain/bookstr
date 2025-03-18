@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
 import { Book as BookType } from "@/lib/nostr/types";
 import { BookCard } from "@/components/BookCard";
-import { SocialFeed } from "@/components/SocialFeed";
+import { CompactSocialFeed } from "@/components/CompactSocialFeed";
 
 const Index = () => {
   const { toast } = useToast();
@@ -124,7 +124,7 @@ const Index = () => {
 
       {/* Social Feed (for logged in users) */}
       {isLoggedIn() && (
-        <section className="py-12 bg-bookverse-paper">
+        <section className="py-8 bg-bookverse-paper">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col space-y-4">
               <div className="flex items-center justify-between">
@@ -132,10 +132,13 @@ const Index = () => {
                   <Users className="mr-2 h-5 w-5" />
                   Reading Community
                 </h2>
+                <Link to="/social" className="text-sm text-bookverse-accent hover:underline">
+                  View All
+                </Link>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                  <SocialFeed />
+                  <CompactSocialFeed maxItems={5} />
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-xl font-bold font-serif mb-4">Reading Together</h3>
