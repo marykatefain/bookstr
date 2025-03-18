@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -10,7 +9,6 @@ import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
 import { BookCategories } from "./book/BookCategories";
 import { BookActionButtons } from "./book/BookActionButtons";
-import { AspectRatio } from "./ui/aspect-ratio";
 
 interface BookCardProps {
   book: Book;
@@ -103,7 +101,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
-        <div className="relative w-full" style={{ paddingBottom: "150%" }}>
+        <div className="relative" style={{ paddingTop: "150%" }}>
           <div className="absolute inset-0">
             <BookCover 
               isbn={book.isbn}
