@@ -4,6 +4,56 @@ import { BASE_URL } from './types';
 import { getCoverUrl, getAuthorName, fetchISBNFromEditionKey } from './utils';
 
 /**
+ * Get daily trending books from OpenLibrary's trending API
+ */
+export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]> {
+  try {
+    const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const works = data.works || [];
+    
+    const books = await Promise.all(
+      works
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
+        .map(async (work: any) => {
+          let isbn = work.availability?.isbn || "";
+          
+          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
+          if (!isbn && work.cover_edition_key) {
+            console.log(`Fetching ISBN for trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
+            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+            if (isbn) {
+              console.log(`Found ISBN for trending book ${work.title}: ${isbn}`);
+            }
+          }
+          
+          return {
+            id: work.key,
+            title: work.title,
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            coverUrl: getCoverUrl(isbn, work.cover_id),
+            description: work.description?.value || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: ["Trending"]
+          };
+        })
+    );
+    
+    return books;
+  } catch (error) {
+    console.error("Error fetching daily trending books:", error);
+    // Fallback to the older trending books method if the daily API fails
+    return getTrendingBooks(limit);
+  }
+}
+
+/**
  * Get trending or popular books
  */
 export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
