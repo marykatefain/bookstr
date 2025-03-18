@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { Book } from "@/lib/nostr/types";
 import { getTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/hooks/use-toast";
@@ -16,8 +16,8 @@ export function useTrendingBooks(limit: number = 3) {
   } = useQuery({
     queryKey: ['trendingBooks', limit],
     queryFn: () => getTrendingBooks(limit),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 60 minutes
     retry: 1,
   });
 

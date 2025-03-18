@@ -3,10 +3,35 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, getAuthorName, fetchISBNFromEditionKey } from './utils';
 
+// Cache for weekly trending books
+const weeklyTrendingCache: {
+  timestamp: number;
+  books: Book[];
+} = {
+  timestamp: 0,
+  books: []
+};
+
+// Cache for daily trending books
+const dailyTrendingCache: {
+  timestamp: number;
+  books: Book[];
+} = {
+  timestamp: 0,
+  books: []
+};
+
 /**
  * Get daily trending books from OpenLibrary's trending API
  */
 export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]> {
+  // If we have cached data less than 30 minutes old, use it
+  const now = Date.now();
+  if (dailyTrendingCache.books.length > 0 && (now - dailyTrendingCache.timestamp) < 30 * 60 * 1000) {
+    console.log("Using cached daily trending books data");
+    return dailyTrendingCache.books.slice(0, limit);
+  }
+
   try {
     const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`);
     if (!response.ok) {
@@ -45,6 +70,10 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
         })
     );
     
+    // Update cache
+    dailyTrendingCache.books = books;
+    dailyTrendingCache.timestamp = now;
+    
     return books;
   } catch (error) {
     console.error("Error fetching daily trending books:", error);
@@ -57,6 +86,13 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
  * Get weekly trending books from OpenLibrary's trending API
  */
 export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]> {
+  // If we have cached data less than 30 minutes old, use it
+  const now = Date.now();
+  if (weeklyTrendingCache.books.length > 0 && (now - weeklyTrendingCache.timestamp) < 30 * 60 * 1000) {
+    console.log("Using cached weekly trending books data");
+    return weeklyTrendingCache.books.slice(0, limit);
+  }
+
   try {
     const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`);
     if (!response.ok) {
@@ -95,6 +131,10 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
         })
     );
     
+    // Update cache
+    weeklyTrendingCache.books = books;
+    weeklyTrendingCache.timestamp = now;
+    
     return books;
   } catch (error) {
     console.error("Error fetching weekly trending books:", error);
@@ -103,10 +143,26 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
   }
 }
 
+// Cache for trending books
+const trendingBooksCache: {
+  timestamp: number;
+  books: Book[];
+} = {
+  timestamp: 0,
+  books: []
+};
+
 /**
  * Get trending or popular books
  */
 export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
+  // If we have cached data less than 30 minutes old, use it
+  const now = Date.now();
+  if (trendingBooksCache.books.length > 0 && (now - trendingBooksCache.timestamp) < 30 * 60 * 1000) {
+    console.log("Using cached trending books data");
+    return trendingBooksCache.books.slice(0, limit);
+  }
+
   try {
     // Using subjects that typically have popular books
     const response = await fetch(`${BASE_URL}/subjects/fiction.json?limit=${limit}`);
@@ -145,6 +201,10 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
           };
         })
     );
+    
+    // Update cache
+    trendingBooksCache.books = books;
+    trendingBooksCache.timestamp = now;
     
     return books;
   } catch (error) {
