@@ -186,30 +186,7 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
  * Fetch posts by a specific user
  */
 export async function fetchUserPosts(pubkey: string, useMockData: boolean = true): Promise<Post[]> {
-  if (useMockData) {
-    return mockPosts.filter(post => post.pubkey === pubkey);
-  }
-  
-  try {
-    const relayUrls = getUserRelays();
-    const pool = new SimplePool();
-    
-    const filter: Filter = {
-      kinds: [NOSTR_KINDS.TEXT_NOTE],
-      authors: [pubkey],
-      limit: 50
-    };
-    
-    // Fixed: pass a single filter object instead of an array
-    const events = await pool.querySync(relayUrls, filter);
-    
-    // Process events similarly to fetchPosts
-    // ... processing code here ...
-    
-    pool.close(relayUrls);
-    return []; // Replace with actual posts
-  } catch (error) {
-    console.error(`Error fetching posts for user ${pubkey}:`, error);
-    return [];
-  }
+  // Import the function from the fetch directory and call it
+  const { fetchBookPosts } = require('./fetch/socialFetch');
+  return fetchBookPosts(pubkey, useMockData);
 }

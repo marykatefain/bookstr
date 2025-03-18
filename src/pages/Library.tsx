@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookCard } from "@/components/BookCard";
-import { fetchUserBooks, fetchBookPosts, getCurrentUser, isLoggedIn } from "@/lib/nostr";
+import { fetchUserBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
 import { Book, Post } from "@/lib/nostr/types";
 import { EmptyState } from "@/components/profile/EmptyState";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { Separator } from "@/components/ui/separator";
 import { StatsCards } from "@/components/profile/StatsCards";
-import { ProfileTabs } from "@/components/profile/ProfileTabs";
+import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 
 const Library: React.FC = () => {
   const [booksLoading, setBooksLoading] = useState(true);
@@ -159,6 +159,7 @@ const Library: React.FC = () => {
                     title="No posts yet" 
                     description="You haven't created any book posts yet"
                     actionText="Create a post"
+                    actionType="post"
                   />
                 </div>
               ) : (

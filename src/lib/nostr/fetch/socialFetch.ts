@@ -187,6 +187,10 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     // If pubkey is provided, only fetch posts from that user
     if (pubkey) {
       filter.authors = [pubkey];
+      
+      // Use an empty string for the #i tag to ensure we're fetching book posts
+      // but not filtering by a specific ISBN
+      filter['#i'] = ['']; 
     }
     
     console.log("Using filter:", filter);
