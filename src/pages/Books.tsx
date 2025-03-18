@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,11 +20,9 @@ import {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
-  Book,
-  publishToNostr,
-  NOSTR_KINDS
+  Book
 } from "@/lib/nostr";
-import { searchBooks, getTrendingBooks } from "@/lib/openlibrary/api";
+import { searchBooks, searchBooksByGenre, getTrendingBooks } from "@/lib/openlibrary/api";
 import { useToast } from "@/components/ui/use-toast";
 
 const categories = [
@@ -46,7 +43,6 @@ const Books = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -57,7 +53,6 @@ const Books = () => {
       try {
         const trending = await getTrendingBooks(20);
         setBooks(trending);
-        setFilteredBooks(trending);
       } catch (error) {
         console.error("Error loading trending books:", error);
         toast({
@@ -85,27 +80,26 @@ const Books = () => {
   // Handle search
   useEffect(() => {
     const performSearch = async () => {
-      if (!debouncedSearch) {
-        // If search is cleared, load trending books
+      if (!debouncedSearch && activeCategory === "All") {
+        // If search is cleared and category is All, load trending books
         const trending = await getTrendingBooks(20);
         setBooks(trending);
-        setFilteredBooks(trending);
         return;
       }
 
       setIsLoading(true);
       try {
-        const results = await searchBooks(debouncedSearch);
-        setBooks(results);
+        let results: Book[] = [];
         
-        // Apply category filter to search results
-        if (activeCategory === "All") {
-          setFilteredBooks(results);
-        } else {
-          setFilteredBooks(
-            results.filter(book => book.categories?.includes(activeCategory))
-          );
+        if (debouncedSearch) {
+          // If there's a search query, use that
+          results = await searchBooks(debouncedSearch);
+        } else if (activeCategory !== "All") {
+          // If there's an active category but no search, search by genre
+          results = await searchBooksByGenre(activeCategory, 20);
         }
+        
+        setBooks(results);
       } catch (error) {
         console.error("Error searching books:", error);
         toast({
@@ -121,16 +115,35 @@ const Books = () => {
     performSearch();
   }, [debouncedSearch, toast]);
 
-  // Handle category filtering
+  // Handle category change
   useEffect(() => {
-    if (activeCategory === "All") {
-      setFilteredBooks(books);
-    } else {
-      setFilteredBooks(
-        books.filter(book => book.categories?.includes(activeCategory))
-      );
-    }
-  }, [activeCategory, books]);
+    const loadCategoryBooks = async () => {
+      // Skip if there's a search query (search takes precedence)
+      if (debouncedSearch) return;
+      
+      setIsLoading(true);
+      try {
+        if (activeCategory === "All") {
+          const trending = await getTrendingBooks(20);
+          setBooks(trending);
+        } else {
+          const genreBooks = await searchBooksByGenre(activeCategory, 20);
+          setBooks(genreBooks);
+        }
+      } catch (error) {
+        console.error("Error loading category books:", error);
+        toast({
+          title: "Error loading category",
+          description: "There was a problem fetching books in this category.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategoryBooks();
+  }, [activeCategory, toast, debouncedSearch]);
 
   const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading' | 'read') => {
     if (!isLoggedIn()) {
@@ -231,8 +244,8 @@ const Books = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredBooks.length > 0 ? (
-                filteredBooks.map((book) => (
+              {books.length > 0 ? (
+                books.map((book) => (
                   <Card key={book.id} className="overflow-hidden h-full book-card">
                     <CardContent className="p-0">
                       <div className="relative aspect-[2/3] book-cover">
