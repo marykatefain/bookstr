@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { Layout } from "@/components/Layout";
+import { Layout } from "@/components/layout/Layout";
 import { Tabs } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Book } from "lucide-react";
@@ -24,7 +23,7 @@ import { ProfileTabsContent } from "@/components/profile/ProfileTabsContent";
 const Profile = () => {
   const { toast } = useToast();
   const [user, setUser] = useState(getCurrentUser());
-  const [activeTab, setActiveTab] = useState("posts"); // Changed default tab to "posts"
+  const [activeTab, setActiveTab] = useState("posts");
   const [showRelaySettings, setShowRelaySettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<{
@@ -74,7 +73,6 @@ const Profile = () => {
       
       setLoading(true);
       
-      // Fetch reviews
       fetchUserReviews(user.pubkey)
         .then(userReviews => {
           setReviews(userReviews);
@@ -83,7 +81,6 @@ const Profile = () => {
           console.error("Error fetching user reviews:", error);
         });
         
-      // Fetch posts
       fetchUserPosts(user.pubkey)
         .then(userPosts => {
           setPosts(userPosts);
