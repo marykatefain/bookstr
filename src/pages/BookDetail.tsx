@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart } from "lucide-react";
@@ -43,20 +42,17 @@ const BookDetail = () => {
       
       setLoading(true);
       try {
-        // Fetch book details
         const bookData = await fetchBookByISBN(isbn);
         if (bookData) {
           setBook(bookData);
         }
         
-        // Fetch reviews and ratings
         const bookReviews = await fetchBookReviews(isbn);
         setReviews(bookReviews);
         
         const bookRatings = await fetchBookRatings(isbn);
         setRatings(bookRatings);
         
-        // Check if current user has already rated this book
         if (currentUser && bookRatings.length > 0) {
           const userRating = bookRatings.find(r => r.pubkey === currentUser.pubkey);
           if (userRating && userRating.rating) {
@@ -90,7 +86,6 @@ const BookDetail = () => {
         description: `You rated "${book.title}" ${rating} stars`
       });
       
-      // Refresh ratings
       const updatedRatings = await fetchBookRatings(isbn || "");
       setRatings(updatedRatings);
     } catch (error) {
@@ -117,7 +112,6 @@ const BookDetail = () => {
       });
       setReviewText("");
       
-      // Refresh reviews
       const updatedReviews = await fetchBookReviews(isbn || "");
       setReviews(updatedReviews);
     } catch (error) {
@@ -343,7 +337,6 @@ const BookDetail = () => {
     );
   }
 
-  // Calculate average rating
   const avgRating = ratings.length > 0
     ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
     : 0;
@@ -352,7 +345,6 @@ const BookDetail = () => {
     <Layout>
       <div className="container px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Book Cover and Actions */}
           <div className="md:w-1/3">
             <div className="sticky top-20">
               <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-md">
@@ -369,19 +361,16 @@ const BookDetail = () => {
                 <BookActions 
                   book={book} 
                   onUpdate={() => {}} 
-                  showDropdown={false}
-                  className="grid grid-cols-3 gap-2" 
+                  horizontal={true}
                 />
               </div>
             </div>
           </div>
           
-          {/* Book Details */}
           <div className="md:w-2/3">
             <h1 className="text-3xl font-bold text-bookverse-ink">{book.title}</h1>
             <h2 className="text-xl text-muted-foreground mt-2">{book.author}</h2>
             
-            {/* Book Metadata */}
             <div className="flex flex-wrap gap-4 mt-4">
               {avgRating > 0 && (
                 <div className="flex items-center gap-1">
@@ -414,7 +403,6 @@ const BookDetail = () => {
               )}
             </div>
             
-            {/* Categories */}
             {book.categories && book.categories.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-4">
                 {book.categories.map((category, index) => (
@@ -428,7 +416,6 @@ const BookDetail = () => {
               </div>
             )}
             
-            {/* Description */}
             {book.description && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium">Description</h3>
@@ -438,13 +425,11 @@ const BookDetail = () => {
               </div>
             )}
             
-            {/* Rating and Review Form */}
             <Separator className="my-8" />
             <h3 className="text-xl font-medium">Reviews & Ratings</h3>
             
             {renderReviewForm()}
             
-            {/* Reviews List */}
             <div className="mt-8 space-y-4">
               {renderReviews()}
             </div>
