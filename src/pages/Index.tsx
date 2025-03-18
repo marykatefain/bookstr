@@ -5,14 +5,25 @@ import { HeroSection } from "@/components/homepage/HeroSection";
 import { SocialSection } from "@/components/homepage/SocialSection";
 import { BookSection } from "@/components/homepage/BookSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
-import { useTrendingBooks } from "@/hooks/use-trending-books";
+import { useQuery } from "@tanstack/react-query";
+import { getWeeklyTrendingBooks } from "@/lib/openlibrary";
 
 const Index = () => {
   const { 
-    books: trendingBooks, 
-    loading: loadingTrending, 
-    refreshBooks: refreshTrending 
-  } = useTrendingBooks(3);
+    data: trendingBooks = [], 
+    isLoading: loadingTrending,
+    refetch: refreshTrending 
+  } = useQuery({
+    queryKey: ['trendingBooks', 3],
+    queryFn: async () => {
+      console.log('Fetching trending books for homepage');
+      const books = await getWeeklyTrendingBooks(3);
+      console.log(`Received ${books.length} trending books for homepage`);
+      return books;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false
+  });
   
   return (
     <Layout>
