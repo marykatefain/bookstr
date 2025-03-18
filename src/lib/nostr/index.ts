@@ -26,6 +26,9 @@ export { fetchProfileData } from "./profile";
 // Export publishing functions
 export { publishToNostr } from "./publish";
 
+// Export posts functions
+export { createBookPost, fetchPosts } from "./posts";
+
 // Export book-specific functions
 export {
   addBookToTBR,

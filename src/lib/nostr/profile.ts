@@ -1,6 +1,8 @@
 
 import { NostrProfile, NostrEventData } from "./types";
 import { connectToRelays } from "./relay";
+import { SimplePool } from "nostr-tools";
+import { getUserRelays } from "./relay";
 
 const parseProfileContent = (content: string): Partial<NostrProfile> => {
   try {
@@ -76,5 +78,48 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
   } catch (error) {
     console.error("Failed to fetch profile data:", error);
     return null;
+  }
+}
+
+/**
+ * Fetch multiple user profiles at once
+ */
+export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<NostrProfile>[]> {
+  if (!pubkeys.length) return [];
+  
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const profileEvents = await pool.querySync(relays, {
+      kinds: [0],
+      authors: pubkeys
+    });
+    
+    const profiles: Partial<NostrProfile>[] = [];
+    
+    for (const event of profileEvents) {
+      try {
+        const profileData = JSON.parse(event.content);
+        
+        profiles.push({
+          npub: event.pubkey, // This will be converted to npub in UI
+          pubkey: event.pubkey,
+          name: profileData.name,
+          display_name: profileData.display_name,
+          picture: profileData.picture,
+          about: profileData.about,
+          relays: []
+        });
+      } catch (error) {
+        console.error("Error parsing profile:", error);
+      }
+    }
+    
+    pool.close(relays);
+    return profiles;
+  } catch (error) {
+    console.error("Error fetching profiles:", error);
+    return [];
   }
 }

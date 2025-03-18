@@ -1,4 +1,3 @@
-
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -99,6 +98,10 @@ export interface SocialActivity {
   mediaUrl?: string;
   mediaType?: 'image' | 'video';
   isSpoiler?: boolean;
+}
+
+export interface FollowList {
+  follows: string[];
 }
 
 export type BookActionType = 'tbr' | 'reading' | 'finished';

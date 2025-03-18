@@ -3,7 +3,7 @@ import { SocialActivity } from "./types";
 import { mockPosts } from "./types";
 
 // Mock books data for activities
-const mockActivityBooks = [
+export const mockBooks = [
   {
     id: "book1",
     title: "The Great Gatsby",
@@ -67,7 +67,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity1",
     pubkey: "user1pubkey",
     type: "reading",
-    book: mockActivityBooks[0],
+    book: mockBooks[0],
     createdAt: Date.now() - 3600000 * 2,
     author: {
       name: "Jane Reader",
@@ -79,7 +79,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity2",
     pubkey: "user2pubkey",
     type: "finished",
-    book: mockActivityBooks[1],
+    book: mockBooks[1],
     createdAt: Date.now() - 3600000 * 5,
     author: {
       name: "Book Lover",
@@ -91,7 +91,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity3",
     pubkey: "user3pubkey",
     type: "rating",
-    book: mockActivityBooks[2],
+    book: mockBooks[2],
     rating: 4,
     createdAt: Date.now() - 3600000 * 8,
     author: {
@@ -109,7 +109,7 @@ export const mockGlobalActivities: SocialActivity[] = [
     id: "activity4",
     pubkey: "user4pubkey",
     type: "tbr",
-    book: mockActivityBooks[3],
+    book: mockBooks[3],
     createdAt: Date.now() - 3600000 * 10,
     author: {
       name: "Galaxy Traveler",
@@ -121,7 +121,7 @@ export const mockGlobalActivities: SocialActivity[] = [
     id: "activity5",
     pubkey: "user5pubkey",
     type: "review",
-    book: mockActivityBooks[4],
+    book: mockBooks[4],
     content: "This book changed my perspective on society. I couldn't put it down and finished it in two days.",
     rating: 5,
     createdAt: Date.now() - 3600000 * 15,
