@@ -109,7 +109,7 @@ const Profile = () => {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <h1 className="text-3xl font-bold font-serif text-bookverse-ink">{user?.name || user?.displayName || "Nostr User"}</h1>
+                <h1 className="text-3xl font-bold font-serif text-bookverse-ink">{user?.name || user?.display_name || "Nostr User"}</h1>
                 <p className="text-muted-foreground">{user?.npub}</p>
                 <p className="mt-2">{user?.about || "No bio yet"}</p>
               </div>

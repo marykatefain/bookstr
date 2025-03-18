@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -34,7 +33,6 @@ export const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Update user state when it changes
     setUser(getCurrentUser());
   }, [location.pathname]);
   
@@ -70,7 +68,6 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Mobile Header */}
       <header className="md:hidden sticky top-0 z-50 bg-white shadow-sm dark:bg-gray-900 p-4">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
@@ -89,14 +86,12 @@ export const Layout = ({ children }: LayoutProps) => {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar for non-mobile screens */}
         <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
           <div className="flex items-center space-x-2 mb-4">
             <Book className="h-6 w-6 text-bookverse-accent" />
             <h1 className="text-xl font-serif font-bold text-bookverse-ink">BookVerse</h1>
           </div>
           
-          {/* User profile or login - moved to top */}
           <div className="mb-4">
             {user ? (
               <div className="space-y-3">
@@ -109,7 +104,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.name || user.displayName || "Nostr User"}</p>
+                    <p className="text-sm font-medium truncate">{user.name || user.display_name || "Nostr User"}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
                   </div>
                 </div>
@@ -146,11 +141,8 @@ export const Layout = ({ children }: LayoutProps) => {
               </Link>
             ))}
           </nav>
-
-          {/* Removed the user section from bottom */}
         </aside>
 
-        {/* Mobile Sidebar (slide-in) */}
         <aside
           className={`fixed inset-0 z-40 md:hidden transform ${
             mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -168,7 +160,6 @@ export const Layout = ({ children }: LayoutProps) => {
                 </Button>
               </div>
               
-              {/* User profile or login - moved to top for mobile too */}
               <div className="p-4">
                 {user ? (
                   <div className="space-y-3">
@@ -181,7 +172,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{user.name || user.displayName || "Nostr User"}</p>
+                        <p className="text-sm font-medium truncate">{user.name || user.display_name || "Nostr User"}</p>
                         <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
                       </div>
                     </div>
@@ -222,8 +213,6 @@ export const Layout = ({ children }: LayoutProps) => {
                   </Link>
                 ))}
               </nav>
-              
-              {/* Removed the user section from bottom of mobile sidebar */}
             </div>
             <div 
               className="flex-1 bg-black bg-opacity-50" 
@@ -233,7 +222,6 @@ export const Layout = ({ children }: LayoutProps) => {
           </div>
         </aside>
 
-        {/* Main content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

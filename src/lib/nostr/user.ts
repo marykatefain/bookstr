@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { NostrProfile } from "./types";
@@ -64,7 +63,7 @@ export async function loginWithNostr() {
       npub,
       pubkey,
       name: "Nostr User",
-      displayName: "Nostr Book Lover",
+      display_name: "Nostr Book Lover",
       picture: "https://i.pravatar.cc/300",
       about: "I love reading books and sharing my thoughts on Nostr!",
       relays: [...getUserRelays()]

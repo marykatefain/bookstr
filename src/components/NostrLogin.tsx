@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
       if (user) {
         toast({
           title: "Login successful",
-          description: `Welcome to BookVerse, ${user.name || user.displayName || "Nostr User"}!`
+          description: `Welcome to BookVerse, ${user.name || user.display_name || "Nostr User"}!`
         });
         onLoginComplete?.();
       }
