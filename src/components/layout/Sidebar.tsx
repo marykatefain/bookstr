@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -16,6 +15,7 @@ import {
   isLoggedIn
 } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
+import { NostrLoginButton } from "./NostrLoginButton";
 
 interface SidebarProps {
   user: any;
