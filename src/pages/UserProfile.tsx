@@ -89,7 +89,7 @@ const UserProfile = () => {
         }
         
         setPostsLoading(true);
-        const userBookPosts = await fetchBookPosts(actualPubkey, 20);
+        const userBookPosts = await fetchBookPosts(actualPubkey, false);
         setPosts(userBookPosts);
         setPostsLoading(false);
       } catch (error) {
@@ -403,3 +403,4 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+

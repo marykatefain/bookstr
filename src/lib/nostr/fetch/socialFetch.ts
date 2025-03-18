@@ -1,4 +1,3 @@
-
 import { SimplePool, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book, Post } from "../types";
 import { getUserRelays } from "../relay";
@@ -168,7 +167,9 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
 /**
  * Fetch posts that have book tags (kind 1 with 'i' tag)
  */
-export async function fetchBookPosts(pubkey?: string, limit = 20): Promise<Post[]> {
+export async function fetchBookPosts(pubkey?: string, useMockData: boolean = false): Promise<Post[]> {
+  const limit = 20; // Hard-coded limit to 20
+  
   const relays = getUserRelays();
   const pool = new SimplePool();
   
