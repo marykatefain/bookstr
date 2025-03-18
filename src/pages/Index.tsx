@@ -9,7 +9,7 @@ import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 
 const Index = () => {
-  const { books: trendingBooks, loading: loadingTrending, refreshBooks: refreshTrending } = useWeeklyTrendingBooks(20);
+  const { books: trendingBooks, loading: loadingTrending, refreshBooks: refreshTrending } = useWeeklyTrendingBooks(12);
 
   return (
     <Layout>
@@ -23,7 +23,7 @@ const Index = () => {
         loading={loadingTrending}
         onUpdate={refreshTrending}
         useCarousel={true}
-        totalBooks={20}
+        totalBooks={12}
       />
 
       <JoinCommunitySection />

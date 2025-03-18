@@ -24,7 +24,7 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
-    initialData: [], // Provide empty array as initial data to avoid undefined
+    initialData: [] // Provide empty array as initial data to avoid undefined
   });
 
   // Handle errors outside the query config

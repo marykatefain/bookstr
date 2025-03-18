@@ -50,7 +50,7 @@ export function BookSection({
   );
 
   const renderContent = () => {
-    if (loading) {
+    if (loading || books.length === 0) {
       // Create a placeholder array based on the totalBooks prop
       const placeholders = Array(totalBooks).fill(null);
       

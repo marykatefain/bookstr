@@ -12,7 +12,8 @@ export function useDailyTrendingBooks(limit: number = 4) {
     data: books = [], 
     isLoading: loading, 
     refetch, 
-    error 
+    error,
+    isFetching
   } = useQuery({
     queryKey: ['dailyTrendingBooks', limit],
     queryFn: () => getDailyTrendingBooks(limit),
@@ -20,8 +21,9 @@ export function useDailyTrendingBooks(limit: number = 4) {
     gcTime: 60 * 60 * 1000, // 1 hour
     retry: 2,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    initialData: [] // Provide empty array as initial data
   });
 
   // Handle errors outside the query config
@@ -40,5 +42,9 @@ export function useDailyTrendingBooks(limit: number = 4) {
     refetch();
   }, [refetch]);
 
-  return { books, loading, refreshBooks };
+  return { 
+    books, 
+    loading: loading || (isFetching && books.length === 0),
+    refreshBooks 
+  };
 }
