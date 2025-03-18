@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
 import { getCurrentUser, isLoggedIn } from "./user";
-import { getUserRelays } from "./relay";
+import { getUserRelays, ensureConnections } from "./relay";
 
 /**
  * Publish an event to Nostr relays
@@ -49,6 +49,9 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
 
     // Sign the event with the extension
     try {
+      // Ensure we have active connections to relays before signing
+      await ensureConnections();
+      
       const signedEvent = await window.nostr.signEvent(unsignedEvent);
       
       if (!signedEvent) {

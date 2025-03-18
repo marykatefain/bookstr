@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loginWithNostr, getCurrentUser, initNostr } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
+import { connectToRelays, loadRelaysFromStorage } from "@/lib/nostr/relay";
 
 interface NostrLoginProps {
   onLoginComplete?: () => void;
@@ -14,9 +16,19 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
 
   // Initialize Nostr on component mount
   useEffect(() => {
+    loadRelaysFromStorage();
     initNostr()
-      .then(() => {
+      .then(async (user) => {
         console.info("Nostr initialized");
+        if (user) {
+          // Establish relay connections upon successful login
+          try {
+            await connectToRelays();
+            console.info("Relay connections established");
+          } catch (error) {
+            console.error("Failed to connect to relays:", error);
+          }
+        }
       })
       .catch(error => {
         console.error("Nostr initialization error:", error);
@@ -30,6 +42,14 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
       // We just need to call window.nostr.getPublicKey()
       const user = await loginWithNostr();
       if (user) {
+        // Establish relay connections upon successful login
+        try {
+          await connectToRelays();
+          console.info("Relay connections established after login");
+        } catch (connError) {
+          console.error("Failed to connect to relays after login:", connError);
+        }
+        
         toast({
           title: "Login successful",
           description: `Welcome to BookVerse, ${user.name || user.display_name || "Nostr User"}!`
