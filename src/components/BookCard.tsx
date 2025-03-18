@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -34,16 +33,16 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   const getCardClasses = () => {
     const baseClasses = "overflow-hidden h-full";
-    if (size === "small") return `${baseClasses} max-w-[240px] w-full`;
-    if (size === "large") return `${baseClasses} max-w-[300px] w-full`;
+    if (size === "small") return `${baseClasses} max-w-[220px] w-full`;
+    if (size === "large") return `${baseClasses} max-w-[280px] w-full`;
     return `${baseClasses} w-full`; // medium size - no max width, full responsive width
   };
 
   const getTitleClasses = () => {
     const baseClasses = "font-bold font-serif truncate";
-    if (size === "small") return `${baseClasses} text-sm`;
-    if (size === "large") return `${baseClasses} text-xl`;
-    return baseClasses; // medium size
+    if (size === "small") return `${baseClasses} text-xs`;
+    if (size === "large") return `${baseClasses} text-lg`;
+    return `${baseClasses} text-sm`; // medium size
   };
 
   const handleAction = async (action: 'want-to-read' | 'reading' | 'read') => {
@@ -112,7 +111,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           onReadAction={() => handleAction('read')}
         />
         
-        <div className="p-4 space-y-2">
+        <div className="p-3 space-y-1.5">
           <h3 className={getTitleClasses()}>
             <Link 
               to={`/book/${book.isbn}`}
@@ -121,7 +120,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               {book.title}
             </Link>
           </h3>
-          <p className="text-sm text-muted-foreground">by {book.author}</p>
+          <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
           
           {showRating && (
             <BookRating rating={book.readingStatus?.rating} />
@@ -132,7 +131,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           )}
           
           {showDescription && book.description && (
-            <p className="text-sm line-clamp-2">{book.description}</p>
+            <p className="text-xs line-clamp-2">{book.description}</p>
           )}
           
           <BookActionButtons 
