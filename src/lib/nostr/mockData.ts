@@ -1,6 +1,45 @@
 
-import { SocialActivity, mockBooks } from "./types";
+import { SocialActivity } from "./types";
 import { mockPosts } from "./types";
+
+// Mock books data for activities
+const mockActivityBooks = [
+  {
+    id: "book1",
+    title: "The Great Gatsby",
+    author: "F. Scott Fitzgerald",
+    isbn: "9780743273565",
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9780743273565-M.jpg"
+  },
+  {
+    id: "book2",
+    title: "To Kill a Mockingbird",
+    author: "Harper Lee",
+    isbn: "9780061120084",
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9780061120084-M.jpg"
+  },
+  {
+    id: "book3",
+    title: "1984",
+    author: "George Orwell",
+    isbn: "9780451524935",
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9780451524935-M.jpg"
+  },
+  {
+    id: "book4",
+    title: "The Hobbit",
+    author: "J.R.R. Tolkien",
+    isbn: "9780547928227",
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9780547928227-M.jpg"
+  },
+  {
+    id: "book5",
+    title: "Pride and Prejudice",
+    author: "Jane Austen",
+    isbn: "9780141439518",
+    coverUrl: "https://covers.openlibrary.org/b/isbn/9780141439518-M.jpg"
+  }
+];
 
 // Convert post to activity
 const postActivities: SocialActivity[] = mockPosts.map(post => ({
@@ -28,7 +67,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity1",
     pubkey: "user1pubkey",
     type: "reading",
-    book: mockBooks[0],
+    book: mockActivityBooks[0],
     createdAt: Date.now() - 3600000 * 2,
     author: {
       name: "Jane Reader",
@@ -40,7 +79,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity2",
     pubkey: "user2pubkey",
     type: "finished",
-    book: mockBooks[1],
+    book: mockActivityBooks[1],
     createdAt: Date.now() - 3600000 * 5,
     author: {
       name: "Book Lover",
@@ -52,7 +91,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     id: "activity3",
     pubkey: "user3pubkey",
     type: "rating",
-    book: mockBooks[2],
+    book: mockActivityBooks[2],
     rating: 4,
     createdAt: Date.now() - 3600000 * 8,
     author: {
@@ -70,7 +109,7 @@ export const mockGlobalActivities: SocialActivity[] = [
     id: "activity4",
     pubkey: "user4pubkey",
     type: "tbr",
-    book: mockBooks[3],
+    book: mockActivityBooks[3],
     createdAt: Date.now() - 3600000 * 10,
     author: {
       name: "Galaxy Traveler",
@@ -82,7 +121,7 @@ export const mockGlobalActivities: SocialActivity[] = [
     id: "activity5",
     pubkey: "user5pubkey",
     type: "review",
-    book: mockBooks[4],
+    book: mockActivityBooks[4],
     content: "This book changed my perspective on society. I couldn't put it down and finished it in two days.",
     rating: 5,
     createdAt: Date.now() - 3600000 * 15,
