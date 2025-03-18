@@ -1,3 +1,4 @@
+
 import { SimplePool, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book, Post } from "../types";
 import { getUserRelays } from "../relay";
@@ -174,6 +175,9 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
   const pool = new SimplePool();
   
   try {
+    console.log("Fetching book posts from relays:", relays);
+    console.log("For pubkey:", pubkey || "all users");
+    
     // Configure filter for posts with book tags
     const filter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
@@ -185,7 +189,9 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
       filter.authors = [pubkey];
     }
     
+    console.log("Using filter:", filter);
     const events = await pool.querySync(relays, filter);
+    console.log("Fetched events:", events.length);
     
     // Process events to extract posts with book tags
     const posts: Post[] = [];
@@ -194,8 +200,12 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     for (const event of events) {
       // Only include posts that have book tags (i tags)
       const bookTag = event.tags.find(tag => tag[0] === 'i');
-      if (!bookTag) continue;
+      if (!bookTag) {
+        console.log("Skipping event without book tag:", event.id);
+        continue;
+      }
       
+      console.log("Found post with book tag:", event.id, bookTag);
       userPubkeys.add(event.pubkey);
       
       // Extract ISBN from the tag (could be in format "isbn:1234567890" or just the ISBN)
@@ -233,6 +243,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     
     // Fetch user profiles for post authors
     if (userPubkeys.size > 0) {
+      console.log("Fetching profiles for authors:", Array.from(userPubkeys));
       const profiles = await fetchUserProfiles(Array.from(userPubkeys));
       
       // Add author information to posts
@@ -255,6 +266,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     
     if (isbns.length > 0) {
       try {
+        console.log("Fetching book details for ISBNs:", isbns);
         // Fetch book details
         const books = await getBooksByISBN([...new Set(isbns)]);
         
@@ -276,6 +288,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
       }
     }
     
+    console.log("Final processed posts:", posts.length);
     pool.close(relays);
     return posts.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {

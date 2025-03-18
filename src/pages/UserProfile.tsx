@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -50,7 +51,7 @@ const UserProfile = () => {
   });
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsLoading, setPostsLoading] = useState(true);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -88,10 +89,24 @@ const UserProfile = () => {
           setFollowing(follows.includes(actualPubkey));
         }
         
+        // Fetch posts with separate loading state
         setPostsLoading(true);
-        const userBookPosts = await fetchBookPosts(actualPubkey, false);
-        setPosts(userBookPosts);
-        setPostsLoading(false);
+        try {
+          console.log("Fetching book posts for pubkey:", actualPubkey);
+          const userBookPosts = await fetchBookPosts(actualPubkey, false);
+          console.log("Fetched posts:", userBookPosts);
+          setPosts(userBookPosts);
+        } catch (error) {
+          console.error("Error fetching book posts:", error);
+          toast({
+            title: "Error",
+            description: "Could not load user's posts",
+            variant: "destructive"
+          });
+        } finally {
+          setPostsLoading(false);
+        }
+        
       } catch (error) {
         console.error("Error fetching user profile:", error);
         toast({
@@ -403,4 +418,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-
