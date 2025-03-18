@@ -6,11 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Trophy, Zap, Search } from "lucide-react";
+import { Users, Trophy, Search } from "lucide-react";
 import { followUser, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
-export function UserFinder() {
+interface UserFinderProps {
+  hideRecentActivity?: boolean;
+}
+
+export function UserFinder({ hideRecentActivity = false }: UserFinderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -170,6 +174,13 @@ export function UserFinder() {
     }
   };
 
+  const getDefaultTab = () => {
+    if (hideRecentActivity) {
+      return "top";
+    }
+    return "recent";
+  };
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSearch} className="flex gap-2">
@@ -228,63 +239,72 @@ export function UserFinder() {
         </div>
       )}
 
-      <Tabs defaultValue="recent">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recent">
-            <Zap className="h-4 w-4 mr-2" />
-            Recent Activity
-          </TabsTrigger>
+      <Tabs defaultValue={getDefaultTab()}>
+        <TabsList className={`grid w-full ${hideRecentActivity ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          {!hideRecentActivity && (
+            <TabsTrigger value="recent">
+              <div className="flex items-center gap-1">
+                Recent Activity
+              </div>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="top">
-            <Trophy className="h-4 w-4 mr-2" />
-            Top Readers
+            <div className="flex items-center gap-1">
+              <Trophy className="h-4 w-4 mr-1" />
+              Top Readers
+            </div>
           </TabsTrigger>
           <TabsTrigger value="suggested">
-            <Users className="h-4 w-4 mr-2" />
-            Suggested
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4 mr-1" />
+              Suggested
+            </div>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="recent" className="mt-4">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Recent Activity</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentActivity.map((activity) => (
-                <Card key={activity.id}>
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={activity.picture} alt={activity.name} />
-                      <AvatarFallback>{activity.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-base">{activity.name}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {formatTimestamp(activity.timestamp)}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{activity.activity}</p>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/user/${activity.pubkey}`)}
-                    >
-                      View Profile
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={() => handleFollow(activity.pubkey)}
-                    >
-                      Follow
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+        {!hideRecentActivity && (
+          <TabsContent value="recent" className="mt-4">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Recent Activity</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentActivity.map((activity) => (
+                  <Card key={activity.id}>
+                    <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={activity.picture} alt={activity.name} />
+                        <AvatarFallback>{activity.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="text-base">{activity.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {formatTimestamp(activity.timestamp)}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm">{activity.activity}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/user/${activity.pubkey}`)}
+                      >
+                        View Profile
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleFollow(activity.pubkey)}
+                      >
+                        Follow
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+        )}
         
         <TabsContent value="top" className="mt-4">
           <div className="space-y-4">

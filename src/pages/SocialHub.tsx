@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { SocialFeed } from "@/components/SocialFeed";
 import { UserFinder } from "@/components/UserFinder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Users, Globe, UserPlus } from "lucide-react";
+import { Users, Globe } from "lucide-react";
 
 export default function SocialHub() {
   return (
@@ -12,19 +12,16 @@ export default function SocialHub() {
       <div className="container py-6 md:py-10 max-w-4xl">
         <h1 className="text-3xl font-serif font-bold text-bookverse-ink mb-6">Social Hub</h1>
         
-        <Tabs defaultValue="activity" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              <span>Activity</span>
-            </TabsTrigger>
-            <TabsTrigger value="find-friends" className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              <span>Find Friends</span>
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-10">
+          {/* Find Friends Section */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-serif font-semibold text-bookverse-ink">Find Friends</h2>
+            <UserFinder hideRecentActivity={true} />
+          </div>
           
-          <TabsContent value="activity">
+          {/* Activity Feed Section */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-serif font-semibold text-bookverse-ink">Activity Feed</h2>
             <Tabs defaultValue="followers" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="followers" className="flex items-center gap-2">
@@ -45,12 +42,8 @@ export default function SocialHub() {
                 <SocialFeed type="global" />
               </TabsContent>
             </Tabs>
-          </TabsContent>
-          
-          <TabsContent value="find-friends">
-            <UserFinder />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </Layout>
   );
