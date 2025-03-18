@@ -7,11 +7,11 @@ import { SocialSection } from "@/components/homepage/SocialSection";
 import { BookSection } from "@/components/homepage/BookSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
-import { useRecentBooks } from "@/hooks/use-recent-books";
+import { useDailyTrendingBooks } from "@/hooks/use-daily-trending-books";
 
 const Index = () => {
   const { books: trendingBooks, loading: loadingTrending, refreshBooks: refreshTrending } = useWeeklyTrendingBooks(20);
-  const { books: recentlyAdded, loading: loadingRecent, refreshBooks: refreshRecent } = useRecentBooks(4);
+  const { books: topToday, loading: loadingDaily, refreshBooks: refreshDaily } = useDailyTrendingBooks(4);
 
   return (
     <Layout>
@@ -31,10 +31,10 @@ const Index = () => {
       <Separator />
 
       <BookSection 
-        title="Recently Added"
-        books={recentlyAdded}
-        loading={loadingRecent}
-        onUpdate={refreshRecent}
+        title="Top Today"
+        books={topToday}
+        loading={loadingDaily}
+        onUpdate={refreshDaily}
       />
 
       <JoinCommunitySection />

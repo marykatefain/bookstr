@@ -16,9 +16,9 @@ export function useDailyTrendingBooks(limit: number = 4) {
   } = useQuery({
     queryKey: ['dailyTrendingBooks', limit],
     queryFn: () => getDailyTrendingBooks(limit),
-    staleTime: 60 * 60 * 1000, // 60 minutes
-    gcTime: 120 * 60 * 1000, // 2 hours
-    retry: 1,
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+    retry: 2,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -27,10 +27,10 @@ export function useDailyTrendingBooks(limit: number = 4) {
   // Handle errors outside the query config
   useEffect(() => {
     if (error) {
-      console.error("Error loading trending books:", error);
+      console.error("Error loading top today books:", error);
       toast({
         title: "Error loading books",
-        description: "There was a problem fetching trending books.",
+        description: "There was a problem fetching today's top books.",
         variant: "destructive"
       });
     }
