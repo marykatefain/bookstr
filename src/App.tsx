@@ -39,11 +39,11 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/books" element={<Books />} />
             <Route path="/book/:isbn" element={<BookDetail />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/library" element={<Profile />} />
             <Route path="/user/:pubkey" element={<UserProfile />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/social" element={<SocialHub />} />
-            <Route path="/library" element={<Profile />} />
+            <Route path="/profile" element={<Navigate to="/library" replace />} /> {/* Redirect /profile to /library */}
             <Route path="/activity" element={<Navigate to="/social" replace />} />
             <Route path="/users" element={<Navigate to="/social" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

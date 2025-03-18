@@ -60,7 +60,7 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: "/library", label: "Library", icon: Library },
     { path: "/social", label: "Social", icon: Users },
     { path: "/stats", label: "Stats", icon: BarChart2 },
-    { path: "/profile", label: "Profile", icon: User, requiresAuth: true },
+    // Removed the Profile tab since it's the same as Library
   ];
 
   const filteredLinks = navLinks.filter(

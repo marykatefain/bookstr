@@ -24,7 +24,7 @@ import { ProfileTabsContent } from "@/components/profile/ProfileTabsContent";
 const Profile = () => {
   const { toast } = useToast();
   const [user, setUser] = useState(getCurrentUser());
-  const [activeTab, setActiveTab] = useState("reading");
+  const [activeTab, setActiveTab] = useState("posts"); // Changed default tab to "posts"
   const [showRelaySettings, setShowRelaySettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<{
