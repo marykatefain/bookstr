@@ -36,7 +36,9 @@ export default function Activity() {
       try {
         // For now, we'll use the same endpoint but in a real implementation
         // this would fetch from a global activity endpoint
-        const feed = await fetchSocialFeed(20, true); // true flag could indicate "global"
+        // Instead of passing a second argument, we'll use the same function
+        // In a real app, this would be a different API call
+        const feed = await fetchSocialFeed(20);
         setGlobalActivity(feed);
       } catch (error) {
         console.error("Error loading global feed:", error);
