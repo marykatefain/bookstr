@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Star, Calendar, Clock } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
 
@@ -196,6 +196,3 @@ const BookInfoSection: React.FC<{
     </div>
   );
 };
-
-import { Check, Loader2 } from "lucide-react";
-export { BookDetailHeader };
