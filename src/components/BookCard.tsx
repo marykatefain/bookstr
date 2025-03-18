@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -9,6 +10,7 @@ import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
 import { BookCategories } from "./book/BookCategories";
 import { BookActionButtons } from "./book/BookActionButtons";
+import { AspectRatio } from "./ui/aspect-ratio";
 
 interface BookCardProps {
   book: Book;
@@ -32,7 +34,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
 
   const getCardClasses = () => {
-    const baseClasses = "overflow-hidden h-full";
+    const baseClasses = "overflow-hidden h-full flex flex-col";
     if (size === "small") return `${baseClasses} max-w-[220px] w-full`;
     if (size === "large") return `${baseClasses} max-w-[280px] w-full`;
     return `${baseClasses} w-full`; // medium size - no max width, full responsive width
@@ -100,18 +102,20 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   return (
     <Card className={getCardClasses()}>
-      <CardContent className="p-0 h-full">
-        <BookCover 
-          isbn={book.isbn}
-          title={book.title}
-          author={book.author}
-          coverUrl={book.coverUrl}
-          isRead={isRead}
-          pendingAction={pendingAction}
-          onReadAction={() => handleAction('read')}
-        />
+      <CardContent className="p-0 flex flex-col h-full">
+        <div className="aspect-[2/3] w-full">
+          <BookCover 
+            isbn={book.isbn}
+            title={book.title}
+            author={book.author}
+            coverUrl={book.coverUrl}
+            isRead={isRead}
+            pendingAction={pendingAction}
+            onReadAction={() => handleAction('read')}
+          />
+        </div>
         
-        <div className="p-3 space-y-1.5">
+        <div className="p-3 space-y-1.5 flex-grow">
           <h3 className={getTitleClasses()}>
             <Link 
               to={`/book/${book.isbn}`}

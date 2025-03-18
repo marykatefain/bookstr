@@ -25,11 +25,11 @@ export const BookCover: React.FC<BookCoverProps> = ({
   size = "medium"
 }) => {
   const sizeClasses = {
-    xxsmall: "w-full h-full max-h-12",
-    xsmall: "w-full h-full max-h-24",
-    small: "w-full h-full max-h-32",
-    medium: "w-full h-full max-h-48",
-    large: "w-full h-full max-h-64"
+    xxsmall: "max-h-12",
+    xsmall: "max-h-24",
+    small: "max-h-32",
+    medium: "max-h-48",
+    large: "max-h-64"
   };
 
   const coverElement = (
@@ -61,14 +61,16 @@ export const BookCover: React.FC<BookCoverProps> = ({
   ) : null;
 
   return (
-    <div className="relative aspect-[2/3] overflow-hidden h-full">
-      {isbn ? (
-        <Link to={`/book/${isbn}`} className="block h-full">
-          {coverElement}
-        </Link>
-      ) : (
-        coverElement
-      )}
+    <div className="relative w-full h-full overflow-hidden">
+      <div className="aspect-[2/3] h-full w-full">
+        {isbn ? (
+          <Link to={`/book/${isbn}`} className="block h-full w-full">
+            {coverElement}
+          </Link>
+        ) : (
+          coverElement
+        )}
+      </div>
       {actionButton}
     </div>
   );

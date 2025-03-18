@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post, SocialActivity } from "@/lib/nostr/types";
@@ -21,7 +20,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const { toast } = useToast();
   
-  // Handle type differences between Post and SocialActivity
   const isSocialActivity = 'type' in post && post.type === 'post';
   const postData = isSocialActivity 
     ? {
@@ -100,7 +98,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       </CardHeader>
       
       <CardContent className="py-2">
-        {/* Content with optional spoiler warning */}
         {postData.isSpoiler && !spoilerRevealed ? (
           <div className="bg-muted p-4 rounded-md text-center">
             <p className="text-muted-foreground mb-2">This post contains spoilers</p>
@@ -113,7 +110,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
           <div className="space-y-3">
             <p className="whitespace-pre-wrap">{postData.content}</p>
             
-            {/* Media content if available */}
             {postData.mediaUrl && (
               <div className="mt-3">
                 {postData.mediaType === 'image' ? (
@@ -132,11 +128,10 @@ export function PostCard({ post, onReaction }: PostCardProps) {
               </div>
             )}
             
-            {/* Tagged book */}
             {postData.taggedBook && (
               <Link to={`/book/${postData.taggedBook.isbn}`} className="block">
                 <div className="flex items-start gap-3 p-3 bg-muted rounded-md mt-3 hover:bg-muted/80 transition-colors">
-                  <div className="flex-shrink-0 w-12">
+                  <div className="flex-shrink-0 w-12 h-16">
                     <BookCover 
                       coverUrl={postData.taggedBook.coverUrl} 
                       title={postData.taggedBook.title} 

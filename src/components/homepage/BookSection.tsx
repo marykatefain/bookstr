@@ -30,8 +30,8 @@ export function BookSection({
   totalBooks = 4  
 }: BookSectionProps) {
   const renderLoadingCard = () => (
-    <div className="overflow-hidden h-full book-card">
-      <div className="p-0">
+    <div className="overflow-hidden h-full flex flex-col book-card">
+      <div className="p-0 flex-grow">
         <div className="relative aspect-[2/3] bg-gray-200 animate-pulse"></div>
         <div className="p-4 space-y-2">
           <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
