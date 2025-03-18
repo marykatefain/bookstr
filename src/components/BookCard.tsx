@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,8 +26,8 @@ export const BookCard: React.FC<BookCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  // Instead of looking for completedDate (which doesn't exist), check if status is 'read'
-  const [isRead, setIsRead] = useState(book.readingStatus?.status === 'read');
+  // Update to check for 'finished' instead of 'read'
+  const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
 
   // Determine styles based on size
   const getCardClasses = () => {

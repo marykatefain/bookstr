@@ -88,13 +88,13 @@ async function findBookMetadata(isbn: string): Promise<Event | null> {
 /**
  * Determine reading status from event tags
  */
-function getReadingStatusFromEvent(event: Event): 'tbr' | 'reading' | 'read' {
+function getReadingStatusFromEvent(event: Event): 'tbr' | 'reading' | 'finished' {
   const dTag = event.tags.find(tag => tag[0] === 'd');
   if (!dTag || !dTag[1]) return 'tbr';
   
   const status = dTag[1];
   if (status === 'reading') return 'reading';
-  if (status === 'read') return 'read';
+  if (status === 'read' || status === 'finished') return 'finished';
   return 'tbr';
 }
 
@@ -157,7 +157,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
           const status = book.readingStatus?.status;
           if (status === 'reading') {
             readingBooks.push(book);
-          } else if (status === 'read') {
+          } else if (status === 'finished') {
             readBooks.push(book);
           } else {
             tbrBooks.push(book);
@@ -170,7 +170,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
           const status = book.readingStatus?.status;
           if (status === 'reading') {
             readingBooks.push(book);
-          } else if (status === 'read') {
+          } else if (status === 'finished') {
             readBooks.push(book);
           } else {
             tbrBooks.push(book);
@@ -183,7 +183,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         const status = book.readingStatus?.status;
         if (status === 'reading') {
           readingBooks.push(book);
-        } else if (status === 'read') {
+        } else if (status === 'finished') {
           readBooks.push(book);
         } else {
           tbrBooks.push(book);
