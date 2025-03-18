@@ -1,3 +1,4 @@
+
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile, BookReview, SocialActivity, FollowList } from "./types";
 import { getUserRelays } from "./relay";
@@ -101,7 +102,8 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         NOSTR_KINDS.BOOK_READING,
         NOSTR_KINDS.BOOK_READ
       ],
-      authors: [pubkey]
+      authors: [pubkey],
+      limit: 1000 // Increased limit from default to 1000
     };
     
     const events = await pool.querySync(relays, filter);
