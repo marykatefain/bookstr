@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Book, BookOpen, BookMarked, Share2, Link, Settings, MessageCircle } from "lucide-react";
+import { Book, BookOpen, BookMarked, Share2, Link, Settings, MessageCircle, FileText } from "lucide-react";
 import { 
   getCurrentUser, 
   isLoggedIn, 
@@ -15,9 +16,11 @@ import {
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { RelaySettings } from "@/components/RelaySettings";
-import { Book as BookType, BookReview } from "@/lib/nostr/types";
+import { Book as BookType, BookReview, Post } from "@/lib/nostr/types";
 import { BookCard } from "@/components/BookCard";
 import { ReviewCard } from "@/components/ReviewCard";
+import { PostCard } from "@/components/post/PostCard";
+import { fetchUserPosts } from "@/lib/nostr/posts";
 
 const Profile = () => {
   const { toast } = useToast();
@@ -35,6 +38,7 @@ const Profile = () => {
     read: []
   });
   const [reviews, setReviews] = useState<BookReview[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   
   const fetchBooks = async () => {
     if (user?.pubkey) {
@@ -69,12 +73,23 @@ const Profile = () => {
       fetchBooks();
       
       setLoading(true);
+      
+      // Fetch reviews
       fetchUserReviews(user.pubkey)
         .then(userReviews => {
           setReviews(userReviews);
         })
         .catch(error => {
           console.error("Error fetching user reviews:", error);
+        });
+        
+      // Fetch posts
+      fetchUserPosts(user.pubkey)
+        .then(userPosts => {
+          setPosts(userPosts);
+        })
+        .catch(error => {
+          console.error("Error fetching user posts:", error);
         })
         .finally(() => {
           setLoading(false);
@@ -145,7 +160,7 @@ const Profile = () => {
 
           <Separator />
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
@@ -169,7 +184,16 @@ const Profile = () => {
                 <div className="flex flex-col items-center text-center">
                   <MessageCircle className="h-8 w-8 text-bookverse-accent mb-2" />
                   <div className="text-2xl font-bold">{reviews.length}</div>
-                  <p className="text-muted-foreground">Reviews Written</p>
+                  <p className="text-muted-foreground">Reviews</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center">
+                  <FileText className="h-8 w-8 text-bookverse-accent mb-2" />
+                  <div className="text-2xl font-bold">{posts.length}</div>
+                  <p className="text-muted-foreground">Posts</p>
                 </div>
               </CardContent>
             </Card>
@@ -188,6 +212,10 @@ const Profile = () => {
               <TabsTrigger value="want-to-read" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                 Want to Read
                 <div className={`${activeTab === "want-to-read" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
+              </TabsTrigger>
+              <TabsTrigger value="posts" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                Posts
+                <div className={`${activeTab === "posts" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
               </TabsTrigger>
               <TabsTrigger value="reviews" className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                 Reviews
@@ -255,6 +283,35 @@ const Profile = () => {
                 </div>
               ) : (
                 <EmptyBookshelf type="want-to-read" />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="posts" className="pt-6">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin h-8 w-8 border-4 border-bookverse-accent border-t-transparent rounded-full"></div>
+                </div>
+              ) : posts.length > 0 ? (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostCard 
+                      key={post.id} 
+                      post={post}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No posts yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    You haven't shared any posts yet
+                  </p>
+                  <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
+                    <Book className="mr-2 h-4 w-4" />
+                    Share What You're Reading
+                  </Button>
+                </div>
               )}
             </TabsContent>
 

@@ -5,6 +5,7 @@ import { formatPubkey } from "@/lib/utils/format";
 import { BookListActivity } from "./activities/BookListActivity";
 import { BookRatingActivity } from "./activities/BookRatingActivity";
 import { BookReviewActivity } from "./activities/BookReviewActivity";
+import { PostCard } from "../post/PostCard";
 
 interface ActivityContentProps {
   activity: SocialActivity;
@@ -46,6 +47,10 @@ export function ActivityContent({ activity }: ActivityContentProps) {
           rating={activity.rating}
           content={activity.content}
         />
+      );
+    case 'post':
+      return (
+        <PostCard post={activity} />
       );
     default:
       return null;

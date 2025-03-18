@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart, Check, Loader2 } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart, Check, Loader2, FileText } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -8,7 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookActions } from "@/components/BookActions";
+import { PostCard } from "@/components/post/PostCard";
 import { 
   fetchBookByISBN, 
   fetchBookReviews, 
@@ -21,9 +24,10 @@ import {
   getCurrentUser,
   addBookToList
 } from "@/lib/nostr";
-import { Book, BookReview, BookActionType } from "@/lib/nostr/types";
+import { Book, BookReview, BookActionType, Post } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
+import { fetchBookPosts } from "@/lib/nostr/posts";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
@@ -31,11 +35,13 @@ const BookDetail = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [ratings, setRatings] = useState<BookReview[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
   const [isRead, setIsRead] = useState(false);
+  const [activeTab, setActiveTab] = useState<"reviews" | "posts">("reviews");
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -56,6 +62,9 @@ const BookDetail = () => {
         
         const bookRatings = await fetchBookRatings(isbn);
         setRatings(bookRatings);
+        
+        const bookPosts = await fetchBookPosts(isbn);
+        setPosts(bookPosts);
         
         if (currentUser && bookRatings.length > 0) {
           const userRating = bookRatings.find(r => r.pubkey === currentUser.pubkey);
@@ -331,6 +340,24 @@ const BookDetail = () => {
     ));
   };
 
+  const renderPosts = () => {
+    if (posts.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground py-8">
+          No posts about this book yet. Be the first to post about it!
+        </p>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {posts.map(post => (
+          <PostCard key={post.id} post={post} />
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -487,12 +514,42 @@ const BookDetail = () => {
             )}
             
             <Separator className="my-8" />
-            <h3 className="text-xl font-medium">Reviews & Ratings</h3>
             
-            {renderReviewForm()}
-            
-            <div className="mt-8 space-y-4">
-              {renderReviews()}
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-medium">Community</h3>
+                <Tabs 
+                  value={activeTab} 
+                  onValueChange={(value) => setActiveTab(value as "reviews" | "posts")}
+                  className="w-auto"
+                >
+                  <TabsList>
+                    <TabsTrigger value="reviews" className="flex items-center gap-1">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Reviews{reviews.length > 0 ? ` (${reviews.length})` : ""}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="posts" className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      <span>Posts{posts.length > 0 ? ` (${posts.length})` : ""}</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              
+              {activeTab === "reviews" && (
+                <>
+                  {renderReviewForm()}
+                  <div className="mt-8 space-y-4">
+                    {renderReviews()}
+                  </div>
+                </>
+              )}
+              
+              {activeTab === "posts" && (
+                <div className="mt-4">
+                  {renderPosts()}
+                </div>
+              )}
             </div>
           </div>
         </div>

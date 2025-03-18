@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Users } from "lucide-react";
 import { CompactSocialFeed } from "@/components/CompactSocialFeed";
 import { isLoggedIn } from "@/lib/nostr";
+import { CreatePostBox } from "@/components/post/CreatePostBox";
 
 export function SocialSection() {
   if (!isLoggedIn()) {
@@ -23,6 +24,11 @@ export function SocialSection() {
               View All
             </Link>
           </div>
+          
+          <div className="mb-6">
+            <CreatePostBox />
+          </div>
+          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <CompactSocialFeed maxItems={5} />

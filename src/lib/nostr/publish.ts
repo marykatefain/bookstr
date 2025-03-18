@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";

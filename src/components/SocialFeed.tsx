@@ -8,6 +8,8 @@ import { EmptyFeedState } from "./social/EmptyFeedState";
 import { FeedLoadingState } from "./social/FeedLoadingState";
 import { Card } from "@/components/ui/card";
 import { mockFollowersActivities, mockGlobalActivities } from "@/lib/nostr/mockData";
+import { fetchPosts } from "@/lib/nostr/posts";
+import { PostCard } from "./post/PostCard";
 
 interface SocialFeedProps {
   activities?: SocialActivity[];
@@ -31,8 +33,37 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
       setLoading(true);
       try {
         if (useMockData) {
+          // Fetch mock posts and combine with mock activities
+          const posts = await fetchPosts(10, true);
+          const postActivities = posts.map(post => ({
+            id: post.id,
+            pubkey: post.pubkey,
+            type: 'post' as const,
+            book: {
+              id: post.taggedBook?.isbn || '',
+              title: post.taggedBook?.title || '',
+              author: '',
+              isbn: post.taggedBook?.isbn || '',
+              coverUrl: post.taggedBook?.coverUrl || '',
+            },
+            content: post.content,
+            createdAt: post.createdAt,
+            author: post.author,
+            reactions: post.reactions,
+            mediaUrl: post.mediaUrl,
+            mediaType: post.mediaType,
+            isSpoiler: post.isSpoiler
+          }));
+          
+          // Get the base activities
+          const baseActivities = type === "followers" ? mockFollowersActivities : mockGlobalActivities;
+          
+          // Combine and sort all activities by date
+          const allActivities = [...baseActivities, ...postActivities].sort((a, b) => b.createdAt - a.createdAt);
+          
+          // Set the activities after a delay to simulate loading
           setTimeout(() => {
-            setLocalActivities(type === "followers" ? mockFollowersActivities : mockGlobalActivities);
+            setLocalActivities(allActivities);
             setLoading(false);
           }, 800);
         } else {
@@ -118,13 +149,24 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
 
   return (
     <div className="space-y-4">
-      {localActivities.map((activity) => (
-        <ActivityCard 
-          key={activity.id} 
-          activity={activity} 
-          onReaction={handleReact} 
-        />
-      ))}
+      {localActivities.map((activity) => {
+        if (activity.type === 'post') {
+          return (
+            <PostCard
+              key={activity.id}
+              post={activity}
+              onReaction={handleReact}
+            />
+          );
+        }
+        return (
+          <ActivityCard 
+            key={activity.id} 
+            activity={activity} 
+            onReaction={handleReact} 
+          />
+        );
+      })}
     </div>
   );
 }

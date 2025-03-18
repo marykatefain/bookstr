@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -5,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Book, Check, Users, MessageCircle } from "lucide-react";
+import { Plus, Book, Check, Users, MessageCircle, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCard } from "@/components/BookCard";
 import { SocialFeed } from "@/components/SocialFeed";
 import { ReviewCard } from "@/components/ReviewCard";
+import { PostCard } from "@/components/post/PostCard";
 import { 
   fetchUserProfile, 
   fetchUserBooks,
@@ -19,9 +21,10 @@ import {
   isLoggedIn,
   getCurrentUser 
 } from "@/lib/nostr";
-import { NostrProfile, BookReview } from "@/lib/nostr/types";
+import { NostrProfile, BookReview, Post } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
+import { fetchUserPosts } from "@/lib/nostr/posts";
 
 interface TabCountProps {
   label: string;
@@ -47,6 +50,7 @@ const UserProfile = () => {
     read: []
   });
   const [reviews, setReviews] = useState<BookReview[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -78,6 +82,9 @@ const UserProfile = () => {
         
         const userReviews = await fetchUserReviews(actualPubkey);
         setReviews(userReviews);
+        
+        const userPosts = await fetchUserPosts(actualPubkey);
+        setPosts(userPosts);
         
         if (currentUser) {
           const { follows } = await fetchFollowingList(currentUser.pubkey);
@@ -226,7 +233,7 @@ const UserProfile = () => {
           <div className="flex justify-center gap-8 mt-2">
             <TabCount label="Books" count={totalBooks} />
             <TabCount label="Reading" count={userBooks.reading.length} />
-            <TabCount label="Read" count={userBooks.read.length} />
+            <TabCount label="Posts" count={posts.length} />
             <TabCount label="Reviews" count={reviews.length} />
           </div>
         </div>
@@ -234,10 +241,14 @@ const UserProfile = () => {
         <Separator className="my-6" />
         
         <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid grid-cols-4 mb-6">
+          <TabsList className="grid grid-cols-5 mb-6">
             <TabsTrigger value="library">
               <Book className="mr-2 h-4 w-4" />
               Library
+            </TabsTrigger>
+            <TabsTrigger value="posts">
+              <FileText className="mr-2 h-4 w-4" />
+              Posts
             </TabsTrigger>
             <TabsTrigger value="reviews">
               <MessageCircle className="mr-2 h-4 w-4" />
@@ -308,6 +319,22 @@ const UserProfile = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="posts">
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold">Posts</h2>
+              
+              {posts.length === 0 ? (
+                <p className="text-muted-foreground">No posts yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {posts.map(post => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
           
