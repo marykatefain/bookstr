@@ -1,3 +1,4 @@
+
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, getAuthorName, fetchISBNFromEditionKey } from './utils';
@@ -24,21 +25,34 @@ const dailyTrendingCache: {
  * Get daily trending books from OpenLibrary's trending API
  */
 export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]> {
-  // If we have cached data less than 30 minutes old, use it
+  console.log(`getDailyTrendingBooks called with limit: ${limit}`);
+  
+  // If we have cached data less than 15 minutes old, use it
   const now = Date.now();
-  if (dailyTrendingCache.books.length > 0 && (now - dailyTrendingCache.timestamp) < 30 * 60 * 1000) {
-    console.log("Using cached daily trending books data");
+  if (dailyTrendingCache.books.length > 0 && (now - dailyTrendingCache.timestamp) < 15 * 60 * 1000) {
+    console.log("Using cached daily trending books data", dailyTrendingCache.books.length);
     return dailyTrendingCache.books.slice(0, limit);
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`);
+    console.log(`Fetching daily trending books from OpenLibrary API`);
+    const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log(`Got daily trending books data:`, data);
     const works = data.works || [];
+    
+    if (works.length === 0) {
+      console.warn("Daily trending API returned no works, falling back to alternative method");
+      return getTrendingBooks(limit);
+    }
     
     const books = await Promise.all(
       works
@@ -69,6 +83,8 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
         })
     );
     
+    console.log(`Processed ${books.length} daily trending books`);
+    
     // Update cache
     dailyTrendingCache.books = books;
     dailyTrendingCache.timestamp = now;
@@ -85,19 +101,24 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
  * Get weekly trending books from OpenLibrary's trending API
  */
 export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]> {
-  // If we have cached data less than 60 minutes old, use it (increased from 30 minutes)
+  console.log(`getWeeklyTrendingBooks called with limit: ${limit}`);
+  
+  // If we have cached data less than 30 minutes old, use it (reduced from 60 minutes)
   const now = Date.now();
-  if (weeklyTrendingCache.books.length > 0 && (now - weeklyTrendingCache.timestamp) < 60 * 60 * 1000) {
-    console.log("Using cached weekly trending books data");
+  if (weeklyTrendingCache.books.length > 0 && (now - weeklyTrendingCache.timestamp) < 30 * 60 * 1000) {
+    console.log("Using cached weekly trending books data", weeklyTrendingCache.books.length);
     return weeklyTrendingCache.books.slice(0, limit);
   }
 
   try {
+    console.log(`Fetching weekly trending books from OpenLibrary API`);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`, {
-      signal: controller.signal
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
     });
     clearTimeout(timeoutId);
     
@@ -108,7 +129,7 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
       if (weeklyTrendingCache.books.length > 0) {
         console.log("Using expired weekly trending cache as fallback");
         // Update timestamp to prevent immediate retry, but allow retry after 10 minutes
-        weeklyTrendingCache.timestamp = now - (50 * 60 * 1000);
+        weeklyTrendingCache.timestamp = now - (20 * 60 * 1000);
         return weeklyTrendingCache.books.slice(0, limit);
       }
       
@@ -116,7 +137,13 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
     }
     
     const data = await response.json();
+    console.log(`Got weekly trending books data:`, data);
     const works = data.works || [];
+    
+    if (works.length === 0) {
+      console.warn("Weekly trending API returned no works, falling back to alternative method");
+      return getTrendingBooks(limit);
+    }
     
     // Process works in batches to avoid too many concurrent requests
     const batchSize = 5;
@@ -155,6 +182,8 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
       allBooks.push(...batchBooks);
     }
     
+    console.log(`Processed ${allBooks.length} weekly trending books`);
+    
     // Update cache
     weeklyTrendingCache.books = allBooks;
     weeklyTrendingCache.timestamp = now;
@@ -186,22 +215,35 @@ const trendingBooksCache: {
  * Get trending or popular books
  */
 export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
-  // If we have cached data less than 30 minutes old, use it
+  console.log(`getTrendingBooks called with limit: ${limit}`);
+  
+  // If we have cached data less than 15 minutes old, use it (reduced to refresh more often)
   const now = Date.now();
-  if (trendingBooksCache.books.length > 0 && (now - trendingBooksCache.timestamp) < 30 * 60 * 1000) {
-    console.log("Using cached trending books data");
+  if (trendingBooksCache.books.length > 0 && (now - trendingBooksCache.timestamp) < 15 * 60 * 1000) {
+    console.log("Using cached trending books data", trendingBooksCache.books.length);
     return trendingBooksCache.books.slice(0, limit);
   }
 
   try {
+    console.log(`Fetching trending books using subject API`);
     // Using subjects that typically have popular books
-    const response = await fetch(`${BASE_URL}/subjects/fiction.json?limit=${limit}`);
+    const response = await fetch(`${BASE_URL}/subjects/fiction.json?limit=${limit}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log(`Got fiction subject data:`, data);
     const works = data.works || [];
+    
+    if (works.length === 0) {
+      console.warn("Subject API returned no works, using fallback subject");
+      return getAlternativeTrendingBooks(limit);
+    }
     
     const books = await Promise.all(
       works
@@ -232,6 +274,8 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
         })
     );
     
+    console.log(`Processed ${books.length} trending books`);
+    
     // Update cache
     trendingBooksCache.books = books;
     trendingBooksCache.timestamp = now;
@@ -239,95 +283,25 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
     return books;
   } catch (error) {
     console.error("Error fetching trending books:", error);
-    return [];
-  }
-}
-
-// Cache for recently fetched books
-const recentBooksCache: {
-  timestamp: number;
-  books: Book[];
-} = {
-  timestamp: 0,
-  books: []
-};
-
-/**
- * Get recently added books - using the "new" subject endpoint
- */
-export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
-  // If we have cached data less than 10 minutes old, use it
-  const now = Date.now();
-  if (recentBooksCache.books.length > 0 && (now - recentBooksCache.timestamp) < 10 * 60 * 1000) {
-    console.log("Using cached recent books data");
-    return recentBooksCache.books.slice(0, limit);
-  }
-
-  try {
-    // Using the new subjects/new.json endpoint as specified
-    const response = await fetch(`${BASE_URL}/subjects/new.json?limit=${limit}`);
-    
-    // If the endpoint fails, use alternative method
-    if (!response.ok) {
-      console.log(`New subject endpoint failed with ${response.status}, using alternative method`);
-      return await getAlternativeRecentBooks(limit);
-    }
-    
-    const data = await response.json();
-    const works = data.works || [];
-    
-    const books = await Promise.all(
-      works
-        .filter((work: any) => work.cover_id || work.cover_edition_key)
-        .map(async (work: any) => {
-          let isbn = work.availability?.isbn || "";
-          
-          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
-          if (!isbn && work.cover_edition_key) {
-            console.log(`Fetching ISBN for recent book: ${work.title} using edition key: ${work.cover_edition_key}`);
-            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
-            if (isbn) {
-              console.log(`Found ISBN for recent book ${work.title}: ${isbn}`);
-            }
-          }
-          
-          return {
-            id: work.key,
-            title: work.title,
-            author: work.authors?.[0]?.name || "Unknown Author",
-            isbn: isbn,
-            coverUrl: getCoverUrl(isbn, work.cover_id),
-            description: work.description?.value || "",
-            pubDate: work.first_publish_year?.toString() || "",
-            pageCount: 0,
-            categories: [data.name || "New Books"]
-          };
-        })
-    );
-    
-    // Update cache
-    recentBooksCache.books = books;
-    recentBooksCache.timestamp = now;
-    
-    return books;
-  } catch (error) {
-    console.error("Error fetching recent books:", error);
-    return await getAlternativeRecentBooks(limit);
+    return getAlternativeTrendingBooks(limit);
   }
 }
 
 /**
- * Alternative method to get recent books when the regular endpoint fails
- * This uses a different subjects endpoint as a fallback
+ * Alternative method to get trending books when the regular endpoint fails
  */
-async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
+async function getAlternativeTrendingBooks(limit: number = 10): Promise<Book[]> {
   try {
-    // Try a different genre/subject that's less common than fiction
-    const subjects = ["literature", "fantasy", "mystery", "biography"];
+    console.log(`Using alternative trending books method`);
+    // Try a different genre that's popular
+    const subjects = ["fantasy", "science_fiction", "thriller", "romance"];
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
-    console.log(`Using alternative recent books method with subject: ${randomSubject}`);
-    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`);
+    console.log(`Using subject: ${randomSubject}`);
+    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
     
     if (!response.ok) {
       throw new Error(`Alternative API error: ${response.status}`);
@@ -359,6 +333,151 @@ async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
           };
         })
     );
+    
+    console.log(`Processed ${books.length} alternative trending books`);
+    return books;
+  } catch (error) {
+    console.error("Error in alternative trending books method:", error);
+    return [];
+  }
+}
+
+// Cache for recently fetched books
+const recentBooksCache: {
+  timestamp: number;
+  books: Book[];
+} = {
+  timestamp: 0,
+  books: []
+};
+
+/**
+ * Get recently added books - using the "new" subject endpoint
+ */
+export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
+  console.log(`getRecentBooks called with limit: ${limit}`);
+  
+  // If we have cached data less than 10 minutes old, use it
+  const now = Date.now();
+  if (recentBooksCache.books.length > 0 && (now - recentBooksCache.timestamp) < 10 * 60 * 1000) {
+    console.log("Using cached recent books data", recentBooksCache.books.length);
+    return recentBooksCache.books.slice(0, limit);
+  }
+
+  try {
+    console.log(`Fetching recent books from OpenLibrary API`);
+    // Using the new subjects/new.json endpoint as specified
+    const response = await fetch(`${BASE_URL}/subjects/new.json?limit=${limit}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
+    // If the endpoint fails, use alternative method
+    if (!response.ok) {
+      console.log(`New subject endpoint failed with ${response.status}, using alternative method`);
+      return await getAlternativeRecentBooks(limit);
+    }
+    
+    const data = await response.json();
+    console.log(`Got recent books data:`, data);
+    const works = data.works || [];
+    
+    if (works.length === 0) {
+      console.warn("Recent books API returned no works, using alternative method");
+      return await getAlternativeRecentBooks(limit);
+    }
+    
+    const books = await Promise.all(
+      works
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
+        .map(async (work: any) => {
+          let isbn = work.availability?.isbn || "";
+          
+          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
+          if (!isbn && work.cover_edition_key) {
+            console.log(`Fetching ISBN for recent book: ${work.title} using edition key: ${work.cover_edition_key}`);
+            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+            if (isbn) {
+              console.log(`Found ISBN for recent book ${work.title}: ${isbn}`);
+            }
+          }
+          
+          return {
+            id: work.key,
+            title: work.title,
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            coverUrl: getCoverUrl(isbn, work.cover_id),
+            description: work.description?.value || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: [data.name || "New Books"]
+          };
+        })
+    );
+    
+    console.log(`Processed ${books.length} recent books`);
+    
+    // Update cache
+    recentBooksCache.books = books;
+    recentBooksCache.timestamp = now;
+    
+    return books;
+  } catch (error) {
+    console.error("Error fetching recent books:", error);
+    return await getAlternativeRecentBooks(limit);
+  }
+}
+
+/**
+ * Alternative method to get recent books when the regular endpoint fails
+ * This uses a different subjects endpoint as a fallback
+ */
+async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
+  try {
+    console.log(`Using alternative recent books method`);
+    // Try a different genre/subject that's less common than fiction
+    const subjects = ["literature", "fantasy", "mystery", "biography"];
+    const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+    
+    console.log(`Using subject: ${randomSubject}`);
+    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Alternative API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const works = data.works || [];
+    
+    const books = await Promise.all(
+      works
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
+        .map(async (work: any) => {
+          let isbn = work.availability?.isbn || "";
+          
+          if (!isbn && work.cover_edition_key) {
+            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+          }
+          
+          return {
+            id: work.key,
+            title: work.title,
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            coverUrl: getCoverUrl(isbn, work.cover_id),
+            description: work.description?.value || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: [data.name || randomSubject]
+          };
+        })
+    );
+    
+    console.log(`Processed ${books.length} alternative recent books`);
     
     // Update the cache
     recentBooksCache.books = books;

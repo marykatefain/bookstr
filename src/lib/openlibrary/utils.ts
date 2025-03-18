@@ -8,23 +8,29 @@ import { Book } from "@/lib/nostr/types";
 export function extractISBN(doc: OpenLibraryDoc): string {
   // Method 1: Direct ISBN from isbn field (most reliable when available)
   if (doc.isbn && doc.isbn.length > 0) {
+    console.log(`Found ISBN directly in isbn field: ${doc.isbn[0]}`);
     return doc.isbn[0];
   }
   
   // Method 2: Check lending_identifier_s field
   if (doc.lending_identifier_s && doc.lending_identifier_s.startsWith('isbn_')) {
-    return doc.lending_identifier_s.replace('isbn_', '');
+    const isbn = doc.lending_identifier_s.replace('isbn_', '');
+    console.log(`Found ISBN in lending_identifier_s: ${isbn}`);
+    return isbn;
   }
   
   // Method 3: Check ia field for ISBN entries
   if (doc.ia && Array.isArray(doc.ia)) {
     for (const entry of doc.ia) {
       if (entry.startsWith('isbn_')) {
-        return entry.replace('isbn_', '');
+        const isbn = entry.replace('isbn_', '');
+        console.log(`Found ISBN in ia field: ${isbn}`);
+        return isbn;
       }
     }
   }
   
+  console.log(`No ISBN found for document with title: ${doc.title}`);
   // No ISBN found with any method
   return "";
 }
@@ -36,9 +42,15 @@ export function extractISBN(doc: OpenLibraryDoc): string {
 export async function fetchISBNFromEditionKey(editionKey: string): Promise<string> {
   if (!editionKey) return "";
   
+  console.log(`fetchISBNFromEditionKey called for: ${editionKey}`);
+  
   try {
     // Use the Editions API for direct access to edition details including ISBNs
-    const response = await fetch(`https://openlibrary.org/books/${editionKey}.json`);
+    const response = await fetch(`https://openlibrary.org/books/${editionKey}.json`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+    
     if (!response.ok) {
       console.error(`Failed to fetch edition data for ${editionKey}: ${response.status}`);
       return "";
@@ -49,23 +61,28 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
     
     // Try to get ISBN-13 first (preferred), then ISBN-10
     if (data.isbn_13 && data.isbn_13.length > 0) {
+      console.log(`Found ISBN-13 for ${editionKey}: ${data.isbn_13[0]}`);
       return data.isbn_13[0];
     }
     
     if (data.isbn_10 && data.isbn_10.length > 0) {
+      console.log(`Found ISBN-10 for ${editionKey}: ${data.isbn_10[0]}`);
       return data.isbn_10[0];
     }
     
     // Check identifiers object if direct properties aren't available
     if (data.identifiers) {
       if (data.identifiers.isbn_13 && data.identifiers.isbn_13.length > 0) {
+        console.log(`Found ISBN-13 in identifiers: ${data.identifiers.isbn_13[0]}`);
         return data.identifiers.isbn_13[0];
       }
       if (data.identifiers.isbn_10 && data.identifiers.isbn_10.length > 0) {
+        console.log(`Found ISBN-10 in identifiers: ${data.identifiers.isbn_10[0]}`);
         return data.identifiers.isbn_10[0];
       }
     }
     
+    console.log(`No ISBN found for edition key: ${editionKey}`);
     return "";
   } catch (error) {
     console.error("Error fetching ISBN from edition key:", error);

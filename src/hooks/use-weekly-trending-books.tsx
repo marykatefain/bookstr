@@ -16,11 +16,13 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
     isFetching 
   } = useQuery({
     queryKey: ['weeklyTrendingBooks', limit],
-    queryFn: () => getWeeklyTrendingBooks(limit),
-    staleTime: 30 * 60 * 1000, // 30 minutes (reduced from 60 to keep data fresher)
-    gcTime: 120 * 60 * 1000, // 2 hours
+    queryFn: () => {
+      console.log(`Fetching weekly trending books, limit: ${limit}`);
+      return getWeeklyTrendingBooks(limit);
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes (reduced to refresh more often)
+    gcTime: 60 * 60 * 1000, // 1 hour
     retry: 2,
-    retryDelay: attempt => Math.min(attempt > 1 ? 3000 : 1000, 30 * 1000),
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -40,8 +42,16 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
   }, [error, toast]);
 
   const refreshBooks = useCallback(() => {
+    console.log("Manually refreshing weekly trending books");
     refetch();
   }, [refetch]);
+
+  // Log when books are loaded successfully
+  useEffect(() => {
+    if (books.length > 0) {
+      console.log(`Successfully loaded ${books.length} weekly trending books`);
+    }
+  }, [books]);
 
   return { 
     books, 

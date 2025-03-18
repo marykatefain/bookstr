@@ -13,6 +13,8 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
   }
   
   try {
+    console.log(`Searching OpenLibrary for genre: "${genre}" with limit ${limit}`);
+    
     // Convert genre to lowercase for consistency
     const formattedGenre = genre.toLowerCase();
     
@@ -21,7 +23,11 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
       `${BASE_URL}/search.json?` + 
       `q=subject:"${encodeURIComponent(formattedGenre)}"&` +
       `sort=rating&` +
-      `limit=${limit}`
+      `limit=${limit}`,
+      {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      }
     );
     
     if (!response.ok) {
@@ -29,7 +35,7 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
     }
     
     const data = await response.json();
-    console.log(`OpenLibrary genre search results for "${genre}":`, data);
+    console.log(`OpenLibrary genre search returned ${data.docs?.length || 0} results for "${genre}"`);
     
     // Map the results to our Book format
     const books = await Promise.all(
@@ -64,9 +70,12 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         })
     );
     
+    console.log(`Processed ${books.length} books from genre search results`);
     return books;
   } catch (error) {
     console.error("Error fetching books by genre:", error);
-    return []; // Return empty array instead of falling back to regular search
+    // If genre search fails, try regular search as fallback
+    console.log(`Falling back to regular search for: "${genre}"`);
+    return searchBooks(genre, limit);
   }
 }

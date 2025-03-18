@@ -17,6 +17,7 @@ export const useBookData = (isbn: string | undefined) => {
     queryKey: ['book', isbn],
     queryFn: async () => {
       if (!isbn) return null;
+      console.log(`Fetching book details for ISBN: ${isbn}`);
       return await fetchBookByISBN(isbn);
     },
     enabled: !!isbn,
@@ -29,21 +30,22 @@ export const useBookData = (isbn: string | undefined) => {
   // Set read status when book data is available
   useEffect(() => {
     if (book) {
+      console.log(`Book data loaded successfully for ISBN: ${isbn}`, book);
       setIsRead(book.readingStatus?.status === 'finished');
     }
-  }, [book]);
+  }, [book, isbn]);
 
   // Handle errors
   useEffect(() => {
     if (error) {
-      console.error("Error fetching book data:", error);
+      console.error(`Error fetching book data for ISBN: ${isbn}:`, error);
       toast({
         title: "Error",
         description: "Could not load book details",
         variant: "destructive"
       });
     }
-  }, [error, toast]);
+  }, [error, toast, isbn]);
 
   return {
     book,

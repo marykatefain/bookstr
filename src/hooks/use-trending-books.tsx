@@ -16,10 +16,13 @@ export function useTrendingBooks(limit: number = 4) {
     isFetching
   } = useQuery({
     queryKey: ['trendingBooks', limit],
-    queryFn: () => getTrendingBooks(limit),
-    staleTime: 60 * 60 * 1000, // 60 minutes
-    gcTime: 120 * 60 * 1000, // 2 hours
-    retry: 1,
+    queryFn: () => {
+      console.log(`Fetching trending books, limit: ${limit}`);
+      return getTrendingBooks(limit);
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+    retry: 2,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -38,7 +41,15 @@ export function useTrendingBooks(limit: number = 4) {
     }
   }, [error, toast]);
 
+  // Log when books are loaded successfully
+  useEffect(() => {
+    if (books.length > 0) {
+      console.log(`Successfully loaded ${books.length} trending books`);
+    }
+  }, [books]);
+
   const refreshBooks = useCallback(() => {
+    console.log("Manually refreshing trending books");
     refetch();
   }, [refetch]);
 

@@ -29,15 +29,25 @@ const Books = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const { books: weeklyTrendingBooks, loading: loadingTrending } = useWeeklyTrendingBooks(20);
+  const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
 
   // Initial loading of trending books
   useEffect(() => {
+    console.log("Books component - trending books status:", {
+      loading: loadingTrending,
+      count: weeklyTrendingBooks.length
+    });
+    
     if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+      console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
       setBooks(weeklyTrendingBooks);
       setIsLoading(false);
+    } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
+      // If not loading but we have no books, try to refresh
+      console.log("No trending books loaded, attempting to refresh");
+      refreshBooks();
     }
-  }, [weeklyTrendingBooks, loadingTrending]);
+  }, [weeklyTrendingBooks, loadingTrending, refreshBooks]);
 
   // Handle search debounce
   useEffect(() => {
@@ -54,6 +64,7 @@ const Books = () => {
       if (!debouncedSearch && activeCategory === "All") {
         // If search is cleared and category is All, use the weekly trending books
         if (weeklyTrendingBooks.length > 0) {
+          console.log("Using trending books as no search or category is active");
           setBooks(weeklyTrendingBooks);
           setIsLoading(false);
         }
@@ -66,12 +77,15 @@ const Books = () => {
         
         if (debouncedSearch) {
           // Use the OpenLibrary search API
+          console.log(`Searching for books with query: "${debouncedSearch}"`);
           results = await searchBooks(debouncedSearch, 20);
         } else if (activeCategory !== "All") {
           // Search by genre with the new implementation
+          console.log(`Searching for books in category: "${activeCategory}"`);
           results = await searchBooksByGenre(activeCategory, 20);
         }
         
+        console.log(`Search returned ${results.length} results`);
         setBooks(results);
       } catch (error) {
         console.error("Error searching books:", error);
@@ -90,6 +104,7 @@ const Books = () => {
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
+    console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
     // Clear search query when changing categories
     if (searchQuery) {

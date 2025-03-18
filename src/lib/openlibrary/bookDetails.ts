@@ -16,6 +16,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     return null;
   }
 
+  console.log(`getBookByISBN called for ISBN: ${isbn}`);
+
   // Check cache first
   const now = Date.now();
   const cached = bookCache[isbn];
@@ -25,11 +27,14 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
   }
 
   try {
+    console.log(`Fetching book details from OpenLibrary for ISBN: ${isbn}`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
     const response = await fetch(`${BASE_URL}/isbn/${isbn}.json`, {
-      signal: controller.signal
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
     });
     clearTimeout(timeoutId);
     
@@ -38,19 +43,25 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     }
     
     const data = await response.json();
+    console.log(`Got book data for ISBN ${isbn}:`, data);
+    
     const workKey = data.works?.[0]?.key;
     
     let workData = null;
     if (workKey) {
       try {
+        console.log(`Fetching work data for ${workKey}`);
         const workTimeoutId = setTimeout(() => controller.abort(), 8000);
         const workResponse = await fetch(`${BASE_URL}${workKey}.json`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
         });
         clearTimeout(workTimeoutId);
         
         if (workResponse.ok) {
           workData = await workResponse.json();
+          console.log(`Got work data:`, workData);
         }
       } catch (workError) {
         console.error("Error fetching work data:", workError);
@@ -70,6 +81,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       pageCount: data.number_of_pages || 0,
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
+
+    console.log(`Successfully processed book data for ISBN ${isbn}`);
 
     // Cache the result
     bookCache[isbn] = { data: book, timestamp: now };

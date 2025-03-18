@@ -12,14 +12,23 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
   }
   
   try {
+    console.log(`Searching OpenLibrary for: "${query}" with limit ${limit}`);
+    
     // Use the OpenLibrary search API with proper parameters
-    const response = await fetch(`${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`);
+    const response = await fetch(
+      `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`,
+      {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      }
+    );
+    
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
     const data: OpenLibrarySearchResult = await response.json();
-    console.log("OpenLibrary search results:", data);
+    console.log(`OpenLibrary search returned ${data.docs.length} results for "${query}"`);
     
     // Map the docs to our Book format, filtering out entries without covers
     const books = await Promise.all(
@@ -46,6 +55,7 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
         })
     );
     
+    console.log(`Processed ${books.length} books from search results`);
     return books;
   } catch (error) {
     console.error("Error searching OpenLibrary:", error);

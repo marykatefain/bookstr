@@ -16,8 +16,11 @@ export function useDailyTrendingBooks(limit: number = 4) {
     isFetching
   } = useQuery({
     queryKey: ['dailyTrendingBooks', limit],
-    queryFn: () => getDailyTrendingBooks(limit),
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    queryFn: () => {
+      console.log(`Fetching daily trending books, limit: ${limit}`);
+      return getDailyTrendingBooks(limit);
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
     retry: 2,
     refetchOnWindowFocus: false,
@@ -38,7 +41,15 @@ export function useDailyTrendingBooks(limit: number = 4) {
     }
   }, [error, toast]);
 
+  // Log when books are loaded successfully
+  useEffect(() => {
+    if (books.length > 0) {
+      console.log(`Successfully loaded ${books.length} daily trending books`);
+    }
+  }, [books]);
+
   const refreshBooks = useCallback(() => {
+    console.log("Manually refreshing daily trending books");
     refetch();
   }, [refetch]);
 

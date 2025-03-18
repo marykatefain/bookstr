@@ -16,8 +16,11 @@ export function useRecentBooks(limit: number = 4) {
     isFetching
   } = useQuery({
     queryKey: ['recentBooks', limit],
-    queryFn: () => getRecentBooks(limit),
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    queryFn: () => {
+      console.log(`Fetching recent books, limit: ${limit}`);
+      return getRecentBooks(limit);
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
     retry: 2,
     refetchOnWindowFocus: false,
@@ -38,7 +41,15 @@ export function useRecentBooks(limit: number = 4) {
     }
   }, [error, toast]);
 
+  // Log when books are loaded successfully
+  useEffect(() => {
+    if (books.length > 0) {
+      console.log(`Successfully loaded ${books.length} recent books`);
+    }
+  }, [books]);
+
   const refreshBooks = useCallback(() => {
+    console.log("Manually refreshing recent books");
     refetch();
   }, [refetch]);
 
