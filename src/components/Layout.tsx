@@ -41,7 +41,7 @@ export const Layout = ({ children }: LayoutProps) => {
     setUser(null);
     toast({
       title: "Logged out successfully",
-      description: "You have been logged out from BookVerse"
+      description: "You have been logged out from Bookstr"
     });
   };
 
@@ -72,7 +72,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             <Book className="h-6 w-6 text-bookverse-accent" />
-            <h1 className="text-xl font-serif font-bold text-bookverse-ink">BookVerse</h1>
+            <h1 className="text-xl font-serif font-bold text-bookverse-ink">Bookstr</h1>
           </Link>
           <Button
             variant="ghost"
@@ -89,7 +89,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
           <div className="flex items-center space-x-2 mb-4">
             <Book className="h-6 w-6 text-bookverse-accent" />
-            <h1 className="text-xl font-serif font-bold text-bookverse-ink">BookVerse</h1>
+            <h1 className="text-xl font-serif font-bold text-bookverse-ink">Bookstr</h1>
           </div>
           
           <div className="mb-4">
@@ -153,7 +153,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center space-x-2">
                   <Book className="h-6 w-6 text-bookverse-accent" />
-                  <h1 className="text-xl font-serif font-bold text-bookverse-ink">BookVerse</h1>
+                  <h1 className="text-xl font-serif font-bold text-bookverse-ink">Bookstr</h1>
                 </div>
                 <Button variant="ghost" size="icon" onClick={toggleMobileSidebar}>
                   <X className="h-5 w-5" />

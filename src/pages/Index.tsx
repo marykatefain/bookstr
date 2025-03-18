@@ -248,7 +248,7 @@ const Index = () => {
             <div className="space-y-4 md:w-1/2">
               <h2 className="text-3xl font-bold font-serif text-bookverse-ink">Join the decentralized reading community</h2>
               <p className="text-muted-foreground">
-                BookVerse connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
+                Bookstr connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
               </p>
               {!isLoggedIn() && (
                 <div className="w-full max-w-md">
@@ -261,7 +261,7 @@ const Index = () => {
                 <div className="absolute -top-2 -left-2 w-full h-full bg-bookverse-accent rounded-lg"></div>
                 <div className="absolute -bottom-2 -right-2 w-full h-full bg-bookverse-highlight rounded-lg"></div>
                 <div className="relative bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-xl font-bold font-serif mb-3">Why BookVerse?</h3>
+                  <h3 className="text-xl font-bold font-serif mb-3">Why Bookstr?</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
                       <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
