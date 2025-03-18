@@ -103,16 +103,19 @@ export const BookCard: React.FC<BookCardProps> = ({
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
-        <div className="aspect-[2/3] w-full">
-          <BookCover 
-            isbn={book.isbn}
-            title={book.title}
-            author={book.author}
-            coverUrl={book.coverUrl}
-            isRead={isRead}
-            pendingAction={pendingAction}
-            onReadAction={() => handleAction('read')}
-          />
+        <div className="relative w-full" style={{ paddingBottom: "150%" }}>
+          <div className="absolute inset-0">
+            <BookCover 
+              isbn={book.isbn}
+              title={book.title}
+              author={book.author}
+              coverUrl={book.coverUrl}
+              isRead={isRead}
+              pendingAction={pendingAction}
+              onReadAction={() => handleAction('read')}
+              size={size}
+            />
+          </div>
         </div>
         
         <div className="p-3 space-y-1.5 flex-grow">
@@ -148,4 +151,4 @@ export const BookCard: React.FC<BookCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+}

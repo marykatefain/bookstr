@@ -25,22 +25,24 @@ export const BookCover: React.FC<BookCoverProps> = ({
   size = "medium"
 }) => {
   const sizeClasses = {
-    xxsmall: "max-h-12",
-    xsmall: "max-h-24",
-    small: "max-h-32",
-    medium: "max-h-48",
-    large: "max-h-64"
+    xxsmall: "h-12",
+    xsmall: "h-24",
+    small: "h-32",
+    medium: "h-48",
+    large: "h-64"
   };
 
   const coverElement = (
-    <img
-      src={coverUrl}
-      alt={`${title} by ${author}`}
-      className={`object-cover w-full h-full ${sizeClasses[size]} book-cover`}
-      onError={(e) => {
-        e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
-      }}
-    />
+    <div className="relative w-full h-full overflow-hidden">
+      <img
+        src={coverUrl}
+        alt={`${title} by ${author}`}
+        className="object-cover w-full h-full book-cover"
+        onError={(e) => {
+          e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+        }}
+      />
+    </div>
   );
 
   const actionButton = isRead || onReadAction ? (
@@ -61,8 +63,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   ) : null;
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      <div className="aspect-[2/3] h-full w-full">
+    <div className={`relative ${sizeClasses[size]} w-full`}>
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
         {isbn ? (
           <Link to={`/book/${isbn}`} className="block h-full w-full">
             {coverElement}
