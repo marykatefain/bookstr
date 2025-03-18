@@ -13,6 +13,7 @@ import Stats from "./pages/Stats";
 import BookDetail from "./pages/BookDetail";
 import UserProfile from "./pages/UserProfile";
 import UserSearch from "./pages/UserSearch";
+import Activity from "./pages/Activity";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/user/:pubkey" element={<UserProfile />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/activity" element={<Activity />} />
             <Route path="/library" element={<Profile />} />
             <Route path="/users" element={<UserSearch />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

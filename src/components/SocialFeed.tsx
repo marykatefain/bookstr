@@ -10,17 +10,27 @@ import { SocialActivity } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 
-export function SocialFeed() {
-  const [activities, setActivities] = useState<SocialActivity[]>([]);
+interface SocialFeedProps {
+  activities?: SocialActivity[];
+}
+
+export function SocialFeed({ activities }: SocialFeedProps) {
+  const [localActivities, setLocalActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
+    if (activities) {
+      setLocalActivities(activities);
+      setLoading(false);
+      return;
+    }
+
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
         const feed = await fetchSocialFeed(10);
-        setActivities(feed);
+        setLocalActivities(feed);
       } catch (error) {
         console.error("Error loading social feed:", error);
       } finally {
@@ -33,7 +43,7 @@ export function SocialFeed() {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [activities]);
 
   const handleReact = async (activityId: string) => {
     if (!isLoggedIn()) {
@@ -52,7 +62,7 @@ export function SocialFeed() {
         description: "You've reacted to this post"
       });
       
-      setActivities(prevActivities => 
+      setLocalActivities(prevActivities => 
         prevActivities.map(activity => {
           if (activity.id === activityId) {
             return {
@@ -207,7 +217,7 @@ export function SocialFeed() {
     );
   }
 
-  if (activities.length === 0) {
+  if (localActivities.length === 0) {
     return (
       <Card className="text-center p-6">
         <p className="text-muted-foreground mb-4">
@@ -225,7 +235,7 @@ export function SocialFeed() {
 
   return (
     <div className="space-y-4">
-      {activities.map((activity) => (
+      {localActivities.map((activity) => (
         <Card key={activity.id}>
           <CardHeader className="pb-2 pt-4">
             <div className="flex items-center gap-3">
