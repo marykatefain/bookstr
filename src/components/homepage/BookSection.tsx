@@ -27,7 +27,7 @@ export function BookSection({
   loading, 
   onUpdate, 
   useCarousel = false,
-  totalBooks = 4  // Changed default from 3 to 4
+  totalBooks = 4  
 }: BookSectionProps) {
   const renderLoadingCard = () => (
     <div className="overflow-hidden h-full book-card">
@@ -56,21 +56,29 @@ export function BookSection({
       
       if (useCarousel) {
         return (
-          <Carousel className="w-full">
+          <Carousel className="w-full relative">
             <CarouselContent className="-ml-4">
               {placeholders.map((_, index) => (
-                <CarouselItem key={index} className="pl-4 md:basis-1/3">
+                <CarouselItem key={index} className="pl-4 md:basis-1/3 lg:basis-1/4">
                   {renderLoadingCard()}
                 </CarouselItem>
               ))}
             </CarouselContent>
+            <div className="absolute -left-4 top-1/2 -translate-y-1/2">
+              <CarouselPrevious className="h-8 w-8 rounded-full opacity-70 hover:opacity-100" />
+            </div>
+            <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+              <CarouselNext className="h-8 w-8 rounded-full opacity-70 hover:opacity-100" />
+            </div>
           </Carousel>
         );
       }
       
       return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {placeholders.map((_, index) => renderLoadingCard())}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {placeholders.map((_, index) => (
+            <div key={index}>{renderLoadingCard()}</div>
+          ))}
         </div>
       );
     }
