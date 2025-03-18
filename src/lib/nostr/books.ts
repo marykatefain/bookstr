@@ -1,11 +1,17 @@
 
 import { Book, NOSTR_KINDS } from "./types";
 import { publishToNostr } from "./publish";
+import { ensureBookMetadata } from "./fetch";
 
 /**
  * Publish book metadata according to NIP-73
  */
 export async function publishBookMetadata(book: Book): Promise<string | null> {
+  if (!book.isbn) {
+    console.error("Cannot publish book metadata: ISBN is missing");
+    return null;
+  }
+
   const event = {
     kind: NOSTR_KINDS.BOOK_METADATA,
     tags: [
@@ -30,6 +36,15 @@ export async function publishBookMetadata(book: Book): Promise<string | null> {
 export async function addBookToTBR(book: Book): Promise<string | null> {
   console.log("==== Adding book to TBR ====");
   console.log("Book details:", book.title, book.author, book.isbn);
+  
+  if (!book.isbn) {
+    console.error("Cannot add book to TBR: ISBN is missing");
+    return null;
+  }
+
+  // First ensure book metadata exists on the network
+  const metadataId = await ensureBookMetadata(book);
+  console.log("Book metadata ensured with ID:", metadataId);
   
   // Create a direct Kind 30000 list event
   const now = new Date();
@@ -66,6 +81,15 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
   console.log("==== Marking book as reading ====");
   console.log("Book details:", book.title, book.author, book.isbn);
   
+  if (!book.isbn) {
+    console.error("Cannot mark book as reading: ISBN is missing");
+    return null;
+  }
+
+  // First ensure book metadata exists on the network
+  const metadataId = await ensureBookMetadata(book);
+  console.log("Book metadata ensured with ID:", metadataId);
+  
   const now = new Date().toISOString();
   
   const event = {
@@ -100,6 +124,15 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
 export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
   console.log("==== Marking book as read ====");
   console.log("Book details:", book.title, book.author, book.isbn);
+  
+  if (!book.isbn) {
+    console.error("Cannot mark book as read: ISBN is missing");
+    return null;
+  }
+
+  // First ensure book metadata exists on the network
+  const metadataId = await ensureBookMetadata(book);
+  console.log("Book metadata ensured with ID:", metadataId);
   
   const now = new Date().toISOString();
   
@@ -144,6 +177,15 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
     throw new Error("Rating must be between 1 and 5");
   }
   
+  if (!book.isbn) {
+    console.error("Cannot rate book: ISBN is missing");
+    return null;
+  }
+
+  // First ensure book metadata exists on the network
+  const metadataId = await ensureBookMetadata(book);
+  console.log("Book metadata ensured with ID:", metadataId);
+  
   // Using the proposed NIP format for ratings
   const event = {
     kind: NOSTR_KINDS.BOOK_RATING,
@@ -166,6 +208,15 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
  * Post a review for a book (using NIP-22 for long-form content)
  */
 export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
+  if (!book.isbn) {
+    console.error("Cannot review book: ISBN is missing");
+    return null;
+  }
+
+  // First ensure book metadata exists on the network
+  const metadataId = await ensureBookMetadata(book);
+  console.log("Book metadata ensured with ID:", metadataId);
+  
   const tags = [
     ["t", "book-review"],
     ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference

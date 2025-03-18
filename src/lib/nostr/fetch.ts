@@ -1,3 +1,4 @@
+
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
@@ -53,18 +54,26 @@ function eventToBook(event: Event): Book | null {
  * Find or create book metadata from NIP-73 events
  */
 async function findBookMetadata(isbn: string): Promise<Event | null> {
+  if (!isbn) {
+    console.error("Cannot find book metadata: ISBN is missing");
+    return null;
+  }
+
   const relays = getUserRelays();
   const pool = new SimplePool();
   
   try {
+    console.log("Searching for book metadata with ISBN:", isbn);
+    
     // Query for existing book metadata
     const filter: Filter = {
       kinds: [NOSTR_KINDS.BOOK_METADATA],
       "#d": [`isbn:${isbn}`],
-      limit: 1
+      limit: 5
     };
     
     const events = await pool.querySync(relays, filter);
+    console.log(`Found ${events.length} metadata events for ISBN:${isbn}`);
     
     // Return first found event or null
     return events.length > 0 ? events[0] : null;
@@ -85,7 +94,7 @@ function getReadingStatusFromEvent(event: Event): 'tbr' | 'reading' | 'read' {
   
   const status = dTag[1];
   if (status === 'reading') return 'reading';
-  if (status === 'read-books') return 'read';
+  if (status === 'read') return 'read';
   return 'tbr';
 }
 
@@ -118,7 +127,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     
     // Extract ISBNs from events
     const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
-    const isbns = bookEvents.map(book => book.isbn);
+    const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0);
     
     // Fetch additional book details from OpenLibrary if we have ISBNs
     if (isbns.length > 0) {
@@ -199,21 +208,42 @@ export async function fetchUserBooks(pubkey: string): Promise<{
  * Fetch multiple books by their ISBNs
  */
 export async function fetchBooksByISBN(isbns: string[]): Promise<Book[]> {
-  return getBooksByISBN(isbns);
+  const validIsbns = isbns.filter(isbn => isbn && isbn.length > 0);
+  if (validIsbns.length === 0) {
+    return [];
+  }
+  return getBooksByISBN(validIsbns);
 }
 
 /**
  * Check if book metadata exists and create it if not
  */
 export async function ensureBookMetadata(book: Book): Promise<string | null> {
+  if (!book.isbn) {
+    console.error("Cannot ensure book metadata: ISBN is missing");
+    return null;
+  }
+
+  console.log("Ensuring metadata for book:", book.title, "with ISBN:", book.isbn);
+  
   // First check if metadata already exists
   const metadata = await findBookMetadata(book.isbn);
   
   if (metadata) {
+    console.log("Found existing book metadata with ID:", metadata.id);
     return metadata.id;
   }
   
+  console.log("No existing metadata found, creating new metadata event");
   // If no metadata exists, publish it
   const { publishBookMetadata } = await import('./books');
-  return publishBookMetadata(book);
+  const metadataId = await publishBookMetadata(book);
+  
+  if (metadataId) {
+    console.log("Created new book metadata with ID:", metadataId);
+  } else {
+    console.error("Failed to create book metadata");
+  }
+  
+  return metadataId;
 }

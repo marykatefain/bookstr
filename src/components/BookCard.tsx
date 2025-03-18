@@ -55,6 +55,16 @@ export const BookCard: React.FC<BookCardProps> = ({
       return;
     }
 
+    // Check if book has a valid ISBN
+    if (!book.isbn) {
+      toast({
+        title: "Invalid book data",
+        description: "This book is missing an ISBN and cannot be added to your library",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setPendingAction(action);
 
     try {
