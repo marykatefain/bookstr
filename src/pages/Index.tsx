@@ -1,20 +1,30 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
-import { mockBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
+import {
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  Star,
+  BookOpen,
+  PlusCircle,
+  Loader2
+} from "lucide-react";
+import { mockBooks, addBookToTBR, markBookAsReading, isLoggedIn, Book } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
-import { NostrLogin } from "@/components/NostrLogin";
 
 const Index = () => {
   const { toast } = useToast();
-  const [featuredBooks, setFeaturedBooks] = useState(mockBooks.slice(0, 3));
-  const [recentlyAdded, setRecentlyAdded] = useState(mockBooks.slice(3, 6));
+  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
 
-  const addToLibrary = (bookId: string, status: 'want-to-read' | 'reading') => {
+  const featuredBooks = mockBooks.slice(0, 3);
+  const recentBooks = mockBooks.slice(3, 9);
+
+  const addToLibrary = async (book: Book, status: 'tbr' | 'reading') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -24,223 +34,293 @@ const Index = () => {
       return;
     }
 
-    const book = mockBooks.find(b => b.id === bookId);
-    if (!book) return;
+    // Set pending state for this book
+    setPendingActions(prev => ({ ...prev, [book.id]: status }));
 
-    toast({
-      title: `Added to your ${status === 'want-to-read' ? 'want to read' : 'currently reading'} list`,
-      description: `${book.title} has been added to your library`
-    });
+    try {
+      let result: string | null;
+      
+      if (status === 'tbr') {
+        result = await addBookToTBR(book);
+      } else {
+        result = await markBookAsReading(book);
+      }
+
+      if (result) {
+        toast({
+          title: `Added to your ${status === 'tbr' ? 'TBR' : 'currently reading'} list`,
+          description: `${book.title} has been added to your library`
+        });
+      }
+    } catch (error) {
+      console.error("Error adding book:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error processing your request",
+        variant: "destructive"
+      });
+    } finally {
+      // Clear pending state
+      setPendingActions(prev => {
+        const newState = { ...prev };
+        delete newState[book.id];
+        return newState;
+      });
+    }
   };
 
   return (
     <Layout>
-      {/* Hero section */}
-      <section className="relative py-16 bg-gradient-to-b from-bookverse-paper to-bookverse-cream">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center text-center space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-serif text-bookverse-ink">
-                Your Reading Journey, Decentralized
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-[700px] mx-auto">
-                Discover, track, and share your reading journey on the Nostr network. Take control of your book data.
-              </p>
-            </div>
-            
-            {!isLoggedIn() && (
-              <div className="w-full max-w-md mt-4">
-                <NostrLogin />
-              </div>
-            )}
-            
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/books">
-                <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                  <Book className="mr-2 h-5 w-5" />
-                  Discover Books
-                </Button>
-              </Link>
-              {!isLoggedIn() && (
-                <Link to="/library">
-                  <Button size="lg" variant="outline">
-                    <BookOpen className="mr-2 h-5 w-5" />
-                    Start Your Library
-                  </Button>
-                </Link>
-              )}
+      <div className="container px-4 md:px-6 py-8">
+        {/* Hero section */}
+        <div className="flex flex-col lg:flex-row gap-8 items-center mb-12">
+          <div className="flex-1 space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold font-serif text-bookverse-ink">
+              Your digital bookshelf, powered by Nostr
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Track your reading, discover new books, and connect with readers around the world
+              through the decentralized Nostr network.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button asChild size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
+                <Link to="/books">Discover Books</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link to="/profile">Your Library</Link>
+              </Button>
             </div>
           </div>
+          <div className="flex-1 relative max-w-lg">
+            <img
+              src="/placeholder.svg"
+              alt="BookVerse"
+              className="w-full h-auto"
+            />
+          </div>
         </div>
-      </section>
 
-      {/* Featured Books */}
-      <section className="py-12">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold font-serif text-bookverse-ink">Featured Books</h2>
-              <Link to="/books" className="text-sm text-bookverse-accent hover:underline">
-                View All
-              </Link>
+        {/* Featured books section */}
+        <div className="mb-16">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold font-serif text-bookverse-ink mb-1">Featured Books</h2>
+              <p className="text-muted-foreground">Curated selections just for you</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {featuredBooks.map((book) => (
-                <Card key={book.id} className="overflow-hidden h-full book-card">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[2/3] book-cover">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/books" className="flex items-center">
+                View all <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredBooks.map((book) => (
+              <Card key={book.id} className="overflow-hidden book-card">
+                <CardContent className="p-0">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="w-full md:w-1/3 aspect-[2/3]">
                       <img
                         src={book.coverUrl}
                         alt={`${book.title} by ${book.author}`}
                         className="object-cover w-full h-full"
                       />
                     </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {book.author}</p>
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < 4 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-muted-foreground ml-1">4.0</span>
+                    <div className="w-full md:w-2/3 p-4 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-bold font-serif truncate">{book.title}</h3>
+                        <p className="text-sm text-muted-foreground">by {book.author}</p>
+                        <div className="flex items-center space-x-1 mt-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-3 w-3 ${
+                                i < 4 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
+                              }`}
+                            />
+                          ))}
+                          <span className="text-xs text-muted-foreground ml-1">4.0</span>
+                        </div>
                       </div>
-                      <p className="text-sm line-clamp-2">{book.description}</p>
-                      <div className="pt-2 flex space-x-2">
+                      <div className="mt-3 flex space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'want-to-read')}
+                          onClick={() => addToLibrary(book, 'tbr')}
+                          disabled={!!pendingActions[book.id]}
                         >
-                          <PlusCircle className="mr-1 h-4 w-4" />
-                          Want to Read
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Separator />
-
-      {/* Recently Added */}
-      <section className="py-12">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold font-serif text-bookverse-ink">Recently Added</h2>
-              <Link to="/books" className="text-sm text-bookverse-accent hover:underline">
-                View All
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {recentlyAdded.map((book) => (
-                <Card key={book.id} className="overflow-hidden h-full book-card">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[2/3] book-cover">
-                      <img
-                        src={book.coverUrl}
-                        alt={`${book.title} by ${book.author}`}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {book.author}</p>
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < 3 ? "text-bookverse-highlight fill-bookverse-highlight" : "text-muted-foreground"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-muted-foreground ml-1">3.0</span>
-                      </div>
-                      <p className="text-sm line-clamp-2">{book.description}</p>
-                      <div className="pt-2 flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => addToLibrary(book.id, 'want-to-read')}
-                        >
-                          <Bookmark className="mr-1 h-4 w-4" />
-                          Want to Read
+                          {pendingActions[book.id] === 'tbr' ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlusCircle className="mr-1 h-4 w-4" />
+                          )}
+                          TBR
                         </Button>
                         <Button
                           size="sm"
                           className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                          onClick={() => addToLibrary(book.id, 'reading')}
+                          onClick={() => addToLibrary(book, 'reading')}
+                          disabled={!!pendingActions[book.id]}
                         >
-                          <BookOpen className="mr-1 h-4 w-4" />
-                          Start Reading
+                          {pendingActions[book.id] === 'reading' ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : (
+                            <BookOpen className="mr-1 h-4 w-4" />
+                          )}
+                          Read
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* Join the community */}
-      <section className="py-12 bg-bookverse-cream">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-            <div className="space-y-4 md:w-1/2">
-              <h2 className="text-3xl font-bold font-serif text-bookverse-ink">Join the decentralized reading community</h2>
-              <p className="text-muted-foreground">
-                BookVerse connects readers through the Nostr network, giving you full control over your data while building meaningful connections with fellow book lovers.
-              </p>
-              {!isLoggedIn() && (
-                <div className="w-full max-w-md">
-                  <NostrLogin />
-                </div>
-              )}
+        {/* Recently added section */}
+        <div className="mb-16">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold font-serif text-bookverse-ink mb-1">Recently Added</h2>
+              <p className="text-muted-foreground">The latest additions to our collection</p>
             </div>
-            <div className="md:w-1/2 flex justify-center md:justify-end">
-              <div className="relative w-full max-w-sm">
-                <div className="absolute -top-2 -left-2 w-full h-full bg-bookverse-accent rounded-lg"></div>
-                <div className="absolute -bottom-2 -right-2 w-full h-full bg-bookverse-highlight rounded-lg"></div>
-                <div className="relative bg-white p-6 rounded-lg shadow-lg">
-                  <h3 className="text-xl font-bold font-serif mb-3">Why BookVerse?</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                      <span>Own your reading data on the Nostr network</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                      <span>Connect with other readers without algorithms</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                      <span>Track your reading journey your way</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                      <span>No ads, no tracking, no data harvesting</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/books" className="flex items-center">
+                View all <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {recentBooks.map((book) => (
+              <Card key={book.id} className="overflow-hidden h-full book-card">
+                <CardContent className="p-0">
+                  <div className="flex flex-col h-full">
+                    <div className="aspect-[2/3] relative">
+                      <img
+                        src={book.coverUrl}
+                        alt={`${book.title} by ${book.author}`}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                    <div className="p-3 flex flex-col space-y-2">
+                      <h3 className="font-medium truncate text-sm">{book.title}</h3>
+                      <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
+                      <div className="pt-1 flex space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs h-8 px-2"
+                          onClick={() => addToLibrary(book, 'tbr')}
+                          disabled={!!pendingActions[book.id]}
+                        >
+                          {pendingActions[book.id] === 'tbr' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <PlusCircle className="mr-1 h-3 w-3" />
+                          )}
+                          TBR
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight text-xs h-8 px-2"
+                          onClick={() => addToLibrary(book, 'reading')}
+                          disabled={!!pendingActions[book.id]}
+                        >
+                          {pendingActions[book.id] === 'reading' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <BookOpen className="mr-1 h-3 w-3" />
+                          )}
+                          Read
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </section>
+
+        {/* Stats and trends section */}
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold font-serif text-bookverse-ink mb-1">Stats & Trends</h2>
+              <p className="text-muted-foreground">See what's popular in the BookVerse community</p>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/stats" className="flex items-center">
+                View all <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-lg">Trending Now</h3>
+                  <TrendingUp className="h-5 w-5 text-bookverse-accent" />
+                </div>
+                <div className="space-y-3">
+                  {mockBooks.slice(0, 3).map((book, index) => (
+                    <div key={book.id} className="flex items-center">
+                      <div className="font-bold text-muted-foreground mr-3">{index + 1}</div>
+                      <div className="flex-1">
+                        <p className="font-medium truncate">{book.title}</p>
+                        <p className="text-xs text-muted-foreground">by {book.author}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-lg">Most Read</h3>
+                  <BookOpen className="h-5 w-5 text-bookverse-accent" />
+                </div>
+                <div className="space-y-3">
+                  {mockBooks.slice(2, 5).map((book, index) => (
+                    <div key={book.id} className="flex items-center">
+                      <div className="font-bold text-muted-foreground mr-3">{index + 1}</div>
+                      <div className="flex-1">
+                        <p className="font-medium truncate">{book.title}</p>
+                        <p className="text-xs text-muted-foreground">by {book.author}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-lg">Recently Published</h3>
+                  <Clock className="h-5 w-5 text-bookverse-accent" />
+                </div>
+                <div className="space-y-3">
+                  {mockBooks.slice(3, 6).map((book) => (
+                    <div key={book.id} className="flex items-center">
+                      <div className="flex-1">
+                        <p className="font-medium truncate">{book.title}</p>
+                        <p className="text-xs text-muted-foreground">by {book.author}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </Layout>
   );
 };
