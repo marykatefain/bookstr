@@ -14,10 +14,10 @@ const Index = () => {
     isLoading: loadingTrending,
     refetch: refreshTrending 
   } = useQuery({
-    queryKey: ['trendingBooks', 3],
+    queryKey: ['trendingBooks', 10],
     queryFn: async () => {
       console.log('Fetching trending books for homepage');
-      const books = await getWeeklyTrendingBooks(3);
+      const books = await getWeeklyTrendingBooks(10);
       console.log(`Received ${books.length} trending books for homepage`);
       return books;
     },
@@ -36,8 +36,8 @@ const Index = () => {
         books={trendingBooks}
         loading={loadingTrending}
         onUpdate={refreshTrending}
-        useCarousel={false}
-        totalBooks={3}
+        useCarousel={true}
+        totalBooks={10}
       />
       
       <JoinCommunitySection />
