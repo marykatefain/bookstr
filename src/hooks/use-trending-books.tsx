@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Book } from "@/lib/nostr/types";
 import { getTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/hooks/use-toast";
