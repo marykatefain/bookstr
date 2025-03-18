@@ -24,12 +24,14 @@ export const BookCover: React.FC<BookCoverProps> = ({
   onReadAction = () => {},
   size = "medium"
 }) => {
+  // We're not using these fixed height classes anymore
+  // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
-    xxsmall: "h-12",
-    xsmall: "h-24",
-    small: "h-32",
-    medium: "h-48",
-    large: "h-64"
+    xxsmall: "",
+    xsmall: "",
+    small: "",
+    medium: "",
+    large: ""
   };
 
   const coverElement = (
@@ -63,7 +65,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   ) : null;
 
   return (
-    <div className={`relative ${sizeClasses[size]} w-full`}>
+    <div className={`relative w-full h-full`}>
       {isbn ? (
         <Link to={`/book/${isbn}`} className="block h-full w-full">
           {coverElement}
