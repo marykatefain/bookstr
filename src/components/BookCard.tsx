@@ -27,7 +27,8 @@ export const BookCard: React.FC<BookCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [isRead, setIsRead] = useState(!!book.readingStatus?.completedDate);
+  // Instead of looking for completedDate (which doesn't exist), check if status is 'read'
+  const [isRead, setIsRead] = useState(book.readingStatus?.status === 'read');
 
   // Determine styles based on size
   const getCardClasses = () => {
