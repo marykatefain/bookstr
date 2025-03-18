@@ -1,7 +1,7 @@
 
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
-import { getCoverUrl } from './utils';
+import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 import { searchBooks } from './search';
 
 /**
@@ -23,23 +23,37 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
     const data = await response.json();
     const works = data.works || [];
     
-    return works
-      .filter((work: any) => work.cover_id)
-      .map((work: any) => {
-        // Create a Book object from the work data
-        const isbn = work.availability?.isbn || "";
-        return {
-          id: work.key,
-          title: work.title,
-          author: work.authors?.[0]?.name || "Unknown Author",
-          isbn: isbn,
-          coverUrl: getCoverUrl(isbn, work.cover_id),
-          description: work.description?.value || "",
-          pubDate: work.first_publish_year?.toString() || "",
-          pageCount: 0,
-          categories: [data.name || genre]
-        };
-      });
+    const books = await Promise.all(
+      works
+        .filter((work: any) => work.cover_id)
+        .map(async (work: any) => {
+          // Try to get ISBN from availability first
+          let isbn = work.availability?.isbn || "";
+          
+          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
+          if (!isbn && work.cover_edition_key) {
+            console.log(`Fetching ISBN for genre book: ${work.title} using edition key: ${work.cover_edition_key}`);
+            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+            if (isbn) {
+              console.log(`Found ISBN for genre book ${work.title}: ${isbn}`);
+            }
+          }
+          
+          return {
+            id: work.key,
+            title: work.title,
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            coverUrl: getCoverUrl(isbn, work.cover_id),
+            description: work.description?.value || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: [data.name || genre]
+          };
+        })
+    );
+    
+    return books;
   } catch (error) {
     console.error("Error fetching books by genre:", error);
     return searchBooks(genre, limit); // Fallback to regular search
