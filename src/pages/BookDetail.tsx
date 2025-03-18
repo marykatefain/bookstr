@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart, Check, Loader2, FileText } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart, Check, Loader2, FileText, Users } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +11,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookActions } from "@/components/BookActions";
 import { PostCard } from "@/components/post/PostCard";
+import { ActivityCard } from "@/components/social/ActivityCard";
+import { FeedLoadingState } from "@/components/social/FeedLoadingState";
 import { 
   fetchBookByISBN, 
   fetchBookReviews, 
@@ -24,10 +25,11 @@ import {
   getCurrentUser,
   addBookToList
 } from "@/lib/nostr";
-import { Book, BookReview, BookActionType, Post } from "@/lib/nostr/types";
+import { Book, BookReview, BookActionType, Post, SocialActivity } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { fetchBookPosts } from "@/lib/nostr/posts";
+import { fetchBookActivity } from "@/lib/nostr/fetch/socialFetch";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
@@ -41,7 +43,9 @@ const BookDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
   const [isRead, setIsRead] = useState(false);
-  const [activeTab, setActiveTab] = useState<"reviews" | "posts">("reviews");
+  const [activeTab, setActiveTab] = useState<"reviews" | "posts" | "activity">("reviews");
+  const [bookActivity, setBookActivity] = useState<SocialActivity[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -71,6 +75,16 @@ const BookDetail = () => {
           if (userRating && userRating.rating) {
             setUserRating(userRating.rating);
           }
+        }
+        
+        setLoadingActivity(true);
+        try {
+          const activity = await fetchBookActivity(isbn);
+          setBookActivity(activity);
+        } catch (activityError) {
+          console.error("Error fetching community activity:", activityError);
+        } finally {
+          setLoadingActivity(false);
         }
       } catch (error) {
         console.error("Error fetching book data:", error);
@@ -187,6 +201,47 @@ const BookDetail = () => {
       });
     } catch (error) {
       console.error("Error reacting to review:", error);
+      toast({
+        title: "Error",
+        description: "Could not send reaction",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReactToActivity = async (activityId: string) => {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to react to content",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      await reactToContent(activityId);
+      toast({
+        title: "Reaction sent",
+        description: "You've reacted to this content"
+      });
+      
+      setBookActivity(prev => 
+        prev.map(activity => {
+          if (activity.id === activityId) {
+            return {
+              ...activity,
+              reactions: {
+                count: (activity.reactions?.count || 0) + 1,
+                userReacted: true
+              }
+            };
+          }
+          return activity;
+        })
+      );
+    } catch (error) {
+      console.error("Error reacting to content:", error);
       toast({
         title: "Error",
         description: "Could not send reaction",
@@ -358,6 +413,32 @@ const BookDetail = () => {
     );
   };
 
+  const renderCommunityActivity = () => {
+    if (loadingActivity) {
+      return <FeedLoadingState />;
+    }
+    
+    if (bookActivity.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground py-8">
+          No community activity for this book yet. Be the first to post or review!
+        </p>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {bookActivity.map(activity => (
+          <ActivityCard 
+            key={activity.id} 
+            activity={activity} 
+            onReaction={handleReactToActivity} 
+          />
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -520,7 +601,7 @@ const BookDetail = () => {
                 <h3 className="text-xl font-medium">Community</h3>
                 <Tabs 
                   value={activeTab} 
-                  onValueChange={(value) => setActiveTab(value as "reviews" | "posts")}
+                  onValueChange={(value) => setActiveTab(value as "reviews" | "posts" | "activity")}
                   className="w-auto"
                 >
                   <TabsList>
@@ -531,6 +612,10 @@ const BookDetail = () => {
                     <TabsTrigger value="posts" className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
                       <span>Posts{posts.length > 0 ? ` (${posts.length})` : ""}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="activity" className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>Activity</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -548,6 +633,12 @@ const BookDetail = () => {
               {activeTab === "posts" && (
                 <div className="mt-4">
                   {renderPosts()}
+                </div>
+              )}
+              
+              {activeTab === "activity" && (
+                <div className="mt-4">
+                  {renderCommunityActivity()}
                 </div>
               )}
             </div>

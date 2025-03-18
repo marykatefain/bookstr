@@ -53,7 +53,8 @@ export {
   fetchUserProfile,
   fetchSocialFeed,
   fetchUserReviews,
-  ensureBookMetadata
+  ensureBookMetadata,
+  fetchBookActivity
 } from "./fetch";
 
 // Export mock data

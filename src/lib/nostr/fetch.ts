@@ -25,7 +25,8 @@ import {
 // Social fetch functions
 import {
   fetchSocialFeed,
-  fetchBookPosts
+  fetchBookPosts,
+  fetchBookActivity
 } from './fetch/socialFetch';
 
 export {
@@ -46,5 +47,6 @@ export {
   
   // Social functions
   fetchSocialFeed,
-  fetchBookPosts
+  fetchBookPosts,
+  fetchBookActivity
 };
