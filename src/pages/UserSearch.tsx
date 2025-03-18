@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -25,7 +24,6 @@ const UserSearch = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Placeholder data for demonstration
     setRecentActivity([
       {
         id: "1",
@@ -122,7 +120,6 @@ const UserSearch = () => {
     
     setIsSearching(true);
     
-    // Simulating search results
     setTimeout(() => {
       setSearchResults([
         {
@@ -148,7 +145,6 @@ const UserSearch = () => {
     }
 
     try {
-      // This would be replaced with actual follow functionality
       await followUser(userId);
       toast({
         title: "Success!",
@@ -164,9 +160,9 @@ const UserSearch = () => {
     }
   };
 
-  const formatTimestamp = (date) => {
+  const formatTimestamp = (date: Date) => {
     const now = new Date();
-    const diffMs = now - date;
+    const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / (1000 * 60));
     const diffHours = Math.round(diffMs / (1000 * 60 * 60));
     
