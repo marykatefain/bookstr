@@ -27,7 +27,7 @@ export { fetchProfileData } from "./profile";
 export { publishToNostr } from "./publish";
 
 // Export posts functions
-export { createBookPost, fetchPosts } from "./posts";
+export { createBookPost, fetchPosts, fetchBookPosts, fetchUserPosts } from "./posts";
 
 // Export book-specific functions
 export {
@@ -55,3 +55,6 @@ export {
   fetchUserReviews,
   ensureBookMetadata
 } from "./fetch";
+
+// Export mock data
+export { mockBooks } from "./mockData";

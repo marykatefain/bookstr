@@ -94,7 +94,8 @@ export async function fetchPosts(limit: number = 20, useMockData: boolean = true
       limit: limit
     };
     
-    const events = await pool.querySync(relayUrls, [filter]);
+    // Fixed: pass a single filter object instead of an array
+    const events = await pool.querySync(relayUrls, filter);
     
     const posts: Post[] = [];
     const userPubkeys = new Set<string>();
@@ -175,7 +176,8 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
       '#i': [isbn]
     };
     
-    const events = await pool.querySync(relayUrls, [filter]);
+    // Fixed: pass a single filter object instead of an array
+    const events = await pool.querySync(relayUrls, filter);
     
     // Process events similarly to fetchPosts
     // ... processing code here ...
@@ -206,7 +208,8 @@ export async function fetchUserPosts(pubkey: string, useMockData: boolean = true
       limit: 50
     };
     
-    const events = await pool.querySync(relayUrls, [filter]);
+    // Fixed: pass a single filter object instead of an array
+    const events = await pool.querySync(relayUrls, filter);
     
     // Process events similarly to fetchPosts
     // ... processing code here ...
