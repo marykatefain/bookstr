@@ -27,6 +27,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [isRead, setIsRead] = useState(!!book.readingStatus?.completedDate);
 
   // Determine styles based on size
   const getCardClasses = () => {
@@ -64,6 +65,7 @@ export const BookCard: React.FC<BookCardProps> = ({
         result = await markBookAsReading(book);
       } else if (action === 'read') {
         result = await markBookAsRead(book);
+        setIsRead(true);
       }
 
       if (result) {
@@ -98,16 +100,19 @@ export const BookCard: React.FC<BookCardProps> = ({
               e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
             }}
           />
-          {/* Check mark button for marking as read */}
+          {/* Transparent/white check mark button that turns green when active */}
           <button
             onClick={() => handleAction('read')}
-            className="absolute top-2 right-2 bg-green-500 hover:bg-green-600 text-white rounded-full p-1 transition-colors"
+            className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+              ${isRead 
+                ? "bg-green-500 text-white" 
+                : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
             title="Mark as read"
           >
             {pendingAction === 'read' ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Check className="h-5 w-5" />
+              <Check className="h-4 w-4" />
             )}
           </button>
         </div>
