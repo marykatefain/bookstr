@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Book, MessageCircle, Heart, Star } from "lucide-react";
+import { Book, MessageCircle, Heart, Star, UserPlus, Search } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,7 +52,6 @@ export function SocialFeed() {
         description: "You've reacted to this post"
       });
       
-      // Update UI optimistically
       setActivities(prevActivities => 
         prevActivities.map(activity => {
           if (activity.id === activityId) {
@@ -215,8 +213,11 @@ export function SocialFeed() {
         <p className="text-muted-foreground mb-4">
           No activity yet from people you follow
         </p>
-        <Link to="/books">
-          <Button>Discover Books</Button>
+        <Link to="/users">
+          <Button>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Find Friends
+          </Button>
         </Link>
       </Card>
     );
