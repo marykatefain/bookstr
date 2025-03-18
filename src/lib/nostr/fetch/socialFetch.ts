@@ -188,9 +188,9 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     if (pubkey) {
       filter.authors = [pubkey];
       
-      // Use an empty string for the #i tag to ensure we're fetching book posts
+      // Use an empty string for the i tag to ensure we're fetching book posts
       // but not filtering by a specific ISBN
-      filter['#i'] = ['']; 
+      filter['i'] = ['']; // Removed the # sign here
     }
     
     console.log("Using filter:", filter);
