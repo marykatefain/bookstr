@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Star, BookOpen, PlusCircle, Loader2, Check } from "lucide-react";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/components/ui/use-toast";
 import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead } from "@/lib/nostr";
+import { Link } from "react-router-dom";
 
 interface BookCardProps {
   book: Book;
@@ -107,14 +109,16 @@ export const BookCard: React.FC<BookCardProps> = ({
     <Card className={getCardClasses()}>
       <CardContent className="p-0 h-full">
         <div className="relative aspect-[2/3] book-cover overflow-hidden">
-          <img
-            src={book.coverUrl}
-            alt={`${book.title} by ${book.author}`}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
-            }}
-          />
+          <Link to={`/book/${book.isbn}`}>
+            <img
+              src={book.coverUrl}
+              alt={`${book.title} by ${book.author}`}
+              className="object-cover w-full h-full cursor-pointer transition-transform hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+              }}
+            />
+          </Link>
           <button
             onClick={() => handleAction('read')}
             className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
@@ -131,7 +135,14 @@ export const BookCard: React.FC<BookCardProps> = ({
           </button>
         </div>
         <div className="p-4 space-y-2">
-          <h3 className={getTitleClasses()}>{book.title}</h3>
+          <h3 className={getTitleClasses()}>
+            <Link 
+              to={`/book/${book.isbn}`}
+              className="hover:text-bookverse-accent transition-colors"
+            >
+              {book.title}
+            </Link>
+          </h3>
           <p className="text-sm text-muted-foreground">by {book.author}</p>
           
           {showRating && (
