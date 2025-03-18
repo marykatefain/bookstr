@@ -28,7 +28,6 @@ import {
 import { Book, BookReview, BookActionType, Post, SocialActivity } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
-import { fetchBookPosts } from "@/lib/nostr/posts";
 import { fetchBookActivity } from "@/lib/nostr/fetch/socialFetch";
 
 const BookDetail = () => {
@@ -37,13 +36,12 @@ const BookDetail = () => {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [ratings, setRatings] = useState<BookReview[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
   const [isRead, setIsRead] = useState(false);
-  const [activeTab, setActiveTab] = useState<"reviews" | "posts" | "activity">("reviews");
+  const [activeTab, setActiveTab] = useState<"reviews" | "activity">("reviews");
   const [bookActivity, setBookActivity] = useState<SocialActivity[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const { toast } = useToast();
@@ -66,9 +64,6 @@ const BookDetail = () => {
         
         const bookRatings = await fetchBookRatings(isbn);
         setRatings(bookRatings);
-        
-        const bookPosts = await fetchBookPosts(isbn);
-        setPosts(bookPosts);
         
         if (currentUser && bookRatings.length > 0) {
           const userRating = bookRatings.find(r => r.pubkey === currentUser.pubkey);
@@ -395,24 +390,6 @@ const BookDetail = () => {
     ));
   };
 
-  const renderPosts = () => {
-    if (posts.length === 0) {
-      return (
-        <p className="text-center text-muted-foreground py-8">
-          No posts about this book yet. Be the first to post about it!
-        </p>
-      );
-    }
-    
-    return (
-      <div className="space-y-4">
-        {posts.map(post => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
-    );
-  };
-
   const renderCommunityActivity = () => {
     if (loadingActivity) {
       return <FeedLoadingState />;
@@ -601,17 +578,13 @@ const BookDetail = () => {
                 <h3 className="text-xl font-medium">Community</h3>
                 <Tabs 
                   value={activeTab} 
-                  onValueChange={(value) => setActiveTab(value as "reviews" | "posts" | "activity")}
+                  onValueChange={(value) => setActiveTab(value as "reviews" | "activity")}
                   className="w-auto"
                 >
                   <TabsList>
                     <TabsTrigger value="reviews" className="flex items-center gap-1">
                       <MessageCircle className="h-4 w-4" />
                       <span>Reviews{reviews.length > 0 ? ` (${reviews.length})` : ""}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="posts" className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      <span>Posts{posts.length > 0 ? ` (${posts.length})` : ""}</span>
                     </TabsTrigger>
                     <TabsTrigger value="activity" className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
@@ -628,12 +601,6 @@ const BookDetail = () => {
                     {renderReviews()}
                   </div>
                 </>
-              )}
-              
-              {activeTab === "posts" && (
-                <div className="mt-4">
-                  {renderPosts()}
-                </div>
               )}
               
               {activeTab === "activity" && (
