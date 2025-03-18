@@ -4,15 +4,31 @@ import { Link } from "react-router-dom";
 import { BookCard } from "@/components/BookCard";
 import { Loader2 } from "lucide-react";
 import { Book } from "@/lib/nostr/types";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext
+} from "@/components/ui/carousel";
 
 interface BookSectionProps {
   title: string;
   books: Book[];
   loading: boolean;
   onUpdate: () => void;
+  useCarousel?: boolean;
+  totalBooks?: number;
 }
 
-export function BookSection({ title, books, loading, onUpdate }: BookSectionProps) {
+export function BookSection({ 
+  title, 
+  books, 
+  loading, 
+  onUpdate, 
+  useCarousel = false,
+  totalBooks = 3
+}: BookSectionProps) {
   const renderLoadingCard = () => (
     <div className="overflow-hidden h-full book-card">
       <div className="p-0">
@@ -33,6 +49,72 @@ export function BookSection({ title, books, loading, onUpdate }: BookSectionProp
     </div>
   );
 
+  const renderContent = () => {
+    if (loading) {
+      if (useCarousel) {
+        return (
+          <Carousel className="w-full">
+            <CarouselContent className="-ml-4">
+              {[1, 2, 3].map((_, index) => (
+                <CarouselItem key={index} className="pl-4 md:basis-1/3">
+                  {renderLoadingCard()}
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        );
+      }
+      
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {renderLoadingCard()}
+          {renderLoadingCard()}
+          {renderLoadingCard()}
+        </div>
+      );
+    }
+
+    if (useCarousel) {
+      return (
+        <Carousel className="w-full relative">
+          <CarouselContent className="-ml-4">
+            {books.map(book => (
+              <CarouselItem key={book.id} className="pl-4 md:basis-1/3">
+                <BookCard 
+                  key={book.id} 
+                  book={book}
+                  showDescription={true}
+                  size="medium"
+                  onUpdate={() => onUpdate()}
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <div className="absolute -left-4 top-1/2 -translate-y-1/2">
+            <CarouselPrevious className="h-8 w-8 rounded-full opacity-70 hover:opacity-100" />
+          </div>
+          <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+            <CarouselNext className="h-8 w-8 rounded-full opacity-70 hover:opacity-100" />
+          </div>
+        </Carousel>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {books.map(book => (
+          <BookCard 
+            key={book.id} 
+            book={book}
+            showDescription={true}
+            size="medium"
+            onUpdate={() => onUpdate()}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <section className="py-12">
       <div className="container px-4 md:px-6">
@@ -43,25 +125,7 @@ export function BookSection({ title, books, loading, onUpdate }: BookSectionProp
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {loading ? (
-              <>
-                {renderLoadingCard()}
-                {renderLoadingCard()}
-                {renderLoadingCard()}
-              </>
-            ) : (
-              books.map(book => (
-                <BookCard 
-                  key={book.id} 
-                  book={book}
-                  showDescription={true}
-                  size="medium"
-                  onUpdate={() => onUpdate()}
-                />
-              ))
-            )}
-          </div>
+          {renderContent()}
         </div>
       </div>
     </section>
