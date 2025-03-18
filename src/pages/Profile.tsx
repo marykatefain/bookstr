@@ -45,6 +45,7 @@ const Profile = () => {
       setLoading(true);
       try {
         const userBooks = await fetchUserBooks(user.pubkey);
+        console.log("Fetched user books:", userBooks);
         setBooks(userBooks);
       } catch (error) {
         console.error("Error fetching user books:", error);

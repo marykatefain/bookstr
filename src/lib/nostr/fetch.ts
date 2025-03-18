@@ -39,7 +39,7 @@ function getReadingStatusFromEventKind(eventKind: number): 'tbr' | 'reading' | '
   if (eventKind === NOSTR_KINDS.BOOK_READING) return 'reading';
   if (eventKind === NOSTR_KINDS.BOOK_READ) return 'finished';
   
-  // For backward compatibility, check old event kinds with d tag
+  // Default to tbr if not recognized
   return 'tbr';
 }
 
@@ -112,9 +112,28 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Extract book details from events
+    // Extract book details from events and deduplicate by ISBN
     const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
-    const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0);
+    const uniqueBooks = new Map<string, Book>();
+    
+    // Group by ISBN and keep the most recent event for each ISBN based on status
+    bookEvents.forEach(book => {
+      if (!book.isbn || !book.readingStatus) return;
+      
+      const existingBook = uniqueBooks.get(book.isbn);
+      
+      // If we don't have this ISBN yet, or if this event is newer than what we have
+      if (!existingBook || 
+          (book.readingStatus.dateAdded > (existingBook.readingStatus?.dateAdded || 0))) {
+        uniqueBooks.set(book.isbn, book);
+      }
+    });
+    
+    // Now we have unique books by ISBN with the most recent status
+    const dedupedBooks = Array.from(uniqueBooks.values());
+    
+    // Extract all unique ISBNs 
+    const isbns = dedupedBooks.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
     
     // Fetch additional book details from OpenLibrary if we have ISBNs
     if (isbns.length > 0) {
@@ -130,7 +149,9 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         });
         
         // Enhance books with OpenLibrary data
-        bookEvents.forEach(book => {
+        dedupedBooks.forEach(book => {
+          if (!book.isbn || !book.readingStatus) return;
+          
           const details = bookDetailsMap.get(book.isbn);
           if (details) {
             // Merge the details while preserving the id and reading status
@@ -141,7 +162,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
             });
           }
           
-          const status = book.readingStatus?.status;
+          const status = book.readingStatus.status;
           if (status === 'reading') {
             readingBooks.push(book);
           } else if (status === 'finished') {
@@ -153,8 +174,10 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       } catch (error) {
         console.error('Error enhancing books with OpenLibrary data:', error);
         // Fall back to using basic book data without enhancements
-        bookEvents.forEach(book => {
-          const status = book.readingStatus?.status;
+        dedupedBooks.forEach(book => {
+          if (!book.readingStatus) return;
+          
+          const status = book.readingStatus.status;
           if (status === 'reading') {
             readingBooks.push(book);
           } else if (status === 'finished') {
@@ -166,8 +189,10 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       }
     } else {
       // No ISBNs, just use the basic book data
-      bookEvents.forEach(book => {
-        const status = book.readingStatus?.status;
+      dedupedBooks.forEach(book => {
+        if (!book.readingStatus) return;
+        
+        const status = book.readingStatus.status;
         if (status === 'reading') {
           readingBooks.push(book);
         } else if (status === 'finished') {
@@ -177,6 +202,8 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         }
       });
     }
+    
+    console.log(`Categorized books: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
     
     return {
       tbr: tbrBooks,
@@ -679,4 +706,3 @@ export async function ensureBookMetadata(book: Book): Promise<string | null> {
   console.log("Book metadata is no longer needed in the simplified approach");
   return "placeholder"; // Return a non-null value to avoid errors
 }
-
