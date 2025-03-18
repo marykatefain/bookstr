@@ -27,4 +27,15 @@ export interface OpenLibraryDoc {
   has_fulltext?: boolean;
   ia?: string[];
   subtitle?: string;
+  
+  // New fields for improved ISBN extraction
+  lending_identifier_s?: string;
+  isbn_13?: string[];
+  isbn_10?: string[];
+  identifiers?: {
+    isbn_10?: string[];
+    isbn_13?: string[];
+    [key: string]: string[] | undefined;
+  };
 }
+

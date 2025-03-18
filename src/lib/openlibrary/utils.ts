@@ -1,13 +1,70 @@
-
 import { OpenLibraryDoc } from './types';
 import { Book } from "@/lib/nostr/types";
+
+/**
+ * Extract ISBN from OpenLibrary data using multiple methods
+ */
+export function extractISBN(doc: OpenLibraryDoc): string {
+  // Method 1: Direct ISBN from isbn field (most reliable when available)
+  if (doc.isbn && doc.isbn.length > 0) {
+    return doc.isbn[0];
+  }
+  
+  // Method 2: Check lending_identifier_s field
+  if (doc.lending_identifier_s && doc.lending_identifier_s.startsWith('isbn_')) {
+    return doc.lending_identifier_s.replace('isbn_', '');
+  }
+  
+  // Method 3: Check ia field for ISBN entries
+  if (doc.ia && Array.isArray(doc.ia)) {
+    for (const entry of doc.ia) {
+      if (entry.startsWith('isbn_')) {
+        return entry.replace('isbn_', '');
+      }
+    }
+  }
+  
+  // Method 4: If cover_edition_key exists, we could fetch it to get ISBN
+  // This is implemented as a separate async function to avoid making the main
+  // extraction function async, which would require bigger refactoring
+  
+  // No ISBN found with any method
+  return "";
+}
+
+/**
+ * Fetch ISBN from a cover edition key (OL key)
+ * This is used as a fallback when other methods fail
+ */
+export async function fetchISBNFromEditionKey(editionKey: string): Promise<string> {
+  if (!editionKey) return "";
+  
+  try {
+    const response = await fetch(`https://openlibrary.org/api/books?bibkeys=${editionKey}&format=json`);
+    if (!response.ok) {
+      return "";
+    }
+    
+    const data = await response.json();
+    const edition = data[editionKey];
+    
+    if (edition && edition.bib_key && edition.bib_key.startsWith('ISBN:')) {
+      return edition.bib_key.replace('ISBN:', '');
+    }
+    
+    return "";
+  } catch (error) {
+    console.error("Error fetching ISBN from edition key:", error);
+    return "";
+  }
+}
 
 /**
  * Helper to convert an OpenLibrary doc to our Book type
  */
 export function docToBook(doc: OpenLibraryDoc): Book {
-  // Use cover_i for cover image if available, otherwise use isbn
-  const isbn = doc.isbn?.[0] || "";
+  // Extract ISBN using our enhanced function
+  const isbn = extractISBN(doc);
   
   // Extract categories from subjects or create a default category
   const categories = doc.subject
