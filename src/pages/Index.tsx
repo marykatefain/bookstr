@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getCurrentUser, isLoggedIn, addBookToTBR, markBookAsReading } from "@/lib/nostr";
-import { getTrendingBooks, getRecentBooks } from "@/lib/openlibrary/api";
+import { getTrendingBooks, getRecentBooks } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
 import { Book as BookType } from "@/lib/nostr/types";

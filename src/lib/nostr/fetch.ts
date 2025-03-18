@@ -1,9 +1,8 @@
-
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
 import { getCurrentUser } from "./user";
-import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary/api";
+import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 
 /**
  * Convert a Nostr event to a Book object

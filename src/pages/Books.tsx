@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +23,7 @@ import {
   markBookAsRead,
   Book
 } from "@/lib/nostr";
-import { searchBooks, searchBooksByGenre, getTrendingBooks } from "@/lib/openlibrary/api";
+import { searchBooks, searchBooksByGenre, getTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 
 const categories = [
