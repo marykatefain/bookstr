@@ -302,20 +302,6 @@ const Books = () => {
                           <Button
                             size="sm"
                             className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                            onClick={() => addToLibrary(book.id, 'reading')}
-                            disabled={!!pendingActions[book.id]}
-                          >
-                            {pendingActions[book.id] === 'reading' ? (
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                            ) : (
-                              <BookOpen className="mr-1 h-4 w-4" />
-                            )}
-                            Read
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="flex-1"
                             onClick={() => addToLibrary(book.id, 'read')}
                             disabled={!!pendingActions[book.id]}
                           >
@@ -324,7 +310,7 @@ const Books = () => {
                             ) : (
                               <Star className="mr-1 h-4 w-4" />
                             )}
-                            Finished
+                            Read
                           </Button>
                         </div>
                       </div>
