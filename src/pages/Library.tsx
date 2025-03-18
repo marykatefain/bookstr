@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +15,7 @@ import { ProfileTabs } from "@/components/profile/ProfileTabs";
 const Library: React.FC = () => {
   const [booksLoading, setBooksLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("books");
+  const [activeTab, setActiveTab] = useState("posts");
   const [showRelaySettings, setShowRelaySettings] = useState(false);
   const [books, setBooks] = useState<{
     tbr: Book[];
@@ -111,7 +110,6 @@ const Library: React.FC = () => {
 
           {showRelaySettings && (
             <div className="animate-in fade-in slide-in-from-top-5 duration-300">
-              {/* Include RelaySettings if exists or create a placeholder */}
               <div className="p-4 border rounded-lg bg-background">
                 <h3 className="text-lg font-medium mb-2">Relay Settings</h3>
                 <p className="text-muted-foreground">Configure your Nostr relays here.</p>
@@ -129,14 +127,6 @@ const Library: React.FC = () => {
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full bg-transparent border-b rounded-none justify-start space-x-8">
               <TabsTrigger 
-                value="books" 
-                className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                onClick={() => setActiveTab("books")}
-              >
-                My Books
-                <div className={`${activeTab === "books" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
-              </TabsTrigger>
-              <TabsTrigger 
                 value="posts" 
                 className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 onClick={() => setActiveTab("posts")}
@@ -144,7 +134,41 @@ const Library: React.FC = () => {
                 My Posts
                 <div className={`${activeTab === "posts" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
               </TabsTrigger>
+              <TabsTrigger 
+                value="books" 
+                className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                onClick={() => setActiveTab("books")}
+              >
+                My Books
+                <div className={`${activeTab === "books" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
+              </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="posts">
+              <h2 className="text-2xl font-serif font-semibold mb-4">My Book Posts</h2>
+              
+              {postsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-[200px]"></div>
+                  ))}
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="py-8">
+                  <EmptyState 
+                    title="No posts yet" 
+                    description="You haven't created any book posts yet"
+                    actionText="Create a post"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
             
             <TabsContent value="books">
               {booksLoading ? (
@@ -194,32 +218,6 @@ const Library: React.FC = () => {
                     )}
                   </section>
                 </>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="posts">
-              <h2 className="text-2xl font-serif font-semibold mb-4">My Book Posts</h2>
-              
-              {postsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-[200px]"></div>
-                  ))}
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="py-8">
-                  <EmptyState 
-                    title="No posts yet" 
-                    description="You haven't created any book posts yet"
-                    actionText="Create a post"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
               )}
             </TabsContent>
           </Tabs>
