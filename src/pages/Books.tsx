@@ -68,7 +68,7 @@ const Books = () => {
           // Use the OpenLibrary search API
           results = await searchBooks(debouncedSearch, 20);
         } else if (activeCategory !== "All") {
-          // Search by genre if no query but category selected
+          // Search by genre with the new implementation
           results = await searchBooksByGenre(activeCategory, 20);
         }
         
@@ -89,36 +89,14 @@ const Books = () => {
   }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks]);
 
   // Handle category change
-  useEffect(() => {
-    const loadCategoryBooks = async () => {
-      // Skip if there's a search query (search takes precedence)
-      if (debouncedSearch) return;
-      
-      setIsLoading(true);
-      try {
-        if (activeCategory === "All") {
-          // Use weekly trending books for the "All" category
-          if (weeklyTrendingBooks.length > 0) {
-            setBooks(weeklyTrendingBooks);
-          }
-        } else {
-          const genreBooks = await searchBooksByGenre(activeCategory, 20);
-          setBooks(genreBooks);
-        }
-      } catch (error) {
-        console.error("Error loading category books:", error);
-        toast({
-          title: "Error loading category",
-          description: "There was a problem fetching books in this category.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCategoryBooks();
-  }, [activeCategory, toast, debouncedSearch, weeklyTrendingBooks]);
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    // Clear search query when changing categories
+    if (searchQuery) {
+      setSearchQuery("");
+      setDebouncedSearch("");
+    }
+  };
 
   return (
     <Layout>
@@ -149,7 +127,7 @@ const Books = () => {
                       key={category}
                       value={category.toLowerCase()}
                       className="whitespace-nowrap text-xs md:text-sm"
-                      onClick={() => setActiveCategory(category)}
+                      onClick={() => handleCategoryChange(category)}
                     >
                       {category}
                     </TabsTrigger>
