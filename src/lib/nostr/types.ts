@@ -1,3 +1,4 @@
+
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -172,7 +173,7 @@ export const NOSTR_KINDS = {
   REACTION: 7,
   BADGE: 8,
   LONG_FORM: 30023,
-  BOOK_METADATA: 30073,
+  BOOK_METADATA: 73,  // Changed from 30073 to 73 per NIP-73 standard
   GENERIC_LIST: 30000,
   BOOK_RATING: 7000,
   REVIEW: 1985
