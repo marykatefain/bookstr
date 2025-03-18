@@ -91,8 +91,8 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   return (
     <Card className={getCardClasses()}>
-      <CardContent className="p-0">
-        <div className="relative aspect-[2/3] book-cover">
+      <CardContent className="p-0 h-full">
+        <div className="relative aspect-[2/3] book-cover overflow-hidden">
           <img
             src={book.coverUrl}
             alt={`${book.title} by ${book.author}`}
