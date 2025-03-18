@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, Edit, BookOpen, BookMarked, Send, Share2, Link, Settings } from "lucide-react";
+import { Book, BookOpen, BookMarked, Share2, Link, Settings } from "lucide-react";
 import { 
   getCurrentUser, 
   isLoggedIn, 
   fetchProfileData,
-  fetchUserBooks,
-  markBookAsReading 
+  fetchUserBooks
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { RelaySettings } from "@/components/RelaySettings";
 import { Book as BookType } from "@/lib/nostr/types";
+import { BookCard } from "@/components/BookCard";
 
 const Profile = () => {
   const { toast } = useToast();
@@ -33,6 +33,24 @@ const Profile = () => {
     read: []
   });
   
+  const fetchBooks = async () => {
+    if (user?.pubkey) {
+      setLoading(true);
+      try {
+        const userBooks = await fetchUserBooks(user.pubkey);
+        setBooks(userBooks);
+      } catch (error) {
+        console.error("Error fetching user books:", error);
+        toast({
+          title: "Error fetching books",
+          description: "Could not retrieve your books. Please try again later."
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (user?.pubkey) {
       fetchProfileData(user.pubkey)
@@ -45,43 +63,13 @@ const Profile = () => {
           console.error("Error fetching profile data:", error);
         });
       
-      fetchUserBooks(user.pubkey)
-        .then(userBooks => {
-          setBooks(userBooks);
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error("Error fetching user books:", error);
-          setLoading(false);
-        });
+      fetchBooks();
     }
   }, [user?.pubkey]);
   
   if (!isLoggedIn()) {
     return <Navigate to="/" />;
   }
-
-  const handleStartReading = async (book: BookType) => {
-    try {
-      await markBookAsReading(book);
-      toast({
-        title: "Started reading",
-        description: `You've started reading ${book.title}`
-      });
-      
-      if (user?.pubkey) {
-        const userBooks = await fetchUserBooks(user.pubkey);
-        setBooks(userBooks);
-      }
-    } catch (error) {
-      console.error("Error marking book as reading:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update reading status",
-        variant: "destructive"
-      });
-    }
-  };
 
   const copyProfileLink = () => {
     navigator.clipboard.writeText(`https://bookverse.app/profile/${user?.npub}`);
@@ -123,7 +111,7 @@ const Profile = () => {
                   Share Profile
                 </Button>
                 <Button size="sm" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Book className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
                 <Button variant="outline" size="sm" onClick={toggleRelaySettings}>
@@ -196,33 +184,12 @@ const Profile = () => {
               ) : books.reading.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {books.reading.map((book) => (
-                    <Card key={book.id} className="overflow-hidden h-full book-card">
-                      <CardContent className="p-0">
-                        <div className="relative aspect-[2/3] book-cover">
-                          <img
-                            src={book.coverUrl}
-                            alt={`${book.title} by ${book.author}`}
-                            className="object-cover w-full h-full"
-                          />
-                          <div className="absolute top-2 right-2 bg-bookverse-highlight text-white py-1 px-2 rounded-md text-xs font-medium">
-                            Reading
-                          </div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                          <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                          <p className="text-sm text-muted-foreground">by {book.author}</p>
-                          <div className="pt-2">
-                            <Button
-                              size="sm"
-                              className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
-                            >
-                              <Send className="mr-1 h-4 w-4" />
-                              Update Progress
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <BookCard 
+                      key={book.id} 
+                      book={book} 
+                      size="medium"
+                      onUpdate={fetchBooks}
+                    />
                   ))}
                 </div>
               ) : (
@@ -238,45 +205,12 @@ const Profile = () => {
               ) : books.read.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {books.read.map((book) => (
-                    <Card key={book.id} className="overflow-hidden h-full book-card">
-                      <CardContent className="p-0">
-                        <div className="relative aspect-[2/3] book-cover">
-                          <img
-                            src={book.coverUrl}
-                            alt={`${book.title} by ${book.author}`}
-                            className="object-cover w-full h-full"
-                          />
-                          <div className="absolute top-2 right-2 bg-green-500 text-white py-1 px-2 rounded-md text-xs font-medium">
-                            Read
-                          </div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                          <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                          <p className="text-sm text-muted-foreground">by {book.author}</p>
-                          <div className="flex items-center space-x-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < (book.readingStatus?.rating || 0) 
-                                    ? "text-bookverse-highlight fill-bookverse-highlight" 
-                                    : "text-muted-foreground"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <div className="pt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                            >
-                              Write Review
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <BookCard 
+                      key={book.id} 
+                      book={book}
+                      size="medium"
+                      onUpdate={fetchBooks}
+                    />
                   ))}
                 </div>
               ) : (
@@ -292,34 +226,12 @@ const Profile = () => {
               ) : books.tbr.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {books.tbr.map((book) => (
-                    <Card key={book.id} className="overflow-hidden h-full book-card">
-                      <CardContent className="p-0">
-                        <div className="relative aspect-[2/3] book-cover">
-                          <img
-                            src={book.coverUrl}
-                            alt={`${book.title} by ${book.author}`}
-                            className="object-cover w-full h-full"
-                          />
-                          <div className="absolute top-2 right-2 bg-blue-500 text-white py-1 px-2 rounded-md text-xs font-medium">
-                            Want to Read
-                          </div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                          <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                          <p className="text-sm text-muted-foreground">by {book.author}</p>
-                          <div className="pt-2">
-                            <Button
-                              size="sm"
-                              className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
-                              onClick={() => handleStartReading(book)}
-                            >
-                              <BookOpen className="mr-1 h-4 w-4" />
-                              Start Reading
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <BookCard 
+                      key={book.id} 
+                      book={book}
+                      size="medium"
+                      onUpdate={fetchBooks}
+                    />
                   ))}
                 </div>
               ) : (

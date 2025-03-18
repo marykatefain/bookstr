@@ -1,29 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Book as BookIcon, 
-  Star, 
-  PlusCircle, 
-  BookOpen, 
-  Search, 
-  Filter, 
-  Loader2 
-} from "lucide-react";
-import { 
-  isLoggedIn, 
-  addBookToTBR,
-  markBookAsReading,
-  markBookAsRead,
-  Book
-} from "@/lib/nostr";
+import { Book as BookIcon, Search, Filter, Loader2 } from "lucide-react";
+import { Book } from "@/lib/nostr";
 import { searchBooks, searchBooksByGenre, getTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
+import { BookCard } from "@/components/BookCard";
 
 const categories = [
   "All",
@@ -43,7 +27,6 @@ const Books = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Initial loading of trending books
@@ -145,55 +128,6 @@ const Books = () => {
     loadCategoryBooks();
   }, [activeCategory, toast, debouncedSearch]);
 
-  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading' | 'read') => {
-    if (!isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in with Nostr to add books to your library",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
-
-    setPendingActions(prev => ({ ...prev, [bookId]: status }));
-
-    try {
-      let result: string | null;
-      
-      if (status === 'want-to-read') {
-        result = await addBookToTBR(book);
-      } else if (status === 'reading') {
-        result = await markBookAsReading(book);
-      } else if (status === 'read') {
-        result = await markBookAsRead(book);
-      }
-
-      if (result) {
-        let statusText = status === 'want-to-read' ? 'TBR' : status === 'reading' ? 'currently reading' : 'read';
-        toast({
-          title: `Added to your ${statusText} list`,
-          description: `${book.title} has been added to your library and published to Nostr`
-        });
-      }
-    } catch (error) {
-      console.error("Error adding book:", error);
-      toast({
-        title: "Action failed",
-        description: "There was an error processing your request",
-        variant: "destructive"
-      });
-    } finally {
-      setPendingActions(prev => {
-        const newState = { ...prev };
-        delete newState[bookId];
-        return newState;
-      });
-    }
-  };
-
   return (
     <Layout>
       <div className="container px-4 md:px-6 py-8">
@@ -246,76 +180,12 @@ const Books = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {books.length > 0 ? (
                 books.map((book) => (
-                  <Card key={book.id} className="overflow-hidden h-full book-card">
-                    <CardContent className="p-0">
-                      <div className="relative aspect-[2/3] book-cover">
-                        <img
-                          src={book.coverUrl}
-                          alt={`${book.title} by ${book.author}`}
-                          className="object-cover w-full h-full"
-                          onError={(e) => {
-                            e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
-                          }}
-                        />
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <h3 className="font-bold font-serif truncate">{book.title}</h3>
-                        <p className="text-sm text-muted-foreground">by {book.author}</p>
-                        <div className="flex items-center space-x-1">
-                          {book.readingStatus?.rating ? (
-                            [...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < (book.readingStatus?.rating || 0) 
-                                    ? "text-bookverse-highlight fill-bookverse-highlight" 
-                                    : "text-muted-foreground"
-                                }`}
-                              />
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No ratings yet</span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {book.categories?.slice(0, 2).map((category, index) => (
-                            <Badge key={`${category}-${index}`} variant="outline" className="text-xs">
-                              {category}
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="pt-2 flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => addToLibrary(book.id, 'want-to-read')}
-                            disabled={!!pendingActions[book.id]}
-                          >
-                            {pendingActions[book.id] === 'want-to-read' ? (
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                            ) : (
-                              <PlusCircle className="mr-1 h-4 w-4" />
-                            )}
-                            TBR
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-                            onClick={() => addToLibrary(book.id, 'read')}
-                            disabled={!!pendingActions[book.id]}
-                          >
-                            {pendingActions[book.id] === 'read' ? (
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Star className="mr-1 h-4 w-4" />
-                            )}
-                            Read
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <BookCard 
+                    key={book.id} 
+                    book={book} 
+                    showDescription={false}
+                    onUpdate={() => console.log("Book updated")}
+                  />
                 ))
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">

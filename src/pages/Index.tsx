@@ -1,22 +1,20 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Book, Star, PlusCircle, Bookmark, BookOpen, LogIn, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Book, LogIn, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getCurrentUser, isLoggedIn, addBookToTBR, markBookAsReading } from "@/lib/nostr";
+import { isLoggedIn } from "@/lib/nostr";
 import { getTrendingBooks, getRecentBooks } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLogin } from "@/components/NostrLogin";
 import { Book as BookType } from "@/lib/nostr/types";
+import { BookCard } from "@/components/BookCard";
 
 const Index = () => {
   const { toast } = useToast();
   const [featuredBooks, setFeaturedBooks] = useState<BookType[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<BookType[]>([]);
-  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
 
@@ -61,126 +59,9 @@ const Index = () => {
     loadRecentBooks();
   }, [toast]);
 
-  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
-    if (!isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in with Nostr to add books to your library",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const book = [...featuredBooks, ...recentlyAdded].find(b => b.id === bookId);
-    if (!book) return;
-    
-    setPendingActions(prev => ({ ...prev, [bookId]: status }));
-    
-    try {
-      let result: string | null;
-      
-      if (status === 'want-to-read') {
-        console.log("Calling addBookToTBR for:", book.title);
-        result = await addBookToTBR(book);
-      } else if (status === 'reading') {
-        console.log("Calling markBookAsReading for:", book.title);
-        result = await markBookAsReading(book);
-      }
-      
-      if (result) {
-        toast({
-          title: `Added to your ${status === 'want-to-read' ? 'TBR' : 'currently reading'} list`,
-          description: `${book.title} has been added to your library and published to Nostr`
-        });
-      } else {
-        throw new Error("Failed to publish event");
-      }
-    } catch (error) {
-      console.error("Error adding book:", error);
-      toast({
-        title: "Action failed",
-        description: "There was an error publishing to Nostr",
-        variant: "destructive"
-      });
-    } finally {
-      setPendingActions(prev => {
-        const newState = { ...prev };
-        delete newState[bookId];
-        return newState;
-      });
-    }
-  };
-
-  const renderBookCard = (book: BookType) => (
-    <Card key={book.id} className="overflow-hidden h-full book-card">
-      <CardContent className="p-0">
-        <div className="relative aspect-[2/3] book-cover">
-          <img
-            src={book.coverUrl}
-            alt={`${book.title} by ${book.author}`}
-            className="object-cover w-full h-full"
-            onError={(e) => {
-              e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
-            }}
-          />
-        </div>
-        <div className="p-4 space-y-2">
-          <h3 className="font-bold font-serif truncate">{book.title}</h3>
-          <p className="text-sm text-muted-foreground">by {book.author}</p>
-          <div className="flex items-center space-x-1">
-            {book.readingStatus?.rating ? (
-              [...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < (book.readingStatus?.rating || 0) 
-                      ? "text-bookverse-highlight fill-bookverse-highlight" 
-                      : "text-muted-foreground"
-                  }`}
-                />
-              ))
-            ) : (
-              <span className="text-xs text-muted-foreground">No ratings yet</span>
-            )}
-          </div>
-          <p className="text-sm line-clamp-2">{book.description || "No description available."}</p>
-          <div className="pt-2 flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1"
-              onClick={() => addToLibrary(book.id, 'want-to-read')}
-              disabled={!!pendingActions[book.id]}
-            >
-              {pendingActions[book.id] === 'want-to-read' ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <Bookmark className="mr-1 h-4 w-4" />
-              )}
-              Want to Read
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
-              onClick={() => addToLibrary(book.id, 'reading')}
-              disabled={!!pendingActions[book.id]}
-            >
-              {pendingActions[book.id] === 'reading' ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-              ) : (
-                <BookOpen className="mr-1 h-4 w-4" />
-              )}
-              Start Reading
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   const renderLoadingCard = () => (
-    <Card className="overflow-hidden h-full book-card">
-      <CardContent className="p-0">
+    <div className="overflow-hidden h-full book-card">
+      <div className="p-0">
         <div className="relative aspect-[2/3] bg-gray-200 animate-pulse"></div>
         <div className="p-4 space-y-2">
           <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
@@ -194,8 +75,8 @@ const Index = () => {
             <div className="h-10 bg-gray-200 rounded flex-1 animate-pulse"></div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 
   return (
@@ -229,7 +110,7 @@ const Index = () => {
               {!isLoggedIn() && (
                 <Link to="/library">
                   <Button size="lg" variant="outline">
-                    <BookOpen className="mr-2 h-5 w-5" />
+                    <Book className="mr-2 h-5 w-5" />
                     Start Your Library
                   </Button>
                 </Link>
@@ -257,7 +138,15 @@ const Index = () => {
                   {renderLoadingCard()}
                 </>
               ) : (
-                featuredBooks.map(book => renderBookCard(book))
+                featuredBooks.map(book => (
+                  <BookCard 
+                    key={book.id} 
+                    book={book}
+                    showDescription={true}
+                    size="medium"
+                    onUpdate={() => loadFeaturedBooks()}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -284,7 +173,15 @@ const Index = () => {
                   {renderLoadingCard()}
                 </>
               ) : (
-                recentlyAdded.map(book => renderBookCard(book))
+                recentlyAdded.map(book => (
+                  <BookCard 
+                    key={book.id} 
+                    book={book}
+                    showDescription={true}
+                    size="medium"
+                    onUpdate={() => loadRecentBooks()}
+                  />
+                ))
               )}
             </div>
           </div>
