@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Book, MessageCircle, Heart, Star, UserPlus, Search } from "lucide-react";
@@ -257,7 +258,24 @@ export function SocialFeed({ activities }: SocialFeedProps) {
             </div>
           </CardHeader>
           <CardContent className="py-2">
-            {renderActivityContent(activity)}
+            <div className="flex gap-4">
+              <Link to={`/book/${activity.book.isbn}`} className="shrink-0">
+                <div className="w-16 h-24 rounded overflow-hidden shadow-sm">
+                  <img 
+                    src={activity.book.coverUrl} 
+                    alt={activity.book.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback for broken images
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+              </Link>
+              <div className="flex-1">
+                {renderActivityContent(activity)}
+              </div>
+            </div>
           </CardContent>
           <CardFooter className="pt-0 pb-4 flex gap-2">
             <Button 
