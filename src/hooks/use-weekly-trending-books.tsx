@@ -16,9 +16,12 @@ export function useWeeklyTrendingBooks(limit: number = 20) {
   } = useQuery({
     queryKey: ['weeklyTrendingBooks', limit],
     queryFn: () => getWeeklyTrendingBooks(limit),
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 60 minutes
+    staleTime: 60 * 60 * 1000, // 60 minutes
+    gcTime: 120 * 60 * 1000, // 2 hours
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Handle errors outside the query config
