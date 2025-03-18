@@ -1,4 +1,3 @@
-
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr } from "./publish";
 import { ensureBookMetadata } from "./fetch";

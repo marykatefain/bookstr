@@ -5,7 +5,7 @@ import { Book, BookActionType } from '@/lib/nostr/types';
 import { addBookToList } from "@/lib/nostr/books";
 import { toast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookOpen, Eye, EyeOff, Check } from "lucide-react";
+import { BookOpen, Eye, Check } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;

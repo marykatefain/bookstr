@@ -6,26 +6,28 @@ import { getCurrentUser } from "./user";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 
 /**
- * Extract ISBN from a tag or reference
+ * Extract ISBN from a tag
  */
 function extractISBNFromTags(event: Event): string | null {
-  // First check for direct ISBN tag
+  // Check for direct ISBN tag (i tag)
   const isbnTag = event.tags.find(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
   if (isbnTag && isbnTag[1]) {
     return isbnTag[1].replace('isbn:', '');
   }
   
-  // If no direct ISBN tag, look for a reference to metadata event
-  const refTag = event.tags.find(tag => tag[0] === 'r' && tag[1]?.startsWith('naddr'));
-  if (refTag && refTag[1]) {
-    // For now, we'll need to find the corresponding metadata event
-    // In a real implementation, we would fetch the referenced event and extract the ISBN
-    // This is a placeholder for that functionality
-    console.log("Found reference tag, would fetch:", refTag[1]);
-    return null;
-  }
-  
   return null;
+}
+
+/**
+ * Determine reading status from event kind
+ */
+function getReadingStatusFromEventKind(eventKind: number): 'tbr' | 'reading' | 'finished' {
+  if (eventKind === NOSTR_KINDS.BOOK_TBR) return 'tbr';
+  if (eventKind === NOSTR_KINDS.BOOK_READING) return 'reading';
+  if (eventKind === NOSTR_KINDS.BOOK_READ) return 'finished';
+  
+  // For backward compatibility, check old event kinds with d tag
+  return 'tbr';
 }
 
 /**
@@ -33,26 +35,19 @@ function extractISBNFromTags(event: Event): string | null {
  */
 function eventToBook(event: Event): Book | null {
   try {
-    // Find title and author tags
-    const titleTag = event.tags.find(tag => tag[0] === 'title');
-    const authorTag = event.tags.find(tag => tag[0] === 'author');
-    
-    // Extract ISBN from tags or references
+    // Extract ISBN from tags
     const isbn = extractISBNFromTags(event);
     
-    if (!isbn || !titleTag || !authorTag) {
-      console.warn('Missing required book tags in event:', event);
+    if (!isbn) {
+      console.warn('Missing ISBN tag in event:', event);
       return null;
     }
-    
-    const title = titleTag[1] || '';
-    const author = authorTag[1] || '';
     
     // Default book with required fields
     const book: Book = {
       id: event.id,
-      title,
-      author,
+      title: "", // Will be filled in later
+      author: "", // Will be filled in later
       isbn,
       coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
       description: "",
@@ -63,7 +58,7 @@ function eventToBook(event: Event): Book | null {
     
     // Add event creation date as reading status date
     const readingStatus = {
-      status: getReadingStatusFromEvent(event),
+      status: getReadingStatusFromEventKind(event.kind),
       dateAdded: event.created_at * 1000,
     };
     
@@ -72,54 +67,6 @@ function eventToBook(event: Event): Book | null {
     console.error('Error parsing book from event:', error);
     return null;
   }
-}
-
-/**
- * Find or create book metadata from NIP-73 events
- */
-async function findBookMetadata(isbn: string): Promise<Event | null> {
-  if (!isbn) {
-    console.error("Cannot find book metadata: ISBN is missing");
-    return null;
-  }
-
-  const relays = getUserRelays();
-  const pool = new SimplePool();
-  
-  try {
-    console.log("Searching for book metadata with ISBN:", isbn);
-    
-    // Query for existing book metadata
-    const filter: Filter = {
-      kinds: [NOSTR_KINDS.BOOK_METADATA],
-      "#i": [`isbn:${isbn}`],
-      limit: 5
-    };
-    
-    const events = await pool.querySync(relays, filter);
-    console.log(`Found ${events.length} metadata events for ISBN:${isbn}`);
-    
-    // Return first found event or null
-    return events.length > 0 ? events[0] : null;
-  } catch (error) {
-    console.error('Error finding book metadata:', error);
-    return null;
-  } finally {
-    pool.close(relays);
-  }
-}
-
-/**
- * Determine reading status from event tags
- */
-function getReadingStatusFromEvent(event: Event): 'tbr' | 'reading' | 'finished' {
-  const dTag = event.tags.find(tag => tag[0] === 'd');
-  if (!dTag || !dTag[1]) return 'tbr';
-  
-  const status = dTag[1];
-  if (status === 'reading') return 'reading';
-  if (status === 'read' || status === 'finished') return 'finished';
-  return 'tbr';
 }
 
 /**
@@ -134,22 +81,25 @@ export async function fetchUserBooks(pubkey: string): Promise<{
   const pool = new SimplePool();
   
   try {
-    // Create a single Filter object instead of an array
+    // Create a filter for all book event kinds
     const filter: Filter = {
-      kinds: [NOSTR_KINDS.GENERIC_LIST],
-      authors: [pubkey],
-      "#t": ["books"]
+      kinds: [
+        NOSTR_KINDS.BOOK_TBR,
+        NOSTR_KINDS.BOOK_READING,
+        NOSTR_KINDS.BOOK_READ
+      ],
+      authors: [pubkey]
     };
     
-    // Pass a single Filter object to querySync
     const events = await pool.querySync(relays, filter);
+    console.log(`Found ${events.length} book events`);
     
     // Group books by reading status
     const tbrBooks: Book[] = [];
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Extract book details and references from events
+    // Extract book details from events
     const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
     const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0);
     
@@ -240,34 +190,10 @@ export async function fetchBooksByISBN(isbns: string[]): Promise<Book[]> {
 }
 
 /**
- * Check if book metadata exists and create it if not
+ * These functions are no longer needed with the simplified approach
+ * but kept for backward compatibility
  */
 export async function ensureBookMetadata(book: Book): Promise<string | null> {
-  if (!book.isbn) {
-    console.error("Cannot ensure book metadata: ISBN is missing");
-    return null;
-  }
-
-  console.log("Ensuring metadata for book:", book.title, "with ISBN:", book.isbn);
-  
-  // First check if metadata already exists
-  const metadata = await findBookMetadata(book.isbn);
-  
-  if (metadata) {
-    console.log("Found existing book metadata with ID:", metadata.id);
-    return metadata.id;
-  }
-  
-  console.log("No existing metadata found, creating new metadata event");
-  // If no metadata exists, publish it
-  const { publishBookMetadata } = await import('./books');
-  const metadataId = await publishBookMetadata(book);
-  
-  if (metadataId) {
-    console.log("Created new book metadata with ID:", metadataId);
-  } else {
-    console.error("Failed to create book metadata");
-  }
-  
-  return metadataId;
+  console.log("Book metadata is no longer used in the simplified approach");
+  return null;
 }
