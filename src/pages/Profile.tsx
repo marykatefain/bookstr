@@ -164,6 +164,15 @@ const Profile = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
+                  <BookMarked className="h-8 w-8 text-bookverse-accent mb-2" />
+                  <div className="text-2xl font-bold">{books.tbr.length}</div>
+                  <p className="text-muted-foreground">To Be Read</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center">
                   <BookOpen className="h-8 w-8 text-bookverse-accent mb-2" />
                   <div className="text-2xl font-bold">{books.reading.length}</div>
                   <p className="text-muted-foreground">Currently Reading</p>
@@ -176,15 +185,6 @@ const Profile = () => {
                   <Book className="h-8 w-8 text-bookverse-accent mb-2" />
                   <div className="text-2xl font-bold">{books.read.length}</div>
                   <p className="text-muted-foreground">Books Read</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center">
-                  <BookMarked className="h-8 w-8 text-bookverse-accent mb-2" />
-                  <div className="text-2xl font-bold">{books.tbr.length}</div>
-                  <p className="text-muted-foreground">To Be Read</p>
                 </div>
               </CardContent>
             </Card>
