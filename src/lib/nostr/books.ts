@@ -17,11 +17,9 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
   const event = {
     kind: NOSTR_KINDS.BOOK_TBR,
     tags: [
-      ["i", `isbn:${book.isbn}`],
-      ["title", book.title],
-      ["author", book.author]
+      ["i", `isbn:${book.isbn}`]
     ],
-    content: `Added "${book.title}" by ${book.author} to my TBR list`
+    content: ""
   };
   
   console.log("Publishing TBR event with tags:", event.tags);
@@ -52,11 +50,9 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
   const event = {
     kind: NOSTR_KINDS.BOOK_READING,
     tags: [
-      ["i", `isbn:${book.isbn}`],
-      ["title", book.title],
-      ["author", book.author]
+      ["i", `isbn:${book.isbn}`]
     ],
-    content: `Started reading "${book.title}" by ${book.author}`
+    content: ""
   };
   
   console.log("Publishing reading event with tags:", event.tags);
@@ -85,20 +81,13 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
   }
   
   const tags = [
-    ["i", `isbn:${book.isbn}`],
-    ["title", book.title],
-    ["author", book.author]
+    ["i", `isbn:${book.isbn}`]
   ];
-  
-  // Add rating if provided
-  if (rating !== undefined && rating >= 1 && rating <= 5) {
-    tags.push(["rating", rating.toString()]);
-  }
   
   const event = {
     kind: NOSTR_KINDS.BOOK_READ,
     tags,
-    content: `Finished reading "${book.title}" by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
+    content: ""
   };
   
   console.log("Publishing read event with tags:", event.tags);
@@ -131,11 +120,9 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
     kind: NOSTR_KINDS.BOOK_RATING,
     tags: [
       ["i", `isbn:${book.isbn}`],
-      ["rating", rating.toString()],
-      ["title", book.title],
-      ["author", book.author]
+      ["rating", rating.toString()]
     ],
-    content: `${rating} Stars${rating < 3 ? " - Could be better" : rating < 5 ? " - Pretty good" : " - Amazing!"}`
+    content: ""
   };
   
   return publishToNostr(event);
@@ -151,9 +138,7 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   }
   
   const tags = [
-    ["i", `isbn:${book.isbn}`],
-    ["title", book.title],
-    ["author", book.author]
+    ["i", `isbn:${book.isbn}`]
   ];
   
   // Add rating tag if provided
