@@ -10,19 +10,27 @@ export function useTrendingBooks(limit: number = 4) {
 
   const { 
     data: books = [], 
-    isLoading: loading, 
+    isLoading, 
     refetch, 
     error,
     isFetching
   } = useQuery({
     queryKey: ['trendingBooks', limit],
-    queryFn: () => {
-      console.log(`Fetching trending books, limit: ${limit}`);
-      return getTrendingBooks(limit);
+    queryFn: async () => {
+      console.log(`🔍 Fetching trending books, limit: ${limit}`);
+      try {
+        const result = await getTrendingBooks(limit);
+        console.log(`✅ Received ${result.length} trending books`);
+        return result;
+      } catch (err) {
+        console.error("❌ Error fetching trending books:", err);
+        throw err;
+      }
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
-    retry: 2,
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 30000),
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -32,10 +40,10 @@ export function useTrendingBooks(limit: number = 4) {
   // Handle errors outside the query config
   useEffect(() => {
     if (error) {
-      console.error("Error loading featured books:", error);
+      console.error("Error loading trending books:", error);
       toast({
         title: "Error loading books",
-        description: "There was a problem fetching featured books.",
+        description: "There was a problem fetching trending books.",
         variant: "destructive"
       });
     }
@@ -55,7 +63,7 @@ export function useTrendingBooks(limit: number = 4) {
 
   return { 
     books, 
-    loading: loading || (isFetching && books.length === 0),
+    loading: isLoading || (isFetching && books.length === 0),
     refreshBooks 
   };
 }

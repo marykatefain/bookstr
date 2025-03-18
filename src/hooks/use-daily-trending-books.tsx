@@ -10,19 +10,27 @@ export function useDailyTrendingBooks(limit: number = 4) {
 
   const { 
     data: books = [], 
-    isLoading: loading, 
+    isLoading, 
     refetch, 
     error,
     isFetching
   } = useQuery({
     queryKey: ['dailyTrendingBooks', limit],
-    queryFn: () => {
-      console.log(`Fetching daily trending books, limit: ${limit}`);
-      return getDailyTrendingBooks(limit);
+    queryFn: async () => {
+      console.log(`🔍 Fetching daily trending books, limit: ${limit}`);
+      try {
+        const result = await getDailyTrendingBooks(limit);
+        console.log(`✅ Received ${result.length} daily trending books`);
+        return result;
+      } catch (err) {
+        console.error("❌ Error fetching daily trending books:", err);
+        throw err;
+      }
     },
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes (reduced from 15 to refresh more often)
     gcTime: 60 * 60 * 1000, // 1 hour
-    retry: 2,
+    retry: 3,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 30000),
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -55,7 +63,7 @@ export function useDailyTrendingBooks(limit: number = 4) {
 
   return { 
     books, 
-    loading: loading || (isFetching && books.length === 0),
+    loading: isLoading || (isFetching && books.length === 0),
     refreshBooks 
   };
 }

@@ -10,19 +10,26 @@ export function useRecentBooks(limit: number = 4) {
 
   const { 
     data: books = [], 
-    isLoading: loading, 
+    isLoading, 
     refetch, 
     error,
     isFetching
   } = useQuery({
     queryKey: ['recentBooks', limit],
-    queryFn: () => {
-      console.log(`Fetching recent books, limit: ${limit}`);
-      return getRecentBooks(limit);
+    queryFn: async () => {
+      console.log(`🔍 Fetching recent books, limit: ${limit}`);
+      try {
+        const result = await getRecentBooks(limit);
+        console.log(`✅ Received ${result.length} recent books`);
+        return result;
+      } catch (err) {
+        console.error("❌ Error fetching recent books:", err);
+        throw err;
+      }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes (reduced from 10 to refresh more often)
     gcTime: 60 * 60 * 1000, // 1 hour
-    retry: 2,
+    retry: 3,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: true,
@@ -55,7 +62,7 @@ export function useRecentBooks(limit: number = 4) {
 
   return { 
     books, 
-    loading: loading || (isFetching && books.length === 0),
+    loading: isLoading || (isFetching && books.length === 0),
     refreshBooks 
   };
 }

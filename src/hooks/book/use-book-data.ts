@@ -11,29 +11,35 @@ export const useBookData = (isbn: string | undefined) => {
 
   const { 
     data: book = null, 
-    isLoading: loading,
+    isLoading,
     error
   } = useQuery({
     queryKey: ['book', isbn],
     queryFn: async () => {
       if (!isbn) return null;
-      console.log(`Fetching book details for ISBN: ${isbn}`);
-      return await fetchBookByISBN(isbn);
+      console.log(`🔍 Fetching book details for ISBN: ${isbn}`);
+      try {
+        const result = await fetchBookByISBN(isbn);
+        console.log(`✅ Book data loaded successfully for ISBN: ${isbn}`);
+        return result;
+      } catch (err) {
+        console.error(`❌ Error fetching book data for ISBN: ${isbn}:`, err);
+        throw err;
+      }
     },
     enabled: !!isbn,
     staleTime: 1000 * 60 * 60, // 1 hour
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
-    retry: 2,
+    retry: 3,
     retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000)
   });
 
   // Set read status when book data is available
   useEffect(() => {
     if (book) {
-      console.log(`Book data loaded successfully for ISBN: ${isbn}`, book);
       setIsRead(book.readingStatus?.status === 'finished');
     }
-  }, [book, isbn]);
+  }, [book]);
 
   // Handle errors
   useEffect(() => {
@@ -49,7 +55,7 @@ export const useBookData = (isbn: string | undefined) => {
 
   return {
     book,
-    loading,
+    loading: isLoading,
     isRead,
     setIsRead
   };
