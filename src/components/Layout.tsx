@@ -4,7 +4,6 @@ import {
   Book, 
   Home, 
   Library, 
-  Search, 
   BarChart2, 
   User, 
   LogOut, 
@@ -56,7 +55,6 @@ export const Layout = ({ children }: LayoutProps) => {
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
     { path: "/books", label: "Discover", icon: Book },
-    { path: "/search", label: "Search", icon: Search },
     { path: "/library", label: "Library", icon: Library },
     { path: "/stats", label: "Stats", icon: BarChart2 },
     { path: "/profile", label: "Profile", icon: User, requiresAuth: true },
