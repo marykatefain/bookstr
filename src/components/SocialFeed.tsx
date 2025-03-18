@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Book, MessageCircle, Heart, Star, UserPlus, Search } from "lucide-react";
@@ -10,12 +9,15 @@ import { fetchSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
 import { SocialActivity } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
+import { mockFollowersActivities, mockGlobalActivities } from "@/lib/nostr/mockData";
 
 interface SocialFeedProps {
   activities?: SocialActivity[];
+  type?: "followers" | "global";
+  useMockData?: boolean;
 }
 
-export function SocialFeed({ activities }: SocialFeedProps) {
+export function SocialFeed({ activities, type = "followers", useMockData = true }: SocialFeedProps) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -30,21 +32,24 @@ export function SocialFeed({ activities }: SocialFeedProps) {
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
-        const feed = await fetchSocialFeed(10);
-        setLocalActivities(feed);
+        if (useMockData) {
+          setTimeout(() => {
+            setLocalActivities(type === "followers" ? mockFollowersActivities : mockGlobalActivities);
+            setLoading(false);
+          }, 800);
+        } else {
+          const feed = await fetchSocialFeed(10);
+          setLocalActivities(feed);
+          setLoading(false);
+        }
       } catch (error) {
         console.error("Error loading social feed:", error);
-      } finally {
         setLoading(false);
       }
     };
 
-    if (isLoggedIn()) {
-      loadSocialFeed();
-    } else {
-      setLoading(false);
-    }
-  }, [activities]);
+    loadSocialFeed();
+  }, [activities, type, useMockData]);
 
   const handleReact = async (activityId: string) => {
     if (!isLoggedIn()) {
@@ -208,7 +213,7 @@ export function SocialFeed({ activities }: SocialFeedProps) {
     );
   }
 
-  if (!isLoggedIn()) {
+  if (!isLoggedIn() && type === "followers") {
     return (
       <Card className="text-center p-6">
         <p className="text-muted-foreground mb-4">
@@ -222,14 +227,18 @@ export function SocialFeed({ activities }: SocialFeedProps) {
     return (
       <Card className="text-center p-6">
         <p className="text-muted-foreground mb-4">
-          No activity yet from people you follow
+          {type === "followers" 
+            ? "No activity yet from people you follow" 
+            : "No global activity available at the moment"}
         </p>
-        <Link to="/users">
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Find Friends
-          </Button>
-        </Link>
+        {type === "followers" && (
+          <Link to="/social">
+            <Button onClick={() => document.querySelector('[data-state="find-friends"]')?.click()}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Find Friends
+            </Button>
+          </Link>
+        )}
       </Card>
     );
   }
@@ -266,7 +275,6 @@ export function SocialFeed({ activities }: SocialFeedProps) {
                     alt={activity.book.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      // Fallback for broken images
                       (e.target as HTMLImageElement).src = '/placeholder.svg';
                     }}
                   />
