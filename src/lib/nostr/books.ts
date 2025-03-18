@@ -28,30 +28,24 @@ export async function publishBookMetadata(book: Book): Promise<string | null> {
  * Add a book to the "TBR" list (formerly "Want to Read")
  */
 export async function addBookToTBR(book: Book): Promise<string | null> {
-  // First, ensure book metadata is published
-  const metadataId = await publishBookMetadata(book);
+  console.log("Adding book to TBR:", book.title);
   
-  if (!metadataId) {
-    console.error("Failed to publish book metadata");
-    return null;
-  }
-  
-  // Create address for the book metadata event (NIP-19)
-  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
-  
+  // Create a direct Kind 30000 list event
+  const now = new Date();
   const event = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags: [
       ["d", "tbr"],
       ["t", "books"],
-      ["r", bookReference], // Reference to the book metadata event
-      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
       ["title", book.title],
-      ["author", book.author]
+      ["author", book.author],
+      ["i", `isbn:${book.isbn}`],
+      ["added_at", now.toISOString()]
     ],
-    content: `Added ${book.title} by ${book.author} to my TBR list`
+    content: `Added "${book.title}" by ${book.author} to my TBR list`
   };
   
+  console.log("Publishing TBR event:", event);
   return publishToNostr(event);
 }
 
@@ -59,16 +53,8 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
  * Mark a book as currently reading
  */
 export async function markBookAsReading(book: Book): Promise<string | null> {
-  // First, ensure book metadata is published
-  const metadataId = await publishBookMetadata(book);
+  console.log("Marking book as reading:", book.title);
   
-  if (!metadataId) {
-    console.error("Failed to publish book metadata");
-    return null;
-  }
-  
-  // Create address for the book metadata event
-  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
   const now = new Date().toISOString();
   
   const event = {
@@ -76,15 +62,15 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     tags: [
       ["d", "reading"],
       ["t", "books"],
-      ["r", bookReference], // Reference to the book metadata event
-      ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+      ["i", `isbn:${book.isbn}`],
       ["title", book.title],
       ["author", book.author],
       ["started_at", now]
     ],
-    content: `Started reading ${book.title} by ${book.author}`
+    content: `Started reading "${book.title}" by ${book.author}`
   };
   
+  console.log("Publishing reading event:", event);
   return publishToNostr(event);
 }
 
@@ -92,23 +78,14 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
  * Mark a book as read
  */
 export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
-  // First, ensure book metadata is published
-  const metadataId = await publishBookMetadata(book);
+  console.log("Marking book as read:", book.title);
   
-  if (!metadataId) {
-    console.error("Failed to publish book metadata");
-    return null;
-  }
-  
-  // Create address for the book metadata event
-  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
   const now = new Date().toISOString();
   
   const tags = [
-    ["d", "read-books"],
+    ["d", "read"],
     ["t", "books"],
-    ["r", bookReference], // Reference to the book metadata event
-    ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
+    ["i", `isbn:${book.isbn}`],
     ["title", book.title],
     ["author", book.author],
     ["finished_at", now]
@@ -122,9 +99,10 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
   const event = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags,
-    content: `Finished reading ${book.title} by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
+    content: `Finished reading "${book.title}" by ${book.author}${rating ? ` - Rating: ${rating}/5` : ''}`
   };
   
+  console.log("Publishing read event:", event);
   return publishToNostr(event);
 }
 

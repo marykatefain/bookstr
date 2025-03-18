@@ -1,147 +1,178 @@
-
-// Types
-export interface NostrProfile {
-  npub?: string;
+export interface NostrEventData {
+  id?: string;
   pubkey?: string;
+  created_at?: number;
+  kind?: number;
+  tags?: string[][];
+  content?: string;
+  sig?: string;
+}
+
+export interface NostrProfile {
+  npub: string;
+  pubkey: string;
   name?: string;
-  displayName?: string;
-  nip05?: string;
+  display_name?: string;
   picture?: string;
-  banner?: string;
   about?: string;
   website?: string;
-  lud06?: string;
   lud16?: string;
-  relays?: string[];
-}
-
-// Rename our local interface to avoid conflict with imported type
-export interface NostrEventData {
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  tags: string[][];
-  content: string;
-  sig: string;
-}
-
-export interface ReadingStatus {
-  status: 'tbr' | 'reading' | 'read';
-  dateAdded: number;
-  dateStarted?: number;
-  dateFinished?: number;
-  rating?: number;
+  banner?: string;
+  relays: string[];
 }
 
 export interface Book {
   id: string;
   title: string;
   author: string;
-  coverUrl: string;
-  description: string;
   isbn: string;
-  pubDate: string;
-  pageCount: number;
-  categories: string[];
-  readingStatus?: ReadingStatus;
+  coverUrl: string;
+  description?: string;
+  pubDate?: string;
+  pageCount?: number;
+  categories?: string[];
+  readingStatus?: {
+    status: 'tbr' | 'reading' | 'read';
+    dateAdded: number;
+  };
 }
-
-// Nostr event kinds
-export const NOSTR_KINDS = {
-  METADATA: 0,
-  TEXT_NOTE: 1,
-  RECOMMENDED_SERVER: 2,
-  CONTACTS: 3,
-  ENCRYPTED_DIRECT_MESSAGE: 4,
-  DELETION: 5,
-  REPOST: 6,
-  REACTION: 7,
-  BADGE_AWARD: 8,
-  BOOK_METADATA: 73, // NIP-73 for book metadata
-  GENERIC_LIST: 30000,
-  BOOK_READ: 30001, // Custom kind for books read
-  BOOK_TBR: 30002,  // Custom kind for to-be-read books
-  LONG_FORM: 30023,
-  BOOK_RATING: 31337, // As per proposed NIP for ratings
-  REVIEW: 1111 // NIP-22 Reviews
-};
 
 export const mockBooks: Book[] = [
   {
     id: "1",
-    title: "The Midnight Library",
-    author: "Matt Haig",
-    coverUrl: "https://m.media-amazon.com/images/I/81tCtHFtOJL._AC_UF1000,1000_QL80_.jpg",
-    description: "Between life and death there is a library, and within that library, the shelves go on forever. Every book provides a chance to try another life you could have lived.",
-    isbn: "9780525559474",
-    pubDate: "2020-08-13",
-    pageCount: 304,
-    categories: ["Fiction", "Fantasy", "Contemporary"]
+    title: "The Lord of the Rings",
+    author: "J.R.R. Tolkien",
+    isbn: "978-0618260264",
+    coverUrl: "https://m.media-amazon.com/images/I/71jLBXtWJWL._AC_UF1000,1000_QL80_.jpg",
+    description: "The Lord of the Rings is an epic high-fantasy novel written by English author and scholar J. R. R. Tolkien.",
+    pubDate: "1954",
+    pageCount: 1178,
+    categories: ["Fantasy", "Fiction"]
   },
   {
     id: "2",
-    title: "Project Hail Mary",
-    author: "Andy Weir",
-    coverUrl: "https://m.media-amazon.com/images/I/91uFdkCJmAL._AC_UF1000,1000_QL80_.jpg",
-    description: "Ryland Grace is the sole survivor on a desperate, last-chance mission—and if he fails, humanity and the earth itself will perish.",
-    isbn: "9780593135204",
-    pubDate: "2021-05-04",
-    pageCount: 496,
-    categories: ["Science Fiction", "Space", "Adventure"]
+    title: "Pride and Prejudice",
+    author: "Jane Austen",
+    isbn: "978-0141439518",
+    coverUrl: "https://images-na.ssl-images-amazon.com/images/I/71Q1tPupnVS._AC_UL600_SR600,600_.jpg",
+    description: "Pride and Prejudice is an 1813 novel of manners by Jane Austen.",
+    pubDate: "1813",
+    pageCount: 279,
+    categories: ["Fiction", "Romance"]
   },
   {
     id: "3",
-    title: "Circe",
-    author: "Madeline Miller",
-    coverUrl: "https://m.media-amazon.com/images/I/71Xn3zQqlbL._AC_UF1000,1000_QL80_.jpg",
-    description: "In the house of Helios, god of the sun and mightiest of the Titans, a daughter is born. But Circe is a strange child—not powerful, like her father, nor viciously alluring like her mother.",
-    isbn: "9780316556347",
-    pubDate: "2018-04-10",
-    pageCount: 400,
-    categories: ["Fantasy", "Mythology", "Historical Fiction"]
+    title: "1984",
+    author: "George Orwell",
+    isbn: "978-0451524935",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1686402559l/61439013.jpg",
+    description: "Nineteen Eighty-Four is a dystopian social science fiction novel and cautionary tale written by English author George Orwell.",
+    pubDate: "1949",
+    pageCount: 328,
+    categories: ["Science Fiction", "Dystopian"]
   },
   {
     id: "4",
-    title: "The Seven Husbands of Evelyn Hugo",
-    author: "Taylor Jenkins Reid",
-    coverUrl: "https://m.media-amazon.com/images/I/71uH11mYgHL._AC_UF1000,1000_QL80_.jpg",
-    description: "Aging and reclusive Hollywood movie icon Evelyn Hugo is finally ready to tell the truth about her glamorous and scandalous life.",
-    isbn: "9781501139239",
-    pubDate: "2017-06-13",
-    pageCount: 400,
-    categories: ["Fiction", "Historical Fiction", "LGBT"]
+    title: "The Hitchhiker's Guide to the Galaxy",
+    author: "Douglas Adams",
+    isbn: "978-0345391803",
+    coverUrl: "https://images-na.ssl-images-amazon.com/images/I/41tFB3jTGL._SX311_BO1,204,203,200_.jpg",
+    description: "The Hitchhiker's Guide to the Galaxy is a comedy science fiction series created by Douglas Adams.",
+    pubDate: "1979",
+    pageCount: 224,
+    categories: ["Science Fiction", "Comedy"]
   },
   {
     id: "5",
-    title: "A Court of Thorns and Roses",
-    author: "Sarah J. Maas",
-    coverUrl: "https://m.media-amazon.com/images/I/61rJlsXaYDL._AC_UF1000,1000_QL80_.jpg",
-    description: "When nineteen-year-old huntress Feyre kills a wolf in the woods, a terrifying creature arrives to demand retribution.",
-    isbn: "9781635575569",
-    pubDate: "2015-05-05",
-    pageCount: 419,
-    categories: ["Fantasy", "Romance", "Young Adult"]
+    title: "To Kill a Mockingbird",
+    author: "Harper Lee",
+    isbn: "978-0446310789",
+    coverUrl: "https://m.media-amazon.com/images/I/51wB43ZyKjL._AC_UF1000,1000_QL80_.jpg",
+    description: "To Kill a Mockingbird is a novel by Harper Lee published in 1960.",
+    pubDate: "1960",
+    pageCount: 281,
+    categories: ["Fiction", "Classics"]
   },
   {
     id: "6",
-    title: "The Invisible Life of Addie LaRue",
-    author: "V.E. Schwab",
-    coverUrl: "https://m.media-amazon.com/images/I/91vFYh5aBVL._AC_UF1000,1000_QL80_.jpg",
-    description: "A life no one will remember. A story you will never forget. France, 1714: In a moment of desperation, a young woman makes a Faustian bargain to live forever―and is cursed to be forgotten by everyone she meets.",
-    isbn: "9780765387561",
-    pubDate: "2020-10-06",
-    pageCount: 448,
-    categories: ["Fantasy", "Historical Fiction", "Romance"]
+    title: "The Great Gatsby",
+    author: "F. Scott Fitzgerald",
+    isbn: "978-0743273565",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1490528560l/4671._SY475_.jpg",
+    description: "The Great Gatsby is a 1925 novel by American writer F. Scott Fitzgerald.",
+    pubDate: "1925",
+    pageCount: 180,
+    categories: ["Fiction", "Classics"]
+  },
+  {
+    id: "7",
+    title: "One Hundred Years of Solitude",
+    author: "Gabriel García Márquez",
+    isbn: "978-0061120035",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1327755874l/3225.jpg",
+    description: "One Hundred Years of Solitude is a 1967 novel by Gabriel García Márquez.",
+    pubDate: "1967",
+    pageCount: 417,
+    categories: ["Fiction", "Magical Realism"]
+  },
+  {
+    id: "8",
+    title: "Moby Dick",
+    author: "Herman Melville",
+    isbn: "978-0143039549",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1327754750l/764308.jpg",
+    description: "Moby-Dick is an 1851 novel by American writer Herman Melville.",
+    pubDate: "1851",
+    pageCount: 635,
+    categories: ["Fiction", "Adventure"]
+  },
+  {
+    id: "9",
+    title: "War and Peace",
+    author: "Leo Tolstoy",
+    isbn: "978-0140444179",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1344920234l/656.jpg",
+    description: "War and Peace is a novel by the Russian author Leo Tolstoy, published serially, then in its entirety in 1869.",
+    pubDate: "1869",
+    pageCount: 1225,
+    categories: ["Fiction", "Historical"]
+  },
+  {
+    id: "10",
+    title: "The Odyssey",
+    author: "Homer",
+    isbn: "978-0140268867",
+    coverUrl: "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1389743475l/1381.jpg",
+    description: "The Odyssey is one of two major ancient Greek epic poems attributed to Homer.",
+    pubDate: "8th century BC",
+    pageCount: 384,
+    categories: ["Classics", "Poetry"]
   }
 ];
 
-declare global {
-  interface Window {
-    nostr?: {
-      getPublicKey: () => Promise<string>;
-      signEvent: (event: Partial<NostrEventData>) => Promise<any>;
-      getRelays: () => Promise<Record<string, { read: boolean; write: boolean }>>;
-    };
-  }
-}
+export const DEFAULT_PROFILE: NostrProfile = {
+  npub: "npub1Default",
+  pubkey: "Default",
+  name: "BookVerse User",
+  display_name: "Bookworm",
+  picture: "https://i.pravatar.cc/300",
+  about: "I love books!",
+  relays: []
+};
+
+export const NOSTR_KINDS = {
+  SET_METADATA: 0,
+  TEXT_NOTE: 1,
+  RECOMMEND_RELAY: 2,
+  CONTACTS: 3,
+  DIRECT_MESSAGE: 4,
+  DELETION: 5,
+  REPOST: 6,
+  REACTION: 7,
+  BADGE: 8,
+  LONG_FORM: 30023,
+  BOOK_METADATA: 30073,
+  GENERIC_LIST: 30000,
+  BOOK_RATING: 7000,
+  REVIEW: 1985
+};

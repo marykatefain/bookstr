@@ -29,6 +29,12 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     }
     
     const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log("Current user:", currentUser);
+    console.log("Preparing event:", event);
 
     // Prepare the event
     const unsignedEvent: UnsignedEvent = {
@@ -36,62 +42,75 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       created_at: Math.floor(Date.now() / 1000),
       tags: event.tags || [],
       content: event.content || "",
-      pubkey: currentUser?.pubkey || ""
+      pubkey: currentUser.pubkey || ""
     };
 
+    console.log("Unsigned event:", unsignedEvent);
+
     // Sign the event with the extension
-    const signedEvent = await window.nostr.signEvent(unsignedEvent);
-    
-    if (!signedEvent) {
-      throw new Error("Failed to sign event");
-    }
-
-    // Validate the event
-    const eventHash = getEventHash(signedEvent);
-    if (eventHash !== signedEvent.id) {
-      throw new Error("Event validation failed: incorrect hash");
-    }
-
-    const isValid = validateEvent(signedEvent);
-    
-    if (!isValid) {
-      throw new Error("Event validation failed: invalid signature");
-    }
-
-    // Create a pool for publishing to multiple relays
-    const pool = new SimplePool();
-    const relayUrls = getUserRelays();
-    
-    // Publish to relays
     try {
-      // Use Promise.allSettled instead of Promise.any for better compatibility
-      const publishPromises = relayUrls.map(url => {
-        return pool.publish([url], signedEvent as Event);
-      });
+      const signedEvent = await window.nostr.signEvent(unsignedEvent);
       
-      const results = await Promise.allSettled(publishPromises);
+      if (!signedEvent) {
+        throw new Error("Failed to sign event");
+      }
+
+      console.log("Signed event:", signedEvent);
       
-      // Check if at least one relay accepted the event
-      const success = results.some(result => 
-        result.status === 'fulfilled'
-      );
+      // Validate the event
+      const eventHash = getEventHash(signedEvent);
+      if (eventHash !== signedEvent.id) {
+        throw new Error("Event validation failed: incorrect hash");
+      }
+
+      const isValid = validateEvent(signedEvent);
       
-      if (success) {
-        toast({
-          title: "Published successfully",
-          description: "Your action has been published to Nostr"
+      if (!isValid) {
+        throw new Error("Event validation failed: invalid signature");
+      }
+
+      // Create a pool for publishing to multiple relays
+      const pool = new SimplePool();
+      const relayUrls = getUserRelays();
+      
+      console.log("Publishing to relays:", relayUrls);
+      
+      // Publish to relays
+      try {
+        // Use Promise.allSettled instead of Promise.any for better compatibility
+        const publishPromises = relayUrls.map(url => {
+          return pool.publish([url], signedEvent as Event);
         });
         
-        return signedEvent.id;
-      } else {
-        throw new Error("Failed to publish to any relay");
+        const results = await Promise.allSettled(publishPromises);
+        
+        console.log("Publish results:", results);
+        
+        // Check if at least one relay accepted the event
+        const success = results.some(result => 
+          result.status === 'fulfilled'
+        );
+        
+        if (success) {
+          toast({
+            title: "Published successfully",
+            description: "Your action has been published to Nostr"
+          });
+          
+          return signedEvent.id;
+        } else {
+          throw new Error("Failed to publish to any relay");
+        }
+      } catch (error) {
+        console.error("Failed to publish to relays:", error);
+        throw error;
+      } finally {
+        // Clean up connections
+        pool.close(relayUrls);
       }
-    } catch (error) {
-      console.error("Failed to publish to relays:", error);
-      throw error;
-    } finally {
-      // Clean up connections
-      pool.close(relayUrls);
+    } catch (signError) {
+      console.error("Error signing event:", signError);
+      throw signError;
     }
   } catch (error) {
     console.error("Error publishing to Nostr:", error);
