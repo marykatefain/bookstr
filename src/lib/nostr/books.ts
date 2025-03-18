@@ -3,14 +3,48 @@ import { Book, NOSTR_KINDS } from "./types";
 import { publishToNostr } from "./publish";
 
 /**
- * Add a book to the "Want to Read" list
+ * Publish book metadata according to NIP-73
+ */
+export async function publishBookMetadata(book: Book): Promise<string | null> {
+  const event = {
+    kind: NOSTR_KINDS.BOOK_METADATA,
+    tags: [
+      ["d", `isbn:${book.isbn}`],
+      ["t", "book"],
+      ["name", book.title],
+      ["author", book.author],
+      // Include other metadata tags if available
+      ...(book.pageCount ? [["pages", book.pageCount.toString()]] : []),
+      ...(book.pubDate ? [["published", book.pubDate]] : []),
+      ...(book.categories?.length ? book.categories.map(cat => ["category", cat]) : [])
+    ],
+    content: book.description || `Metadata for ${book.title} by ${book.author}`
+  };
+  
+  return publishToNostr(event);
+}
+
+/**
+ * Add a book to the "TBR" list (formerly "Want to Read")
  */
 export async function addBookToTBR(book: Book): Promise<string | null> {
+  // First, ensure book metadata is published
+  const metadataId = await publishBookMetadata(book);
+  
+  if (!metadataId) {
+    console.error("Failed to publish book metadata");
+    return null;
+  }
+  
+  // Create address for the book metadata event (NIP-19)
+  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
+  
   const event = {
     kind: NOSTR_KINDS.GENERIC_LIST,
     tags: [
       ["d", "tbr"],
       ["t", "books"],
+      ["r", bookReference], // Reference to the book metadata event
       ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
       ["title", book.title],
       ["author", book.author]
@@ -25,6 +59,16 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
  * Mark a book as currently reading
  */
 export async function markBookAsReading(book: Book): Promise<string | null> {
+  // First, ensure book metadata is published
+  const metadataId = await publishBookMetadata(book);
+  
+  if (!metadataId) {
+    console.error("Failed to publish book metadata");
+    return null;
+  }
+  
+  // Create address for the book metadata event
+  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
   const now = new Date().toISOString();
   
   const event = {
@@ -32,6 +76,7 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     tags: [
       ["d", "reading"],
       ["t", "books"],
+      ["r", bookReference], // Reference to the book metadata event
       ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
       ["title", book.title],
       ["author", book.author],
@@ -47,11 +92,22 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
  * Mark a book as read
  */
 export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
+  // First, ensure book metadata is published
+  const metadataId = await publishBookMetadata(book);
+  
+  if (!metadataId) {
+    console.error("Failed to publish book metadata");
+    return null;
+  }
+  
+  // Create address for the book metadata event
+  const bookReference = `30073:${book.isbn.replace(/-/g, '')}:${metadataId}`;
   const now = new Date().toISOString();
   
   const tags = [
     ["d", "read-books"],
     ["t", "books"],
+    ["r", bookReference], // Reference to the book metadata event
     ["i", `isbn:${book.isbn}`], // NIP-73 compliant ISBN reference
     ["title", book.title],
     ["author", book.author],

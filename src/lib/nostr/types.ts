@@ -58,6 +58,7 @@ export const NOSTR_KINDS = {
   REPOST: 6,
   REACTION: 7,
   BADGE_AWARD: 8,
+  BOOK_METADATA: 73, // NIP-73 for book metadata
   GENERIC_LIST: 30000,
   BOOK_READ: 30001, // Custom kind for books read
   BOOK_TBR: 30002,  // Custom kind for to-be-read books

@@ -1,4 +1,3 @@
-
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
@@ -46,6 +45,33 @@ function eventToBook(event: Event): Book | null {
   } catch (error) {
     console.error('Error parsing book from event:', error);
     return null;
+  }
+}
+
+/**
+ * Find or create book metadata from NIP-73 events
+ */
+async function findBookMetadata(isbn: string): Promise<Event | null> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    // Query for existing book metadata
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.BOOK_METADATA],
+      "#d": [`isbn:${isbn}`],
+      limit: 1
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Return first found event or null
+    return events.length > 0 ? events[0] : null;
+  } catch (error) {
+    console.error('Error finding book metadata:', error);
+    return null;
+  } finally {
+    pool.close(relays);
   }
 }
 
@@ -127,4 +153,20 @@ export async function fetchBooksByISBN(isbns: string[]): Promise<Book[]> {
   return isbns
     .map(isbn => mockBooks.find(book => book.isbn === isbn))
     .filter(book => book !== undefined) as Book[];
+}
+
+/**
+ * Check if book metadata exists and create it if not
+ */
+export async function ensureBookMetadata(book: Book): Promise<string | null> {
+  // First check if metadata already exists
+  const metadata = await findBookMetadata(book.isbn);
+  
+  if (metadata) {
+    return metadata.id;
+  }
+  
+  // If no metadata exists, publish it
+  const { publishBookMetadata } = await import('./books');
+  return publishBookMetadata(book);
 }

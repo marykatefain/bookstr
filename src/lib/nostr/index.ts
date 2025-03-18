@@ -32,11 +32,13 @@ export {
   markBookAsReading,
   markBookAsRead,
   rateBook,
-  reviewBook
+  reviewBook,
+  publishBookMetadata
 } from "./books";
 
 // Export fetch functions
 export {
   fetchUserBooks,
-  fetchBooksByISBN
+  fetchBooksByISBN,
+  ensureBookMetadata
 } from "./fetch";
