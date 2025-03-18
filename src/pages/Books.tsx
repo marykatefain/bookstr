@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,9 +18,12 @@ import {
 import { 
   mockBooks, 
   isLoggedIn, 
-  addBookToTBR, 
-  markBookAsReading, 
-  Book 
+  addBookToTBR,
+  markBookAsReading,
+  markBookAsRead,
+  Book,
+  publishToNostr,
+  NOSTR_KINDS
 } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -48,7 +50,6 @@ const Books = () => {
   useEffect(() => {
     let results = books;
     
-    // Filter by search query
     if (searchQuery) {
       results = results.filter(
         book => 
@@ -57,7 +58,6 @@ const Books = () => {
       );
     }
     
-    // Filter by category
     if (activeCategory !== "All") {
       results = results.filter(
         book => book.categories?.includes(activeCategory)
@@ -67,7 +67,7 @@ const Books = () => {
     setFilteredBooks(results);
   }, [searchQuery, activeCategory, books]);
 
-  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading') => {
+  const addToLibrary = async (bookId: string, status: 'want-to-read' | 'reading' | 'read') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -80,7 +80,6 @@ const Books = () => {
     const book = books.find(b => b.id === bookId);
     if (!book) return;
 
-    // Set pending state for this book
     setPendingActions(prev => ({ ...prev, [bookId]: status }));
 
     try {
@@ -88,13 +87,16 @@ const Books = () => {
       
       if (status === 'want-to-read') {
         result = await addBookToTBR(book);
-      } else {
+      } else if (status === 'reading') {
         result = await markBookAsReading(book);
+      } else if (status === 'read') {
+        result = await markBookAsRead(book);
       }
 
       if (result) {
+        let statusText = status === 'want-to-read' ? 'TBR' : status === 'reading' ? 'currently reading' : 'read';
         toast({
-          title: `Added to your ${status === 'want-to-read' ? 'TBR' : 'currently reading'} list`,
+          title: `Added to your ${statusText} list`,
           description: `${book.title} has been added to your library and published to Nostr`
         });
       }
@@ -106,7 +108,6 @@ const Books = () => {
         variant: "destructive"
       });
     } finally {
-      // Clear pending state
       setPendingActions(prev => {
         const newState = { ...prev };
         delete newState[bookId];
@@ -126,7 +127,6 @@ const Books = () => {
             </p>
           </div>
 
-          {/* Search and filters */}
           <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -159,7 +159,6 @@ const Books = () => {
             </div>
           </div>
 
-          {/* Book grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredBooks.length > 0 ? (
               filteredBooks.map((book) => (
@@ -220,6 +219,20 @@ const Books = () => {
                             <BookOpen className="mr-1 h-4 w-4" />
                           )}
                           Read
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="flex-1"
+                          onClick={() => addToLibrary(book.id, 'read')}
+                          disabled={!!pendingActions[book.id]}
+                        >
+                          {pendingActions[book.id] === 'read' ? (
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Star className="mr-1 h-4 w-4" />
+                          )}
+                          Finished
                         </Button>
                       </div>
                     </div>
