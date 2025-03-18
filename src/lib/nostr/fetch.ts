@@ -1,3 +1,4 @@
+
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS, NostrProfile } from "./types";
 import { getUserRelays } from "./relay";
@@ -5,21 +6,45 @@ import { getCurrentUser } from "./user";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 
 /**
+ * Extract ISBN from a tag or reference
+ */
+function extractISBNFromTags(event: Event): string | null {
+  // First check for direct ISBN tag
+  const isbnTag = event.tags.find(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
+  if (isbnTag && isbnTag[1]) {
+    return isbnTag[1].replace('isbn:', '');
+  }
+  
+  // If no direct ISBN tag, look for a reference to metadata event
+  const refTag = event.tags.find(tag => tag[0] === 'r' && tag[1]?.startsWith('naddr'));
+  if (refTag && refTag[1]) {
+    // For now, we'll need to find the corresponding metadata event
+    // In a real implementation, we would fetch the referenced event and extract the ISBN
+    // This is a placeholder for that functionality
+    console.log("Found reference tag, would fetch:", refTag[1]);
+    return null;
+  }
+  
+  return null;
+}
+
+/**
  * Convert a Nostr event to a Book object
  */
 function eventToBook(event: Event): Book | null {
   try {
-    // Find ISBN, title and author tags
-    const isbnTag = event.tags.find(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
+    // Find title and author tags
     const titleTag = event.tags.find(tag => tag[0] === 'title');
     const authorTag = event.tags.find(tag => tag[0] === 'author');
     
-    if (!isbnTag || !titleTag || !authorTag) {
+    // Extract ISBN from tags or references
+    const isbn = extractISBNFromTags(event);
+    
+    if (!isbn || !titleTag || !authorTag) {
       console.warn('Missing required book tags in event:', event);
       return null;
     }
     
-    const isbn = isbnTag[1]?.replace('isbn:', '') || '';
     const title = titleTag[1] || '';
     const author = authorTag[1] || '';
     
@@ -124,7 +149,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Extract ISBNs from events
+    // Extract book details and references from events
     const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
     const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0);
     
