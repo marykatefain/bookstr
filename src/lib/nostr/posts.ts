@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { Post, Book, NOSTR_KINDS, SocialActivity } from "./types";
 import { publishToNostr } from "./publish";
@@ -33,16 +32,9 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
     // Build tags
     const tags: string[][] = [];
     
-    // Add book tag if provided
-    if (params.book) {
-      tags.push(["i", params.book.isbn, "book"]);
-      tags.push(["title", params.book.title]);
-      if (params.book.author) {
-        tags.push(["author", params.book.author]);
-      }
-      if (params.book.coverUrl) {
-        tags.push(["cover", params.book.coverUrl]);
-      }
+    // Add book tag if provided - simplified format
+    if (params.book?.isbn) {
+      tags.push(["i", `isbn:${params.book.isbn}`]);
     }
     
     // Add media if provided
