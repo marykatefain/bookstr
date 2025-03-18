@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Book, MessageCircle, Heart, Star, UserPlus, Search } from "lucide-react";
@@ -233,7 +234,13 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
         </p>
         {type === "followers" && (
           <Link to="/social">
-            <Button onClick={() => document.querySelector('[data-state="find-friends"]')?.click()}>
+            <Button onClick={() => {
+              // Fix: Use querySelector to find the element, then check if it exists before clicking
+              const findFriendsTab = document.querySelector('[data-value="find-friends"]');
+              if (findFriendsTab && findFriendsTab instanceof HTMLElement) {
+                findFriendsTab.click();
+              }
+            }}>
               <UserPlus className="mr-2 h-4 w-4" />
               Find Friends
             </Button>
