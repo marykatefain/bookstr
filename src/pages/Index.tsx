@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,8 +151,17 @@ const Index = () => {
                           onClick={() => addToLibrary(book.id, 'want-to-read')}
                           disabled={!!pendingActions[book.id]}
                         >
-                          <PlusCircle className="mr-1 h-4 w-4" />
+                          <Bookmark className="mr-1 h-4 w-4" />
                           {pendingActions[book.id] === 'want-to-read' ? 'Adding...' : 'Want to Read'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+                          onClick={() => addToLibrary(book.id, 'reading')}
+                          disabled={!!pendingActions[book.id]}
+                        >
+                          <BookOpen className="mr-1 h-4 w-4" />
+                          {pendingActions[book.id] === 'reading' ? 'Adding...' : 'Start Reading'}
                         </Button>
                       </div>
                     </div>
