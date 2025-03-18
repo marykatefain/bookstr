@@ -53,15 +53,34 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
   }
 }
 
+// Cache for recently fetched books
+const recentBooksCache: {
+  timestamp: number;
+  books: Book[];
+} = {
+  timestamp: 0,
+  books: []
+};
+
 /**
- * Get recently added books
+ * Get recently added books - with fallback if /recent.json fails
  */
 export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
+  // If we have cached data less than 10 minutes old, use it
+  const now = Date.now();
+  if (recentBooksCache.books.length > 0 && (now - recentBooksCache.timestamp) < 10 * 60 * 1000) {
+    console.log("Using cached recent books data");
+    return recentBooksCache.books.slice(0, limit);
+  }
+
   try {
-    // Newly added books to OpenLibrary
+    // Try to fetch from the recent endpoint first
     const response = await fetch(`${BASE_URL}/recent.json?limit=${limit}`);
+    
+    // If the endpoint fails, use alternative method
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      console.log(`Recent books endpoint failed with ${response.status}, using alternative method`);
+      return await getAlternativeRecentBooks(limit);
     }
     
     const data = await response.json();
@@ -104,9 +123,70 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
       });
       
     const books = await Promise.all(bookPromises);
-    return books.filter((book): book is Book => book !== null);
+    const validBooks = books.filter((book): book is Book => book !== null);
+    
+    // Update cache
+    recentBooksCache.books = validBooks;
+    recentBooksCache.timestamp = now;
+    
+    return validBooks;
   } catch (error) {
     console.error("Error fetching recent books:", error);
+    return await getAlternativeRecentBooks(limit);
+  }
+}
+
+/**
+ * Alternative method to get recent books when the regular endpoint fails
+ * This uses a different subjects endpoint as a fallback
+ */
+async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
+  try {
+    // Try a different genre/subject that's less common than fiction
+    const subjects = ["literature", "fantasy", "mystery", "biography"];
+    const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+    
+    console.log(`Using alternative recent books method with subject: ${randomSubject}`);
+    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`);
+    
+    if (!response.ok) {
+      throw new Error(`Alternative API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const works = data.works || [];
+    
+    const books = await Promise.all(
+      works
+        .filter((work: any) => work.cover_id || work.cover_edition_key)
+        .map(async (work: any) => {
+          let isbn = work.availability?.isbn || "";
+          
+          if (!isbn && work.cover_edition_key) {
+            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+          }
+          
+          return {
+            id: work.key,
+            title: work.title,
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            coverUrl: getCoverUrl(isbn, work.cover_id),
+            description: work.description?.value || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: [data.name || randomSubject]
+          };
+        })
+    );
+    
+    // Update the cache
+    recentBooksCache.books = books;
+    recentBooksCache.timestamp = Date.now();
+    
+    return books;
+  } catch (error) {
+    console.error("Error in alternative recent books method:", error);
     return [];
   }
 }
