@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -18,43 +19,43 @@ const Index = () => {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
 
+  // Define loadFeaturedBooks and loadRecentBooks functions at the component level
+  const loadFeaturedBooks = async () => {
+    setLoadingFeatured(true);
+    try {
+      const books = await getTrendingBooks(3);
+      setFeaturedBooks(books);
+    } catch (error) {
+      console.error("Error loading featured books:", error);
+      toast({
+        title: "Error loading books",
+        description: "There was a problem fetching featured books.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingFeatured(false);
+    }
+  };
+
+  const loadRecentBooks = async () => {
+    setLoadingRecent(true);
+    try {
+      const books = await getRecentBooks(3);
+      setRecentlyAdded(books);
+    } catch (error) {
+      console.error("Error loading recent books:", error);
+      toast({
+        title: "Error loading books",
+        description: "There was a problem fetching recent books.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingRecent(false);
+    }
+  };
+
   useEffect(() => {
-    // Load featured books
-    const loadFeaturedBooks = async () => {
-      setLoadingFeatured(true);
-      try {
-        const books = await getTrendingBooks(3);
-        setFeaturedBooks(books);
-      } catch (error) {
-        console.error("Error loading featured books:", error);
-        toast({
-          title: "Error loading books",
-          description: "There was a problem fetching featured books.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoadingFeatured(false);
-      }
-    };
-
-    // Load recent books
-    const loadRecentBooks = async () => {
-      setLoadingRecent(true);
-      try {
-        const books = await getRecentBooks(3);
-        setRecentlyAdded(books);
-      } catch (error) {
-        console.error("Error loading recent books:", error);
-        toast({
-          title: "Error loading books",
-          description: "There was a problem fetching recent books.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoadingRecent(false);
-      }
-    };
-
+    // Load books when component mounts
     loadFeaturedBooks();
     loadRecentBooks();
   }, [toast]);
