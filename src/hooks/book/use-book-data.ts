@@ -23,14 +23,7 @@ export const useBookData = (isbn: string | undefined) => {
     staleTime: 1000 * 60 * 60, // 1 hour
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
     retry: 2,
-    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000),
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Could not load book details",
-        variant: "destructive"
-      });
-    }
+    retryDelay: attempt => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000)
   });
 
   // Set read status when book data is available
@@ -44,8 +37,13 @@ export const useBookData = (isbn: string | undefined) => {
   useEffect(() => {
     if (error) {
       console.error("Error fetching book data:", error);
+      toast({
+        title: "Error",
+        description: "Could not load book details",
+        variant: "destructive"
+      });
     }
-  }, [error]);
+  }, [error, toast]);
 
   return {
     book,
