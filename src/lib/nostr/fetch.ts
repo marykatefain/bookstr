@@ -609,6 +609,70 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
 }
 
 /**
+ * Fetch reviews written by a user
+ */
+export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
+  if (!pubkey) {
+    console.error("Cannot fetch reviews: pubkey is missing");
+    return [];
+  }
+  
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.REVIEW],
+      authors: [pubkey]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    const reviews: BookReview[] = [];
+    
+    for (const event of events) {
+      const rating = extractRatingFromTags(event);
+      const isbn = extractISBNFromTags(event);
+      
+      reviews.push({
+        id: event.id,
+        pubkey: event.pubkey,
+        content: event.content,
+        rating,
+        bookIsbn: isbn,
+        createdAt: event.created_at * 1000
+      });
+    }
+    
+    // Fetch books for the reviews
+    const isbns = reviews
+      .map(review => review.bookIsbn)
+      .filter((isbn): isbn is string => isbn !== null);
+    
+    if (isbns.length > 0) {
+      const books = await getBooksByISBN([...new Set(isbns)]);
+      
+      // Add book titles to reviews
+      reviews.forEach(review => {
+        if (review.bookIsbn) {
+          const book = books.find(b => b.isbn === review.bookIsbn);
+          if (book) {
+            review.bookTitle = book.title;
+            review.bookCover = book.coverUrl;
+          }
+        }
+      });
+    }
+    
+    return reviews.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching user reviews:", error);
+    return [];
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
  * Simple placeholder for backward compatibility
  */
 export async function ensureBookMetadata(book: Book): Promise<string | null> {

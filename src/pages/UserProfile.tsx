@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -6,19 +5,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Book, Check, Users } from "lucide-react";
+import { Plus, Book, Check, Users, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCard } from "@/components/BookCard";
 import { SocialFeed } from "@/components/SocialFeed";
+import { ReviewCard } from "@/components/ReviewCard";
 import { 
   fetchUserProfile, 
   fetchUserBooks,
+  fetchUserReviews,
   fetchFollowingList,
   followUser,
   isLoggedIn,
   getCurrentUser 
 } from "@/lib/nostr";
-import { NostrProfile } from "@/lib/nostr/types";
+import { NostrProfile, BookReview } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 
@@ -45,6 +46,7 @@ const UserProfile = () => {
     reading: [],
     read: []
   });
+  const [reviews, setReviews] = useState<BookReview[]>([]);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -54,7 +56,6 @@ const UserProfile = () => {
       
       setLoading(true);
       try {
-        // Try to decode npub to pubkey if needed
         let actualPubkey = pubkey;
         if (pubkey.startsWith('npub')) {
           try {
@@ -67,7 +68,6 @@ const UserProfile = () => {
           }
         }
         
-        // Fetch profile and books
         const userProfile = await fetchUserProfile(actualPubkey);
         if (userProfile) {
           setProfile(userProfile);
@@ -76,7 +76,9 @@ const UserProfile = () => {
         const books = await fetchUserBooks(actualPubkey);
         setUserBooks(books);
         
-        // Check if current user follows this user
+        const userReviews = await fetchUserReviews(actualPubkey);
+        setReviews(userReviews);
+        
         if (currentUser) {
           const { follows } = await fetchFollowingList(currentUser.pubkey);
           setFollowing(follows.includes(actualPubkey));
@@ -178,7 +180,6 @@ const UserProfile = () => {
   return (
     <Layout>
       <div className="container px-4 py-8">
-        {/* Profile Header */}
         <div className="flex flex-col items-center space-y-4">
           <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
             <AvatarImage src={profile.picture} />
@@ -202,7 +203,6 @@ const UserProfile = () => {
             </p>
           )}
           
-          {/* Follow Button */}
           {currentUser && currentUser.pubkey !== profile.pubkey && (
             <Button 
               onClick={handleFollow} 
@@ -223,22 +223,25 @@ const UserProfile = () => {
             </Button>
           )}
           
-          {/* Stats */}
           <div className="flex justify-center gap-8 mt-2">
             <TabCount label="Books" count={totalBooks} />
             <TabCount label="Reading" count={userBooks.reading.length} />
             <TabCount label="Read" count={userBooks.read.length} />
+            <TabCount label="Reviews" count={reviews.length} />
           </div>
         </div>
         
         <Separator className="my-6" />
         
-        {/* Tabs */}
         <Tabs defaultValue="library" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-6">
+          <TabsList className="grid grid-cols-4 mb-6">
             <TabsTrigger value="library">
               <Book className="mr-2 h-4 w-4" />
               Library
+            </TabsTrigger>
+            <TabsTrigger value="reviews">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Reviews
             </TabsTrigger>
             <TabsTrigger value="activity">
               <Users className="mr-2 h-4 w-4" />
@@ -249,7 +252,6 @@ const UserProfile = () => {
           
           <TabsContent value="library">
             <div className="space-y-8">
-              {/* Reading Now */}
               <div>
                 <h2 className="text-xl font-bold mb-4">Reading Now</h2>
                 {userBooks.reading.length === 0 ? (
@@ -269,7 +271,6 @@ const UserProfile = () => {
                 )}
               </div>
               
-              {/* Finished Reading */}
               <div>
                 <h2 className="text-xl font-bold mb-4">Finished Reading</h2>
                 {userBooks.read.length === 0 ? (
@@ -289,7 +290,6 @@ const UserProfile = () => {
                 )}
               </div>
               
-              {/* To Be Read */}
               <div>
                 <h2 className="text-xl font-bold mb-4">Want to Read</h2>
                 {userBooks.tbr.length === 0 ? (
@@ -308,6 +308,27 @@ const UserProfile = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="reviews">
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold">Reviews</h2>
+              
+              {reviews.length === 0 ? (
+                <p className="text-muted-foreground">No reviews written yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {reviews.map(review => (
+                    <ReviewCard 
+                      key={review.id} 
+                      review={review}
+                      bookTitle={review.bookTitle}
+                      showBookInfo={true}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
           

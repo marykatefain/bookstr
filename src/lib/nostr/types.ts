@@ -41,14 +41,17 @@ export interface Book {
 export interface BookReview {
   id: string;
   pubkey: string;
+  content: string;
+  rating?: number;
+  createdAt: number;
   author?: {
     name?: string;
     picture?: string;
     npub?: string;
   };
-  content: string;
-  rating?: number;
-  createdAt: number;
+  bookIsbn?: string;
+  bookTitle?: string;
+  bookCover?: string;
 }
 
 export interface SocialActivity {
