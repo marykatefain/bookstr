@@ -8,6 +8,7 @@ import { docToBook } from './utils';
  */
 export async function searchBooks(query: string, limit: number = 20): Promise<Book[]> {
   try {
+    // Use the OpenLibrary search API with proper parameters
     const response = await fetch(`${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

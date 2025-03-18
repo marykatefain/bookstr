@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,10 +92,10 @@ const Books = () => {
         let results: Book[] = [];
         
         if (debouncedSearch) {
-          // If there's a search query, use that
-          results = await searchBooks(debouncedSearch);
+          // Use the OpenLibrary search API
+          results = await searchBooks(debouncedSearch, 20);
         } else if (activeCategory !== "All") {
-          // If there's an active category but no search, search by genre
+          // Search by genre if no query but category selected
           results = await searchBooksByGenre(activeCategory, 20);
         }
         
@@ -114,7 +113,7 @@ const Books = () => {
     };
 
     performSearch();
-  }, [debouncedSearch, toast]);
+  }, [debouncedSearch, activeCategory, toast]);
 
   // Handle category change
   useEffect(() => {
