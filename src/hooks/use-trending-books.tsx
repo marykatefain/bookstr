@@ -19,15 +19,19 @@ export function useTrendingBooks(limit: number = 3) {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 1,
-    onError: (err) => {
-      console.error("Error loading featured books:", err);
+  });
+
+  // Handle errors outside the query config
+  useEffect(() => {
+    if (error) {
+      console.error("Error loading featured books:", error);
       toast({
         title: "Error loading books",
         description: "There was a problem fetching featured books.",
         variant: "destructive"
       });
     }
-  });
+  }, [error, toast]);
 
   const refreshBooks = useCallback(() => {
     refetch();
