@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, MessageCircle, Heart, Check, Loader2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,9 +18,10 @@ import {
   reactToContent,
   replyToContent,
   isLoggedIn,
-  getCurrentUser 
+  getCurrentUser,
+  addBookToList
 } from "@/lib/nostr";
-import { Book, BookReview } from "@/lib/nostr/types";
+import { Book, BookReview, BookActionType } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 
@@ -33,6 +34,8 @@ const BookDetail = () => {
   const [userRating, setUserRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
+  const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
@@ -45,6 +48,7 @@ const BookDetail = () => {
         const bookData = await fetchBookByISBN(isbn);
         if (bookData) {
           setBook(bookData);
+          setIsRead(bookData.readingStatus?.status === 'finished');
         }
         
         const bookReviews = await fetchBookReviews(isbn);
@@ -73,6 +77,36 @@ const BookDetail = () => {
     
     fetchData();
   }, [isbn, toast, currentUser]);
+
+  const handleMarkAsRead = async () => {
+    if (!book || !isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to mark books as read",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPendingAction('finished');
+    try {
+      await addBookToList(book, 'finished');
+      setIsRead(true);
+      toast({
+        title: "Success!",
+        description: "Book marked as read",
+      });
+    } catch (error) {
+      console.error("Error marking book as read:", error);
+      toast({
+        title: "Error",
+        description: "Could not mark book as read",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   const handleRateBook = async (rating: number) => {
     if (!book || !isLoggedIn()) return;
@@ -347,7 +381,7 @@ const BookDetail = () => {
         <div className="flex flex-col md:flex-row gap-8">
           <div className="md:w-1/3">
             <div className="sticky top-20">
-              <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-md">
+              <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
                 <img 
                   src={book.coverUrl} 
                   alt={book.title} 
@@ -356,13 +390,40 @@ const BookDetail = () => {
                     e.currentTarget.src = "/placeholder.svg";
                   }} 
                 />
+                <button
+                  onClick={handleMarkAsRead}
+                  className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+                    ${isRead 
+                      ? "bg-green-500 text-white" 
+                      : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+                  title="Mark as read"
+                >
+                  {pendingAction === 'finished' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-              <div className="mt-4">
-                <BookActions 
-                  book={book} 
-                  onUpdate={() => {}} 
-                  horizontal={true}
-                />
+              <div className="mt-4 flex gap-2">
+                <Button 
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => book && addBookToList(book, 'tbr')}
+                  disabled={pendingAction !== null}
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  To Be Read
+                </Button>
+                
+                <Button 
+                  className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+                  onClick={() => book && addBookToList(book, 'reading')}
+                  disabled={pendingAction !== null}
+                >
+                  <Star className="mr-2 h-4 w-4" />
+                  Start Reading
+                </Button>
               </div>
             </div>
           </div>
