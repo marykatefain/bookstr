@@ -32,8 +32,7 @@ export {
   markBookAsReading,
   markBookAsRead,
   rateBook,
-  reviewBook,
-  publishBookMetadata
+  reviewBook
 } from "./books";
 
 // Export fetch functions
