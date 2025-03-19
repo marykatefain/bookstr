@@ -8,7 +8,8 @@ import {
   BarChart2,
   LogOut,
   X,
-  Search
+  Search,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -109,6 +110,25 @@ export const MobileSidebar = ({
               </Link>
             ))}
           </nav>
+          
+          <Separator className="my-2" />
+          
+          <div className="p-4">
+            <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+              <h3 className="font-medium text-sm">What is Nostr?</h3>
+              <p className="text-xs text-muted-foreground">
+                Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
+              </p>
+              <Link
+                to="/about"
+                className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+                onClick={onClose}
+              >
+                <Info className="h-4 w-4" />
+                <span>Learn more about Bookstr</span>
+              </Link>
+            </div>
+          </div>
         </div>
         <div 
           className="flex-1 bg-black bg-opacity-50" 

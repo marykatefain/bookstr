@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -6,7 +7,8 @@ import {
   Library, 
   BarChart2,
   LogOut,
-  Search
+  Search,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -90,6 +92,22 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           </Link>
         ))}
       </nav>
+      
+      <Separator className="my-4" />
+      
+      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+        <h3 className="font-medium text-sm">What is Nostr?</h3>
+        <p className="text-xs text-muted-foreground">
+          Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
+        </p>
+        <Link
+          to="/about"
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+        >
+          <Info className="h-4 w-4" />
+          <span>Learn more about Bookstr</span>
+        </Link>
+      </div>
     </aside>
   );
 };
