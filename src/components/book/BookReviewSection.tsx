@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   handleRateBook,
   handleReactToReview
 }) => {
+  // Convert userRating from 0-1 scale to 1-5 scale for display
+  const displayRating = userRating > 0 ? Math.round(userRating * 5) : 0;
+  
   return (
     <div className="space-y-6">
       {renderReviewForm()}
@@ -57,11 +60,11 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
-              onClick={() => handleRateBook(rating)}
+              onClick={() => handleRateBook(rating / 5)} // Convert from 1-5 scale to 0-1 scale when sending to server
               disabled={submitting}
-              className={`rounded-full p-1 ${userRating === rating ? 'bg-yellow-100' : ''}`}
+              className={`rounded-full p-1 ${displayRating === rating ? 'bg-yellow-100' : ''}`}
             >
-              <Star className={`h-6 w-6 ${userRating >= rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+              <Star className={`h-6 w-6 ${displayRating >= rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
             </button>
           ))}
         </div>

@@ -32,9 +32,10 @@ export const useBookReviews = (isbn: string | undefined) => {
         setRatings(bookRatings);
         
         if (currentUser && bookRatings.length > 0) {
-          const userRating = bookRatings.find(r => r.pubkey === currentUser.pubkey);
-          if (userRating && userRating.rating) {
-            setUserRating(userRating.rating);
+          const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
+          if (userRatingObj && userRatingObj.rating !== undefined) {
+            // Store in original 0-1 scale for consistency
+            setUserRating(userRatingObj.rating);
           }
         }
       } catch (error) {
@@ -50,11 +51,15 @@ export const useBookReviews = (isbn: string | undefined) => {
     
     setSubmitting(true);
     try {
+      // Rating is expected to be in 0-1 scale when passed from BookReviewSection
       await rateBook(book, rating);
       setUserRating(rating);
+      
+      // For display purposes, convert from 0-1 scale to 1-5 scale
+      const displayRating = Math.round(rating * 5);
       toast({
         title: "Rating submitted",
-        description: `You rated "${book.title}" ${rating} stars`
+        description: `You rated "${book.title}" ${displayRating} stars`
       });
       
       const updatedRatings = await fetchBookRatings(isbn || "");
