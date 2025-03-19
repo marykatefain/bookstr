@@ -13,7 +13,7 @@ interface TrendingSidebarProps {
 
 export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSidebarProps) {
   return (
-    <Card className="bg-bookverse-paper shadow">
+    <Card className="bg-bookverse-paper shadow sticky top-8">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-serif flex items-center">
           <Book className="mr-2 h-5 w-5 text-bookverse-accent" />

@@ -12,7 +12,7 @@ interface LayoutProps {
   rightSidebar?: React.ReactNode;
 }
 
-export const Layout = ({ children, rightSidebar }: LayoutProps) => {
+export const Layout = ({ children }: LayoutProps) => {
   const { toast } = useToast();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [user, setUser] = useState(getCurrentUser());
@@ -57,14 +57,7 @@ export const Layout = ({ children, rightSidebar }: LayoutProps) => {
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-screen-xl mx-auto xl:px-4 xl:flex xl:gap-6">
-            <div className="flex-1">{children}</div>
-            {rightSidebar && (
-              <div className="hidden xl:block w-80 flex-shrink-0 py-8">
-                {rightSidebar}
-              </div>
-            )}
-          </div>
+          {children}
         </main>
       </div>
     </div>

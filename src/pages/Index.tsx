@@ -26,21 +26,28 @@ const Index = () => {
     refetchOnWindowFocus: false
   });
   
-  // Create a right sidebar with trending books for large screens
-  const rightSidebar = (
-    <TrendingSidebar 
-      books={trendingBooks} 
-      loading={loadingTrending} 
-      refreshBooks={refreshTrending}
-    />
-  );
-  
   return (
-    <Layout rightSidebar={rightSidebar}>
+    <Layout>
       <HeroSection />
       
-      <SocialSection />
-
+      <div className="container px-4 md:px-6 max-w-screen-xl mx-auto">
+        <div className="flex flex-col xl:flex-row xl:gap-6 py-8">
+          {/* Main content area */}
+          <div className="flex-1">
+            <SocialSection />
+          </div>
+          
+          {/* Right sidebar - only visible on xl screens and up */}
+          <div className="hidden xl:block w-80 flex-shrink-0">
+            <TrendingSidebar 
+              books={trendingBooks} 
+              loading={loadingTrending} 
+              refreshBooks={refreshTrending}
+            />
+          </div>
+        </div>
+      </div>
+      
       {/* Only show BookSection with trending books on screens below xl breakpoint */}
       <div className="xl:hidden">
         <BookSection 
