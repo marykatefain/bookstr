@@ -17,6 +17,7 @@ interface BookCardProps {
   showRating?: boolean;
   showCategories?: boolean;
   onUpdate?: () => void;
+  variant?: "horizontal" | "vertical";
 }
 
 export const BookCard: React.FC<BookCardProps> = ({
@@ -25,17 +26,23 @@ export const BookCard: React.FC<BookCardProps> = ({
   showDescription = false,
   showRating = true,
   showCategories = true,
-  onUpdate
+  onUpdate,
+  variant = "vertical"
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
 
   const getCardClasses = () => {
-    const baseClasses = "overflow-hidden h-full flex flex-col";
-    if (size === "small") return `${baseClasses} max-w-[220px] w-full`;
-    if (size === "large") return `${baseClasses} max-w-[280px] w-full`;
-    return `${baseClasses} w-full`; // medium size - no max width, full responsive width
+    const baseClasses = "overflow-hidden h-full";
+    
+    const layoutClasses = variant === "horizontal" 
+      ? "flex flex-row" 
+      : "flex flex-col";
+    
+    if (size === "small") return `${baseClasses} ${layoutClasses} max-w-[220px] w-full`;
+    if (size === "large") return `${baseClasses} ${layoutClasses} max-w-[280px] w-full`;
+    return `${baseClasses} ${layoutClasses} w-full`; // medium size - no max width, full responsive width
   };
 
   const getTitleClasses = () => {
@@ -98,54 +105,101 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
+  const coverContainerClasses = variant === "horizontal"
+    ? "relative flex-shrink-0" + (size === "small" ? " w-16 h-16" : " w-24 h-24")
+    : "relative" + (variant === "vertical" ? " style={{ paddingTop: '150%' }}" : "");
+
+  const contentContainerClasses = variant === "horizontal"
+    ? "p-2 space-y-1 flex-grow"
+    : "p-3 space-y-1.5 flex-grow";
+
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
-        <div className="relative" style={{ paddingTop: "150%" }}>
-          <div className="absolute inset-0">
-            <BookCover 
-              isbn={book.isbn}
-              title={book.title}
-              author={book.author}
-              coverUrl={book.coverUrl}
-              isRead={isRead}
-              pendingAction={pendingAction}
-              onReadAction={() => handleAction('read')}
-              size={size}
-            />
+        {variant === "horizontal" ? (
+          <div className="flex flex-row h-full">
+            <div className={coverContainerClasses}>
+              <BookCover 
+                isbn={book.isbn}
+                title={book.title}
+                author={book.author}
+                coverUrl={book.coverUrl}
+                isRead={isRead}
+                pendingAction={pendingAction}
+                onReadAction={() => handleAction('read')}
+                size={size}
+              />
+            </div>
+            
+            <div className={contentContainerClasses}>
+              <h3 className={getTitleClasses()}>
+                <Link 
+                  to={`/book/${book.isbn}`}
+                  className="hover:text-bookverse-accent transition-colors"
+                >
+                  {book.title}
+                </Link>
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
+              
+              {showRating && (
+                <BookRating rating={book.readingStatus?.rating} />
+              )}
+              
+              {showCategories && size !== "small" && (
+                <BookCategories categories={book.categories} />
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="p-3 space-y-1.5 flex-grow">
-          <h3 className={getTitleClasses()}>
-            <Link 
-              to={`/book/${book.isbn}`}
-              className="hover:text-bookverse-accent transition-colors"
-            >
-              {book.title}
-            </Link>
-          </h3>
-          <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
-          
-          {showRating && (
-            <BookRating rating={book.readingStatus?.rating} />
-          )}
-          
-          {showCategories && (
-            <BookCategories categories={book.categories} />
-          )}
-          
-          {showDescription && book.description && (
-            <p className="text-xs line-clamp-2">{book.description}</p>
-          )}
-          
-          <BookActionButtons 
-            size={size}
-            pendingAction={pendingAction}
-            onAddToTbr={() => handleAction('want-to-read')}
-            onStartReading={() => handleAction('reading')}
-          />
-        </div>
+        ) : (
+          <>
+            <div className="relative" style={{ paddingTop: "150%" }}>
+              <div className="absolute inset-0">
+                <BookCover 
+                  isbn={book.isbn}
+                  title={book.title}
+                  author={book.author}
+                  coverUrl={book.coverUrl}
+                  isRead={isRead}
+                  pendingAction={pendingAction}
+                  onReadAction={() => handleAction('read')}
+                  size={size}
+                />
+              </div>
+            </div>
+            
+            <div className={contentContainerClasses}>
+              <h3 className={getTitleClasses()}>
+                <Link 
+                  to={`/book/${book.isbn}`}
+                  className="hover:text-bookverse-accent transition-colors"
+                >
+                  {book.title}
+                </Link>
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
+              
+              {showRating && (
+                <BookRating rating={book.readingStatus?.rating} />
+              )}
+              
+              {showCategories && (
+                <BookCategories categories={book.categories} />
+              )}
+              
+              {showDescription && book.description && (
+                <p className="text-xs line-clamp-2">{book.description}</p>
+              )}
+              
+              <BookActionButtons 
+                size={size}
+                pendingAction={pendingAction}
+                onAddToTbr={() => handleAction('want-to-read')}
+                onStartReading={() => handleAction('reading')}
+              />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

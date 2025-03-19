@@ -28,7 +28,6 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
             showDescription={false}
             size="small"
             onUpdate={() => refreshBooks()}
-            variant="horizontal"
           />
         ))}
       </CardContent>
