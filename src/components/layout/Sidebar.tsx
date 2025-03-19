@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -29,7 +30,6 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
     { path: "/", label: "Home", icon: Home },
     { path: "/books", label: "Discover", icon: Book },
     { path: "/library", label: "Library", icon: Library },
-    { path: "/social", label: "Social", icon: Users },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
 

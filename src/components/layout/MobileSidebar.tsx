@@ -33,7 +33,6 @@ export const MobileSidebar = ({
     { path: "/", label: "Home", icon: Home },
     { path: "/books", label: "Discover", icon: Book },
     { path: "/library", label: "Library", icon: Library },
-    { path: "/social", label: "Social", icon: Users },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
 
