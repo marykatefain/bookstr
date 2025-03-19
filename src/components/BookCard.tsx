@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -207,6 +208,15 @@ export const BookCard: React.FC<BookCardProps> = ({
               {showCategories && size !== "small" && (
                 <BookCategories categories={book.categories} />
               )}
+              
+              <BookActionButtons
+                size={size}
+                pendingAction={pendingAction}
+                onAddToTbr={() => handleAction('tbr')}
+                onStartReading={() => handleAction('reading')}
+                onRemove={handleRemove}
+                readingStatus={mappedReadingStatus}
+              />
             </div>
           </div>
         ) : (
@@ -253,7 +263,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 book={book}
                 onUpdate={onUpdate}
                 size={size}
-                horizontal={variant === "horizontal"}
+                horizontal={true} // Fixed: Pass a boolean value instead of comparing string literals
               />
             </div>
           </>
