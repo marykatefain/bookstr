@@ -7,7 +7,6 @@ import { BookSection } from "@/components/homepage/BookSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
 import { useQuery } from "@tanstack/react-query";
 import { getWeeklyTrendingBooks } from "@/lib/openlibrary";
-import { isLoggedIn } from "@/lib/nostr";
 
 const Index = () => {
   const { 
@@ -30,7 +29,7 @@ const Index = () => {
     <Layout>
       <HeroSection />
       
-      {isLoggedIn() && <SocialSection />}
+      <SocialSection />
 
       <BookSection 
         title="Trending Books"

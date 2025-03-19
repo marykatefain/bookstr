@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { 
@@ -18,9 +17,10 @@ interface SocialFeedProps {
   activities?: SocialActivity[];
   type?: "followers" | "global";
   useMockData?: boolean;
+  maxItems?: number;
 }
 
-export function SocialFeed({ activities, type = "followers", useMockData = false }: SocialFeedProps) {
+export function SocialFeed({ activities, type = "followers", useMockData = false, maxItems }: SocialFeedProps) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -51,13 +51,19 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
           let feed: SocialActivity[] = [];
           
           if (type === "followers") {
-            feed = await fetchSocialFeed(20);
+            feed = await fetchSocialFeed(maxItems || 20);
           } else {
-            // Global feed uses the new fetchGlobalSocialFeed function
-            feed = await fetchGlobalSocialFeed(30);
+            // Global feed uses the fetchGlobalSocialFeed function
+            feed = await fetchGlobalSocialFeed(maxItems || 30);
           }
           
           console.log(`Received ${feed.length} activities from Nostr network`);
+          
+          // Apply maxItems limit if specified
+          if (maxItems && feed.length > maxItems) {
+            feed = feed.slice(0, maxItems);
+          }
+          
           setLocalActivities(feed);
           setLoading(false);
         }
@@ -75,7 +81,7 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
     };
 
     loadSocialFeed();
-  }, [activities, type, useMockData, toast]);
+  }, [activities, type, useMockData, toast, maxItems]);
 
   const handleReact = async (activityId: string) => {
     if (!isLoggedIn()) {

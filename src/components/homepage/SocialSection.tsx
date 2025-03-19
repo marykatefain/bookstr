@@ -2,10 +2,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Users } from "lucide-react";
-import { CompactSocialFeed } from "@/components/CompactSocialFeed";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { Card } from "@/components/ui/card";
+import { SocialFeed } from "@/components/SocialFeed";
 
 export function SocialSection() {
   if (!isLoggedIn()) {
@@ -53,10 +53,10 @@ export function SocialSection() {
             <CreatePostBox />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <CompactSocialFeed maxItems={5} />
-            </div>
+          <div className="grid grid-cols-1 gap-6">
+            {/* Use SocialFeed directly with global type and limited items */}
+            <SocialFeed type="global" useMockData={false} />
+            
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-bold font-serif mb-4">Reading Community</h3>
               <p className="text-muted-foreground mb-4">
