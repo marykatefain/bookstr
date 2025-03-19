@@ -87,12 +87,12 @@ export const useLibraryData = () => {
   }, [booksError, postsError, toast]);
 
   // Helper function to get a book's reading status by ISBN
-  const getBookReadingStatus = (isbn: string | undefined): 'want-to-read' | 'reading' | 'finished' | null => {
+  const getBookReadingStatus = (isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
     if (!isbn || !booksData) return null;
     
     // Check TBR list
     const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
-    if (tbrBook) return 'want-to-read';
+    if (tbrBook) return 'tbr';
     
     // Check reading list
     const readingBook = booksData.reading.find(book => book.isbn === isbn);

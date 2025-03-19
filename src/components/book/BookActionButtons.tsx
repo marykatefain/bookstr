@@ -8,7 +8,7 @@ interface BookActionButtonsProps {
   pendingAction: string | null;
   onAddToTbr: () => void;
   onStartReading: () => void;
-  readingStatus?: 'want-to-read' | 'reading' | 'finished' | null;
+  readingStatus?: 'tbr' | 'reading' | 'finished' | null;
 }
 
 export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
@@ -18,8 +18,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   onStartReading,
   readingStatus
 }) => {
-  // Fix the comparison to only check for 'want-to-read' since 'tbr' is not in the allowed types
-  const isTbr = readingStatus === 'want-to-read';
+  const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
 
   return (
@@ -31,7 +30,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         onClick={onAddToTbr}
         disabled={!!pendingAction}
       >
-        {pendingAction === 'want-to-read' ? (
+        {pendingAction === 'tbr' ? (
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
         ) : isTbr ? (
           <Check className="mr-1 h-3 w-3" />

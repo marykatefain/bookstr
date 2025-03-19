@@ -50,13 +50,14 @@ const Books = () => {
               ...book,
               readingStatus: {
                 ...book.readingStatus,
-                status: readingStatus
+                status: readingStatus,
+                dateAdded: Date.now()
               }
             };
           }
         }
         return book;
-      });
+      }) as Book[];
     };
 
     if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
@@ -83,13 +84,14 @@ const Books = () => {
                   ...book,
                   readingStatus: {
                     ...book.readingStatus,
-                    status: readingStatus
+                    status: readingStatus,
+                    dateAdded: Date.now()
                   }
                 };
               }
             }
             return book;
-          });
+          }) as Book[];
           
           setBooks(enrichedBooks);
           setIsLoading(false);
@@ -111,7 +113,6 @@ const Books = () => {
         
         console.log(`Search returned ${results.length} results`);
         
-        // Enrich search results with user's reading status
         const enrichedResults = results.map(book => {
           if (book.isbn) {
             const readingStatus = getBookReadingStatus(book.isbn);
@@ -120,13 +121,14 @@ const Books = () => {
                 ...book,
                 readingStatus: {
                   ...book.readingStatus,
-                  status: readingStatus
+                  status: readingStatus,
+                  dateAdded: Date.now()
                 }
               };
             }
           }
           return book;
-        });
+        }) as Book[];
         
         setBooks(enrichedResults);
       } catch (error) {

@@ -46,6 +46,7 @@ export const useBookData = (isbn: string | undefined) => {
     ...book,
     readingStatus: readingStatus ? {
       status: readingStatus,
+      dateAdded: Date.now(), // Add the required dateAdded property
       rating: book.readingStatus?.rating
     } : book.readingStatus
   } : null;

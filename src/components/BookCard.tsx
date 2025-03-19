@@ -52,7 +52,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     return `${baseClasses} text-sm`; // medium size
   };
 
-  const handleAction = async (action: 'want-to-read' | 'reading' | 'read') => {
+  const handleAction = async (action: 'tbr' | 'reading' | 'finished') => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -76,17 +76,17 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       let result: string | null;
       
-      if (action === 'want-to-read') {
+      if (action === 'tbr') {
         result = await addBookToTBR(book);
       } else if (action === 'reading') {
         result = await markBookAsReading(book);
-      } else if (action === 'read') {
+      } else if (action === 'finished') {
         result = await markBookAsRead(book);
         setIsRead(true);
       }
 
       if (result) {
-        let statusText = action === 'want-to-read' ? 'TBR' : action === 'reading' ? 'currently reading' : 'read';
+        let statusText = action === 'tbr' ? 'TBR' : action === 'reading' ? 'currently reading' : 'read';
         toast({
           title: `Added to your ${statusText} list`,
           description: `${book.title} has been added to your library and published to Nostr`
@@ -114,7 +114,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     : "p-3 space-y-1.5 flex-grow";
 
   const mappedReadingStatus = book.readingStatus?.status === 'tbr' 
-    ? 'want-to-read' 
+    ? 'tbr' 
     : book.readingStatus?.status as 'want-to-read' | 'reading' | 'finished' | null;
 
   return (
@@ -130,7 +130,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 coverUrl={book.coverUrl}
                 isRead={isRead}
                 pendingAction={pendingAction}
-                onReadAction={() => handleAction('read')}
+                onReadAction={() => handleAction('finished')}
                 size={size}
               />
             </div>
@@ -166,7 +166,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   coverUrl={book.coverUrl}
                   isRead={isRead}
                   pendingAction={pendingAction}
-                  onReadAction={() => handleAction('read')}
+                  onReadAction={() => handleAction('finished')}
                   size={size}
                 />
               </div>
@@ -198,7 +198,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               <BookActionButtons 
                 size={size}
                 pendingAction={pendingAction}
-                onAddToTbr={() => handleAction('want-to-read')}
+                onAddToTbr={() => handleAction('tbr')}
                 onStartReading={() => handleAction('reading')}
                 readingStatus={mappedReadingStatus}
               />
