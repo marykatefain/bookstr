@@ -51,7 +51,7 @@ export const StatsSidebar = () => {
                     isbn={currentlyReading.isbn}
                     title={currentlyReading.title}
                     author={currentlyReading.author}
-                    coverUrl={currentlyReading.cover}
+                    coverUrl={currentlyReading.coverUrl}
                   />
                 </div>
                 <div className="p-3 pt-0 text-center">
