@@ -4,10 +4,11 @@ import { Layout } from "@/components/Layout";
 import { HeroSection } from "@/components/homepage/HeroSection";
 import { SocialSection } from "@/components/homepage/SocialSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
+import { StatsSidebar } from "@/components/homepage/StatsSidebar";
 
 const Index = () => {
   return (
-    <Layout>
+    <Layout rightSidebar={<StatsSidebar />}>
       <HeroSection />
       
       <div className="container px-4 md:px-6 max-w-screen-xl mx-auto">
