@@ -14,6 +14,7 @@ import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
 
 // Service imports
 import { initNostr } from "./lib/nostr";
@@ -41,6 +42,7 @@ function App() {
             <Route path="/stats" element={<Stats />} />
             <Route path="/users" element={<UserSearch />} />
             <Route path="/user/:pubkey" element={<UserProfile />} />
+            <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
