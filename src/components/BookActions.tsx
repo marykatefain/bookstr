@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -21,17 +20,14 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const { toast } = useToast();
 
   const handleAction = async (action: BookActionType) => {
-    // Check if book is already in this list
     const isInList = book.readingStatus?.status === action || 
                      (action === 'tbr' && book.readingStatus?.status === 'tbr');
     
-    // If book is already in the list, remove it
     if (isInList) {
       await handleRemoveAction(action);
       return;
     }
     
-    // If no ISBN, request manual entry
     if (!book.isbn) {
       setPendingAction(action);
       setShowModal(true);
@@ -49,10 +45,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         throw new Error("ISBN is required");
       }
       
-      // First try to update the book in an existing list
       const updated = await updateBookInList(bookWithIsbn, action);
       
-      // If no existing list was found, add the book to a new list
       if (!updated) {
         await addBookToList(bookWithIsbn, action);
       }
@@ -134,7 +128,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const isReading = book.readingStatus?.status === 'reading';
   const isFinished = book.readingStatus?.status === 'finished';
 
-  // Determine which buttons to show based on reading status
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
 
@@ -184,7 +177,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
             disabled={isLoading !== null}
           >
             <X size={iconSize} />
-            {size !== 'small' && <span>Unmark</span>}
+            {size !== 'small' && <span>Mark Unread</span>}
           </Button>
         )}
       </div>
