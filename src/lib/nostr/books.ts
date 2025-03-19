@@ -1,6 +1,5 @@
-
 import { Book, NOSTR_KINDS, BookActionType, BookReview } from "./types";
-import { publishToNostr } from "./publish";
+import { publishToNostr, updateNostrEvent } from "./publish";
 
 /**
  * Add a book to the "TBR" list
@@ -204,6 +203,64 @@ export async function followUser(pubkey: string): Promise<string | null> {
   };
   
   return publishToNostr(event);
+}
+
+/**
+ * Try to update an existing book in a list
+ * Returns true if the update was successful, false if no existing event was found
+ */
+export async function updateBookInList(book: Book, listType: BookActionType): Promise<boolean> {
+  console.log(`==== Updating book in ${listType} list ====`);
+  
+  if (!book.isbn) {
+    console.error(`Cannot update book in ${listType} list: ISBN is missing`);
+    return false;
+  }
+  
+  let kind: number;
+  switch (listType) {
+    case 'tbr':
+      kind = NOSTR_KINDS.BOOK_TBR;
+      break;
+    case 'reading':
+      kind = NOSTR_KINDS.BOOK_READING;
+      break;
+    case 'finished':
+      kind = NOSTR_KINDS.BOOK_READ;
+      break;
+    default:
+      console.error(`Unknown list type: ${listType}`);
+      return false;
+  }
+  
+  try {
+    // The updateNostrEvent function will try to find an existing event with the specified kind
+    // If found, it updates the event with the new tags
+    const result = await updateNostrEvent(
+      { kind, isbn: book.isbn },
+      (prevTags) => {
+        // Keep any existing tags that aren't for this ISBN
+        const filteredTags = prevTags.filter(tag => 
+          tag[0] !== 'i' || !tag[1].includes(book.isbn!)
+        );
+        
+        // Add the current ISBN tag
+        filteredTags.push(["i", `isbn:${book.isbn}`]);
+        return filteredTags;
+      }
+    );
+    
+    if (result) {
+      console.log(`Successfully updated book in ${listType} list:`, result);
+      return true;
+    }
+    
+    console.log(`No existing event found for ${listType} list, need to create new one`);
+    return false;
+  } catch (error) {
+    console.error(`Error updating book in ${listType} list:`, error);
+    return false;
+  }
 }
 
 /**

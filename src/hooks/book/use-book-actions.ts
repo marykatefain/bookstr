@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
   addBookToList,
+  updateBookInList,
   reactToContent,
   isLoggedIn 
 } from "@/lib/nostr";
@@ -24,7 +25,11 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
-      await addBookToList(book, 'finished');
+      // Try to update the book in the list first, if it fails then add it
+      const success = await updateBookInList(book, 'finished');
+      if (!success) {
+        await addBookToList(book, 'finished');
+      }
       setIsRead(true);
       toast({
         title: "Success!",
@@ -47,7 +52,11 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
-      await addBookToList(book, listType);
+      // Try to update the book in the list first, if it fails then add it
+      const success = await updateBookInList(book, listType);
+      if (!success) {
+        await addBookToList(book, listType);
+      }
       toast({
         title: "Success!",
         description: `Book added to your ${listType === 'tbr' ? 'to be read' : 'currently reading'} list.`,

@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
-import { addBookToList } from "@/lib/nostr/books";
-import { toast } from "@/hooks/use-toast";
+import { addBookToList, updateBookInList } from "@/lib/nostr";
+import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
 import { BookOpen, Eye, Check } from "lucide-react";
 
@@ -18,6 +18,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const [isLoading, setIsLoading] = useState<BookActionType | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
+  const { toast } = useToast();
 
   const handleAction = async (action: BookActionType) => {
     // If no ISBN, request manual entry
@@ -38,11 +39,17 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         throw new Error("ISBN is required");
       }
       
-      await addBookToList(bookWithIsbn, action);
+      // First try to update the book in an existing list
+      const updated = await updateBookInList(bookWithIsbn, action);
+      
+      // If no existing list was found, add the book to a new list
+      if (!updated) {
+        await addBookToList(bookWithIsbn, action);
+      }
       
       toast({
         title: "Success!",
-        description: `Book added to your ${action === 'tbr' ? 'to be read' : action === 'reading' ? 'currently reading' : 'finished reading'} list.`,
+        description: `Book ${updated ? 'updated in' : 'added to'} your ${action === 'tbr' ? 'to be read' : action === 'reading' ? 'currently reading' : 'finished reading'} list.`,
       });
       
       if (onUpdate) {

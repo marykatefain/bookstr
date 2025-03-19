@@ -6,6 +6,14 @@ import { getCurrentUser, isLoggedIn } from "./user";
 import { getUserRelays, ensureConnections, getActiveConnections } from "./relay";
 
 /**
+ * Interface for event update filter
+ */
+interface UpdateEventFilter {
+  kind: number;
+  isbn?: string;
+}
+
+/**
  * Publish an event to Nostr relays
  */
 export async function publishToNostr(event: Partial<NostrEventData>): Promise<string | null> {
@@ -159,6 +167,154 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     
     toast({
       title: "Publishing failed",
+      description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
+    });
+    
+    return null;
+  }
+}
+
+/**
+ * Find existing event and update it
+ * @param filter - Filter parameters to find existing event
+ * @param updateTags - Function to update the tags of the existing event
+ * @returns Event ID if updated successfully, null if no event found or update failed
+ */
+export async function updateNostrEvent(
+  filter: UpdateEventFilter,
+  updateTags: (tags: string[][]) => string[][]
+): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to perform this action",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    // Ensure we have active connections to relays
+    await ensureConnections();
+    
+    // Create a filter to find the existing event
+    const pool = new SimplePool();
+    const relayUrls = getUserRelays();
+    
+    console.log(`Looking for existing event with kind ${filter.kind}`);
+    
+    const filterParams: any = {
+      kinds: [filter.kind],
+      authors: [currentUser.pubkey],
+      limit: 10
+    };
+    
+    // If ISBN is provided, create a filter to find events with this ISBN
+    let existingEvent: Event | undefined;
+    const events = await pool.list(relayUrls, [filterParams]);
+    
+    if (filter.isbn) {
+      console.log(`Filtering for ISBN ${filter.isbn}`);
+      existingEvent = events.find(event => 
+        event.tags.some(tag => 
+          tag[0] === 'i' && tag[1].includes(filter.isbn!)
+        )
+      );
+    } else {
+      // If no ISBN, just get the most recent event of this kind
+      existingEvent = events[0];
+    }
+    
+    if (!existingEvent) {
+      console.log(`No existing event found for kind ${filter.kind}`);
+      pool.close(relayUrls);
+      return null;
+    }
+    
+    console.log("Found existing event:", existingEvent);
+    
+    // Create updated event with new tags
+    const updatedTags = updateTags(existingEvent.tags);
+    
+    // Prepare the event to be signed
+    const unsignedEvent: UnsignedEvent = {
+      kind: filter.kind,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: updatedTags,
+      content: existingEvent.content,
+      pubkey: currentUser.pubkey
+    };
+    
+    console.log("Unsigned update event:", unsignedEvent);
+    
+    // Sign the event with the extension
+    const signedEvent = await window.nostr.signEvent(unsignedEvent);
+    
+    if (!signedEvent) {
+      throw new Error("Failed to sign event");
+    }
+    
+    console.log("Signed update event:", signedEvent);
+    
+    // Validate and publish the event
+    const eventHash = getEventHash(signedEvent);
+    if (eventHash !== signedEvent.id) {
+      throw new Error("Event validation failed: incorrect hash");
+    }
+    
+    const isValid = validateEvent(signedEvent);
+    if (!isValid) {
+      throw new Error("Event validation failed: invalid signature");
+    }
+    
+    console.log("Publishing updated event to relays:", relayUrls);
+    
+    // Publish the updated event
+    const publishPromise = new Promise<string>((resolve, reject) => {
+      const publishPromises = relayUrls.map(url => {
+        return pool.publish([url], signedEvent as Event);
+      });
+      
+      Promise.allSettled(publishPromises).then(results => {
+        console.log("Update publish results:", results);
+        
+        const success = results.some(result => 
+          result.status === 'fulfilled'
+        );
+        
+        if (success) {
+          setTimeout(() => {
+            resolve(signedEvent.id);
+          }, 1000);
+        } else {
+          reject(new Error("Failed to publish update to any relay"));
+        }
+      });
+    });
+    
+    const eventId = await publishPromise;
+    
+    setTimeout(() => {
+      pool.close(relayUrls);
+    }, 2000);
+    
+    toast({
+      title: "Updated successfully",
+      description: "Your book list has been updated"
+    });
+    
+    return eventId;
+  } catch (error) {
+    console.error("Error updating Nostr event:", error);
+    
+    toast({
+      title: "Update failed",
       description: error instanceof Error ? error.message : "Unknown error",
       variant: "destructive"
     });
