@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
-import { addBookToList, updateBookInList } from "@/lib/nostr";
+import { addBookToList, updateBookInList, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
 import { BookOpen, Eye, Check } from "lucide-react";

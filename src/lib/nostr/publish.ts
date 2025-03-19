@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
@@ -217,18 +216,26 @@ export async function updateNostrEvent(
     
     // If ISBN is provided, create a filter to find events with this ISBN
     let existingEvent: Event | undefined;
-    const events = await pool.list(relayUrls, [filterParams]);
     
-    if (filter.isbn) {
-      console.log(`Filtering for ISBN ${filter.isbn}`);
-      existingEvent = events.find(event => 
-        event.tags.some(tag => 
-          tag[0] === 'i' && tag[1].includes(filter.isbn!)
-        )
-      );
-    } else {
-      // If no ISBN, just get the most recent event of this kind
-      existingEvent = events[0];
+    // Use pool.list properly with the correct method
+    try {
+      const events = await pool.querySync(relayUrls, filterParams);
+      
+      if (filter.isbn) {
+        console.log(`Filtering for ISBN ${filter.isbn}`);
+        existingEvent = events.find(event => 
+          event.tags.some(tag => 
+            tag[0] === 'i' && tag[1].includes(filter.isbn!)
+          )
+        );
+      } else {
+        // If no ISBN, just get the most recent event of this kind
+        existingEvent = events[0];
+      }
+    } catch (queryError) {
+      console.error("Error querying events:", queryError);
+      pool.close(relayUrls);
+      return null;
     }
     
     if (!existingEvent) {

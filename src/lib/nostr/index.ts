@@ -24,7 +24,7 @@ export {
 export { fetchProfileData } from "./profile";
 
 // Export publishing functions
-export { publishToNostr } from "./publish";
+export { publishToNostr, updateNostrEvent } from "./publish";
 
 // Export posts functions
 export { createBookPost, fetchPosts, fetchBookPosts, fetchUserPosts } from "./posts";
@@ -39,7 +39,8 @@ export {
   reactToContent,
   replyToContent,
   followUser,
-  addBookToList
+  addBookToList,
+  updateBookInList
 } from "./books";
 
 // Export fetch functions
