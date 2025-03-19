@@ -104,7 +104,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   // If the book is marked as read, show rating stars and the unmark button
   if (isFinished) {
     return (
-      <div className="pt-2">
+      <div className="pt-2 w-full">
         <div className="flex justify-center mb-2">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
@@ -138,13 +138,13 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     );
   }
 
-  // For books on TBR or currently reading, show both buttons side by side
+  // For books on TBR or currently reading, show both buttons side by side with full width
   return (
-    <div className="pt-2 flex items-center gap-2">
+    <div className="pt-2 flex items-center gap-2 w-full">
       <Button
         size="sm"
         variant={isTbr ? "default" : "outline"}
-        className={`flex-1 text-xs ${isTbr ? "bg-bookverse-highlight" : ""}`}
+        className={`flex-1 text-xs ${isTbr ? "bg-bookverse-highlight" : ""} w-full`}
         onClick={handleTbrClick}
         disabled={!!pendingAction}
       >
@@ -159,7 +159,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
       </Button>
       <Button
         size="sm"
-        className={`flex-1 text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
+        className={`flex-1 text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"} w-full`}
         onClick={handleReadingClick}
         disabled={!!pendingAction}
       >
