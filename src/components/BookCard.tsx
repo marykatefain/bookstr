@@ -113,6 +113,10 @@ export const BookCard: React.FC<BookCardProps> = ({
     ? "p-2 space-y-1 flex-grow"
     : "p-3 space-y-1.5 flex-grow";
 
+  const mappedReadingStatus = book.readingStatus?.status === 'tbr' 
+    ? 'want-to-read' 
+    : book.readingStatus?.status as 'want-to-read' | 'reading' | 'finished' | null;
+
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
@@ -196,6 +200,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 pendingAction={pendingAction}
                 onAddToTbr={() => handleAction('want-to-read')}
                 onStartReading={() => handleAction('reading')}
+                readingStatus={mappedReadingStatus}
               />
             </div>
           </>

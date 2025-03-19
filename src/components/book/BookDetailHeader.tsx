@@ -50,6 +50,9 @@ const BookCoverSection: React.FC<{
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
 }> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList }) => {
+  const isTbr = book.readingStatus?.status === 'tbr';
+  const isReading = book.readingStatus?.status === 'reading';
+  
   return (
     <div className="md:w-1/3">
       <div className="sticky top-20">
@@ -61,22 +64,30 @@ const BookCoverSection: React.FC<{
         />
         <div className="mt-4 flex gap-2">
           <Button 
-            className="flex-1"
-            variant="outline"
+            className={`flex-1 ${isTbr ? "bg-bookverse-highlight" : ""}`}
+            variant={isTbr ? "default" : "outline"}
             onClick={() => addBookToList(book, 'tbr')}
             disabled={pendingAction !== null}
           >
-            <BookOpen className="mr-2 h-4 w-4" />
-            To Be Read
+            {isTbr ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <BookOpen className="mr-2 h-4 w-4" />
+            )}
+            {isTbr ? "On TBR List" : "To Be Read"}
           </Button>
           
           <Button 
-            className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+            className={`flex-1 ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
             onClick={() => addBookToList(book, 'reading')}
             disabled={pendingAction !== null}
           >
-            <Star className="mr-2 h-4 w-4" />
-            Start Reading
+            {isReading ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <Star className="mr-2 h-4 w-4" />
+            )}
+            {isReading ? "Currently Reading" : "Start Reading"}
           </Button>
         </div>
       </div>
