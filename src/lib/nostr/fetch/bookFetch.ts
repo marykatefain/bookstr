@@ -1,25 +1,42 @@
+
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
-import { extractISBNFromTags, getReadingStatusFromEventKind } from "../utils/eventUtils";
+import { getReadingStatusFromEventKind } from "../utils/eventUtils";
+
+/**
+ * Extract all ISBNs from the tags of an event
+ */
+export function extractISBNsFromTags(event: Event): string[] {
+  const isbnTags = event.tags.filter(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
+  return isbnTags.map(tag => tag[1].replace('isbn:', ''));
+}
+
+/**
+ * Extract a single ISBN from tags (used for backward compatibility)
+ */
+export function extractISBNFromTags(event: Event): string | null {
+  const isbnTag = event.tags.find(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
+  if (isbnTag && isbnTag[1]) {
+    return isbnTag[1].replace('isbn:', '');
+  }
+  return null;
+}
 
 /**
  * Convert a Nostr event to a Book object
  */
-export function eventToBook(event: Event): Book | null {
+export function eventToBook(event: Event, isbn: string): Book | null {
   try {
-    // Extract ISBN from tags
-    const isbn = extractISBNFromTags(event);
-    
     if (!isbn) {
-      console.warn('Missing ISBN tag in event:', event);
+      console.warn('Missing ISBN for event:', event);
       return null;
     }
     
     // Default book with required fields
     const book: Book = {
-      id: event.id,
+      id: `${event.id}-${isbn}`, // Make ID unique for each book-isbn combination
       title: "", // Will be filled in later
       author: "", // Will be filled in later
       isbn,
@@ -74,31 +91,40 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Extract book details from events
-    const bookEvents = events.map(event => {
+    // Process all events and extract books for each ISBN in each event
+    for (const event of events) {
       console.log(`Processing event: ${event.id}, kind: ${event.kind}, tags:`, event.tags);
-      return eventToBook(event);
-    }).filter(book => book !== null) as Book[];
-    
-    console.log(`Processed ${bookEvents.length} valid book events`);
-    
-    // Group by ISBN but keep all unique event IDs as separate books
-    // This change ensures we show all book entries even with the same ISBN
-    bookEvents.forEach(book => {
-      if (!book.readingStatus) return;
       
-      const status = book.readingStatus.status;
-      if (status === 'reading') {
-        readingBooks.push(book);
-      } else if (status === 'finished') {
-        readBooks.push(book);
-      } else {
-        tbrBooks.push(book);
+      // Get all ISBNs from this event's tags
+      const isbns = extractISBNsFromTags(event);
+      console.log(`Found ${isbns.length} ISBNs in event ${event.id}:`, isbns);
+      
+      if (isbns.length === 0) {
+        console.warn(`No ISBNs found in event ${event.id}`);
+        continue;
       }
-    });
+      
+      // Create a book object for each ISBN
+      for (const isbn of isbns) {
+        const book = eventToBook(event, isbn);
+        if (!book || !book.readingStatus) continue;
+        
+        const status = book.readingStatus.status;
+        if (status === 'reading') {
+          readingBooks.push(book);
+        } else if (status === 'finished') {
+          readBooks.push(book);
+        } else {
+          tbrBooks.push(book);
+        }
+      }
+    }
     
-    // Extract all unique ISBNs 
-    const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
+    console.log(`Created book objects: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+    
+    // Extract all unique ISBNs from all books
+    const allBooks = [...tbrBooks, ...readingBooks, ...readBooks];
+    const isbns = allBooks.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
     const uniqueIsbns = [...new Set(isbns)];
     
     console.log(`Found ${uniqueIsbns.length} unique ISBNs to fetch details for`);
@@ -126,7 +152,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
             return {
               ...book,
               ...details,
-              id: book.id, // Keep the original Nostr event ID
+              id: book.id, // Keep the original ID
               isbn: book.isbn, // Keep the original ISBN
               readingStatus: book.readingStatus // Keep the reading status
             };
@@ -139,7 +165,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         const enhancedReadingBooks = readingBooks.map(enhanceBook);
         const enhancedReadBooks = readBooks.map(enhanceBook);
         
-        console.log(`Categorized books: TBR=${enhancedTbrBooks.length}, Reading=${enhancedReadingBooks.length}, Read=${enhancedReadBooks.length}`);
+        console.log(`Enhanced books: TBR=${enhancedTbrBooks.length}, Reading=${enhancedReadingBooks.length}, Read=${enhancedReadBooks.length}`);
         
         return {
           tbr: enhancedTbrBooks,
