@@ -1,3 +1,4 @@
+
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -201,7 +202,7 @@ export const NOSTR_KINDS = {
   BOOK_METADATA: 73,
   GENERIC_LIST: 30000,
   BOOK_RATING: 1080,
-  REVIEW: 1111,
+  REVIEW: 31985, // Updated to the correct kind for reviews
   BOOK_READ: 10073,
   BOOK_READING: 10074,
   BOOK_TBR: 10075

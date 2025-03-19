@@ -20,14 +20,27 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
   try {
     const filter: Filter = {
       kinds: [NOSTR_KINDS.REVIEW],
-      "#i": [`isbn:${isbn}`]
+      "#d": [`isbn:${isbn}`],
+      "#k": ["isbn"]
     };
     
     const events = await pool.querySync(relays, filter);
     const reviews: BookReview[] = [];
     
     for (const event of events) {
-      const rating = extractRatingFromTags(event);
+      // Extract rating from tags - if present, convert from 0-1 scale to 0-5 scale
+      let rating = null;
+      
+      const ratingTag = event.tags.find(tag => tag[0] === 'rating');
+      if (ratingTag && ratingTag[1]) {
+        try {
+          const normalizedRating = parseFloat(ratingTag[1]);
+          // Convert from 0-1 scale to 1-5 scale
+          rating = Math.round(normalizedRating * 5);
+        } catch (e) {
+          console.error("Error parsing rating:", e);
+        }
+      }
       
       reviews.push({
         id: event.id,

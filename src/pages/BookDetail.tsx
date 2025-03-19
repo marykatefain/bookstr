@@ -28,6 +28,7 @@ const BookDetail = () => {
     setActiveTab,
     bookActivity,
     loadingActivity,
+    refreshTrigger,
     handleMarkAsRead,
     handleRateBook,
     handleSubmitReview,
@@ -97,6 +98,7 @@ const BookDetail = () => {
                 bookActivity={bookActivity}
                 loadingActivity={loadingActivity}
                 handleReactToActivity={handleReactToActivity}
+                refreshTrigger={refreshTrigger}
               />
             </div>
           )}

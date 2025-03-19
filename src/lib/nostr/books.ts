@@ -246,15 +246,16 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     return null;
   }
   
+  // Create tags array with the required format
   const tags = [
-    ["i", `isbn:${book.isbn}`],
-    ["k", "isbn"],
-    ["t", "bookstr"]
+    ["d", `isbn:${book.isbn}`],
+    ["k", "isbn"]
   ];
   
-  // Add rating tag if provided
+  // Add rating tag if provided, convert from 1-5 scale to 0-1 scale
   if (rating !== undefined && rating >= 1 && rating <= 5) {
-    tags.push(["rating", rating.toString()]);
+    const normalizedRating = (rating / 5).toFixed(2);
+    tags.push(["rating", normalizedRating]);
   }
   
   const event = {
@@ -263,6 +264,7 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     content: reviewText
   };
   
+  console.log("Publishing review event:", event);
   return publishToNostr(event);
 }
 
