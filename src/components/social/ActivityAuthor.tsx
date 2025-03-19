@@ -20,7 +20,7 @@ export function ActivityAuthor({ pubkey, name, picture, createdAt }: ActivityAut
       </Avatar>
       <div className="flex flex-col">
         <Link 
-          to={`/user/${pubkey}`} 
+          to={`/users/${pubkey}`} 
           className="font-medium text-sm hover:underline"
         >
           {name || formatPubkey(pubkey)}

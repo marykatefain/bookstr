@@ -13,6 +13,7 @@ import Library from "./pages/Library";
 import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
 import UserProfile from "./pages/UserProfile";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 
@@ -37,11 +38,12 @@ function App() {
             <Route path="/books" element={<Books />} />
             <Route path="/book/:isbn" element={<BookDetail />} />
             <Route path="/library" element={<Library />} />
-            <Route path="/profile" element={<Navigate to="/library" replace />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/social" element={<Navigate to="/" replace />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/users" element={<UserSearch />} />
-            <Route path="/user/:pubkey" element={<UserProfile />} />
+            <Route path="/users/:pubkey" element={<UserProfile />} />
+            <Route path="/user/:pubkey" element={<Navigate to="/users/:pubkey" replace />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
