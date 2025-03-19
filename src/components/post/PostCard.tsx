@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post, SocialActivity } from "@/lib/nostr/types";
@@ -28,11 +29,11 @@ export function PostCard({ post, onReaction }: PostCardProps) {
         pubkey: post.pubkey,
         author: post.author,
         createdAt: post.createdAt,
-        taggedBook: {
+        taggedBook: post.book.isbn ? {
           isbn: post.book.isbn,
           title: post.book.title,
           coverUrl: post.book.coverUrl
-        },
+        } : undefined,
         mediaUrl: post.mediaUrl,
         mediaType: post.mediaType,
         isSpoiler: post.isSpoiler,

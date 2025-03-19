@@ -49,9 +49,6 @@ export function ActivityContent({ activity }: ActivityContentProps) {
         />
       );
     case 'post':
-      if (!activity.book || !activity.book.isbn) {
-        console.warn("Post activity missing book data:", activity);
-      }
       return (
         <div className="space-y-2">
           <p>{activity.content}</p>
