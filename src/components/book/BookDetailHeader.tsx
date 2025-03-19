@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Star, Calendar, Clock, Check, Loader2 } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
 
@@ -130,12 +131,14 @@ const BookReadButton: React.FC<{
       onClick={handleMarkAsRead}
       className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
         ${isRead 
-          ? "bg-green-500 text-white" 
+          ? "bg-green-500 text-white hover:bg-red-500" 
           : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
-      title="Mark as read"
+      title={isRead ? "Remove from read list" : "Mark as read"}
     >
       {pendingAction === 'finished' ? (
         <Loader2 className="h-4 w-4 animate-spin" />
+      ) : isRead ? (
+        <Check className="h-4 w-4" />
       ) : (
         <Check className="h-4 w-4" />
       )}

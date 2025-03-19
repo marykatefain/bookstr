@@ -1,3 +1,4 @@
+
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool } from "nostr-tools";
@@ -456,6 +457,18 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
   }
   
   try {
+    const isbnToRemove = `isbn:${book.isbn}`;
+    console.log(`Attempting to remove ISBN ${isbnToRemove} from ${listType} list`);
+    
+    // First, fetch the current list to check if the book is actually in it
+    const currentTags = await fetchExistingIsbnTags(listType);
+    const isbnExists = currentTags.some(tag => tag[1] === isbnToRemove);
+    
+    if (!isbnExists) {
+      console.log(`ISBN ${isbnToRemove} not found in ${listType} list, nothing to remove`);
+      return null;
+    }
+    
     // The updateNostrEvent function will try to find an existing event with the specified kind
     // If found, it updates the event by removing the specified ISBN
     const result = await updateNostrEvent(
@@ -463,8 +476,7 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
       (prevTags) => {
         console.log("Previous tags before removal:", prevTags);
         
-        // Keep all tags that are not this specific ISBN
-        const isbnToRemove = `isbn:${book.isbn}`;
+        // Filter out the specific ISBN we want to remove
         const updatedTags = prevTags.filter(tag => !(tag[0] === 'i' && tag[1] === isbnToRemove));
         
         console.log("Updated tags after filtering ISBN:", updatedTags);
@@ -472,14 +484,13 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
         
         // Ensure we still have the 'k' tag for isbn
         if (updatedTags.some(tag => tag[0] === 'i')) {
-          // Only keep 'k' tag if we still have other ISBNs
+          // Only add k tag if it doesn't already exist
           if (!updatedTags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
             updatedTags.push(['k', 'isbn']);
           }
         } else {
-          // If no ISBNs left, remove the 'k' tag as well
-          const tagsWithoutK = updatedTags.filter(tag => !(tag[0] === 'k' && tag[1] === 'isbn'));
-          return tagsWithoutK;
+          // If no ISBNs left, remove the 'k' tag for ISBN
+          return updatedTags.filter(tag => !(tag[0] === 'k' && tag[1] === 'isbn'));
         }
         
         console.log('Final updated tags after removing ISBN:', updatedTags);
