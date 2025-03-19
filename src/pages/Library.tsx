@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,6 +85,10 @@ const Library: React.FC = () => {
     setShowRelaySettings(!showRelaySettings);
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   if (!isLoggedIn()) {
     return (
       <Layout>
@@ -122,6 +127,7 @@ const Library: React.FC = () => {
           <StatsCards 
             books={books} 
             postsCount={posts.length} 
+            onTabChange={handleTabChange}
           />
 
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
