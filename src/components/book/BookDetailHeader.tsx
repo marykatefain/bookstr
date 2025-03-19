@@ -235,7 +235,7 @@ const BookInfoSection: React.FC<{
       <div className="flex flex-wrap gap-4 mt-4">
         {avgRating > 0 && (
           <div className="flex items-center gap-1">
-            <BookRating rating={Math.round(avgRating)} />
+            <BookRating rating={avgRating} />
             <span className="ml-1 text-sm">({ratingsCount})</span>
           </div>
         )}
