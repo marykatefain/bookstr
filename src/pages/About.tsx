@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Layout } from "@/components/layout/Layout";
-import { ExternalLink, Book, Shield, Users, Database } from "lucide-react";
+import { ExternalLink, Book, Shield, Users, Database, Library } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
