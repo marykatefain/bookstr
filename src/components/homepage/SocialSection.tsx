@@ -5,10 +5,34 @@ import { Users } from "lucide-react";
 import { CompactSocialFeed } from "@/components/CompactSocialFeed";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
+import { Card } from "@/components/ui/card";
 
 export function SocialSection() {
   if (!isLoggedIn()) {
-    return null;
+    return (
+      <section className="py-8 bg-bookverse-paper">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col space-y-4">
+            <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              Reading Community
+            </h2>
+            <Card className="p-6">
+              <h3 className="text-lg font-medium mb-2">Connect with other readers</h3>
+              <p className="text-muted-foreground mb-4">
+                Sign in to see what books your friends are reading and share your own reading journey.
+              </p>
+              <Link 
+                to="/library" 
+                className="bg-bookverse-accent text-white px-4 py-2 rounded-md inline-block hover:bg-bookverse-accent/90"
+              >
+                Sign In
+              </Link>
+            </Card>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (

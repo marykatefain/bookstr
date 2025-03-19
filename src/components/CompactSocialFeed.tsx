@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { reactToContent, isLoggedIn } from "@/lib/nostr";
+import { fetchSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { CompactActivityCard } from "./social/CompactActivityCard";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { mockFollowersActivities } from "@/lib/nostr/mockData";
 
 interface CompactSocialFeedProps {
   maxItems?: number;
@@ -22,11 +21,10 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
-        // Use mock data for now
-        setTimeout(() => {
-          setActivities(mockFollowersActivities.slice(0, maxItems));
-          setLoading(false);
-        }, 400);
+        // Use real data instead of mock data
+        const realFeed = await fetchSocialFeed(maxItems);
+        setActivities(realFeed.slice(0, maxItems));
+        setLoading(false);
       } catch (error) {
         console.error("Error loading social feed:", error);
         setLoading(false);
