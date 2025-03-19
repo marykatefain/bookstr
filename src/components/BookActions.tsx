@@ -155,7 +155,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <BookOpen size={iconSize} />
               )}
-              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "To Be Read"}</span>}
+              {size !== 'small' && <span>{isTbr ? "Remove" : "TBR"}</span>}
             </Button>
             
             <Button 
@@ -170,7 +170,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <Eye size={iconSize} />
               )}
-              {size !== 'small' && <span>{isReading ? "Stop Reading" : "Start Reading"}</span>}
+              {size !== 'small' && <span>{isReading ? "Stop" : "Read"}</span>}
             </Button>
           </>
         )}
@@ -184,7 +184,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
             disabled={isLoading !== null}
           >
             <X size={iconSize} />
-            {size !== 'small' && <span>Unmark as Read</span>}
+            {size !== 'small' && <span>Unmark</span>}
           </Button>
         )}
       </div>
