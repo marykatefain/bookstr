@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2 } from "lucide-react";
@@ -50,8 +49,9 @@ const BookCoverSection: React.FC<{
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
 }> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList }) => {
-  const isTbr = book.readingStatus?.status === 'tbr';
-  const isReading = book.readingStatus?.status === 'reading';
+  const readingStatus = book.readingStatus?.status;
+  const isTbr = readingStatus === 'want-to-read';
+  const isReading = readingStatus === 'reading';
   
   return (
     <div className="md:w-1/3">

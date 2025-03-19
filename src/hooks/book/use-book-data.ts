@@ -2,11 +2,13 @@
 import { useState, useEffect } from "react";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
+import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
+  const { getBookReadingStatus } = useLibraryData();
 
   const { 
     data: book = null, 
@@ -36,15 +38,27 @@ export const useBookData = (isbn: string | undefined) => {
     retry: 1
   });
 
+  // Get the reading status from the user's library
+  const readingStatus = getBookReadingStatus(isbn);
+
+  // Update the book object with the reading status
+  const enrichedBook = book ? {
+    ...book,
+    readingStatus: readingStatus ? {
+      status: readingStatus,
+      rating: book.readingStatus?.rating
+    } : book.readingStatus
+  } : null;
+
   // Set read status when book data is available
   useEffect(() => {
-    if (book) {
-      setIsRead(book.readingStatus?.status === 'finished');
+    if (enrichedBook) {
+      setIsRead(enrichedBook.readingStatus?.status === 'finished');
     }
-  }, [book]);
+  }, [enrichedBook]);
 
   return {
-    book,
+    book: enrichedBook,
     loading: isLoading,
     isRead,
     setIsRead

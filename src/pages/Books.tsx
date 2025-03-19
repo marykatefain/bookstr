@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,53 +30,7 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
-  const { books: userBooks } = useLibraryData();
-
-  // Combine user's book lists into a mapping of ISBN to reading status for quick lookups
-  const userBooksMap = new Map<string, Book>();
-  
-  useEffect(() => {
-    // Build a lookup map of all the user's books by ISBN
-    const allUserBooks = [...userBooks.tbr, ...userBooks.reading, ...userBooks.read];
-    const newMap = new Map<string, Book>();
-    
-    allUserBooks.forEach(book => {
-      if (book.isbn) {
-        newMap.set(book.isbn, book);
-      }
-    });
-    
-    console.log(`Created user books map with ${newMap.size} entries`);
-  }, [userBooks]);
-
-  useEffect(() => {
-    console.log("Books component - trending books status:", {
-      loading: loadingTrending,
-      count: weeklyTrendingBooks.length
-    });
-    
-    if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
-      console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
-      
-      // Enrich books with user's reading status
-      const enrichedBooks = weeklyTrendingBooks.map(book => {
-        if (book.isbn && userBooksMap.has(book.isbn)) {
-          const userBook = userBooksMap.get(book.isbn);
-          return {
-            ...book,
-            readingStatus: userBook?.readingStatus
-          };
-        }
-        return book;
-      });
-      
-      setBooks(enrichedBooks);
-      setIsLoading(false);
-    } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
-      console.log("No trending books loaded, attempting to refresh");
-      refreshBooks();
-    }
-  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, userBooksMap]);
+  const { books: userBooks, getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,19 +41,52 @@ const Books = () => {
   }, [searchQuery]);
 
   useEffect(() => {
+    const enrichBooksWithReadingStatus = (bookList: Book[]): Book[] => {
+      return bookList.map(book => {
+        if (book.isbn) {
+          const readingStatus = getBookReadingStatus(book.isbn);
+          if (readingStatus) {
+            return {
+              ...book,
+              readingStatus: {
+                ...book.readingStatus,
+                status: readingStatus
+              }
+            };
+          }
+        }
+        return book;
+      });
+    };
+
+    if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+      console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
+      const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+      setBooks(enrichedBooks);
+      setIsLoading(false);
+    } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
+      console.log("No trending books loaded, attempting to refresh");
+      refreshBooks();
+    }
+  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, getBookReadingStatus]);
+
+  useEffect(() => {
     const performSearch = async () => {
       if (!debouncedSearch && activeCategory === "All") {
         if (weeklyTrendingBooks.length > 0) {
           console.log("Using trending books as no search or category is active");
-          
-          // Enrich trending books with user's reading status
           const enrichedBooks = weeklyTrendingBooks.map(book => {
-            if (book.isbn && userBooksMap.has(book.isbn)) {
-              const userBook = userBooksMap.get(book.isbn);
-              return {
-                ...book,
-                readingStatus: userBook?.readingStatus
-              };
+            if (book.isbn) {
+              const readingStatus = getBookReadingStatus(book.isbn);
+              if (readingStatus) {
+                return {
+                  ...book,
+                  readingStatus: {
+                    ...book.readingStatus,
+                    status: readingStatus
+                  }
+                };
+              }
             }
             return book;
           });
@@ -127,12 +113,17 @@ const Books = () => {
         
         // Enrich search results with user's reading status
         const enrichedResults = results.map(book => {
-          if (book.isbn && userBooksMap.has(book.isbn)) {
-            const userBook = userBooksMap.get(book.isbn);
-            return {
-              ...book,
-              readingStatus: userBook?.readingStatus
-            };
+          if (book.isbn) {
+            const readingStatus = getBookReadingStatus(book.isbn);
+            if (readingStatus) {
+              return {
+                ...book,
+                readingStatus: {
+                  ...book.readingStatus,
+                  status: readingStatus
+                }
+              };
+            }
           }
           return book;
         });
@@ -151,7 +142,7 @@ const Books = () => {
     };
 
     performSearch();
-  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, userBooksMap]);
+  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, getBookReadingStatus]);
 
   const handleCategoryChange = (category: string) => {
     console.log(`Changing category to: ${category}`);
@@ -164,13 +155,13 @@ const Books = () => {
 
   const handleBookUpdate = () => {
     console.log("Book updated, refreshing search results");
+    refetchUserBooks();
+    
     if (debouncedSearch || activeCategory !== "All") {
-      // Re-trigger the search
       const currentSearch = debouncedSearch;
       setDebouncedSearch("");
       setTimeout(() => setDebouncedSearch(currentSearch), 10);
     } else {
-      // Re-fetch trending books
       refreshBooks();
     }
   };
