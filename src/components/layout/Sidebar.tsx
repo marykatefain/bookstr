@@ -95,7 +95,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
       
       <Separator className="my-4" />
       
-      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
         <h3 className="font-medium text-sm">What is Nostr?</h3>
         <p className="text-xs text-muted-foreground">
           Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
