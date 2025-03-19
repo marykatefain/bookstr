@@ -109,7 +109,7 @@ export function PostCard({ post, onReaction }: PostCardProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="whitespace-pre-wrap">{postData.content}</p>
+            <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
             
             {postData.mediaUrl && (
               <div className="mt-3">
