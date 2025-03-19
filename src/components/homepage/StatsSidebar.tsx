@@ -18,7 +18,7 @@ export const StatsSidebar = () => {
   return <aside className="hidden xl:block xl:w-64 border-l border-border bg-bookverse-paper dark:bg-gray-900 p-4">
       <div className="flex items-center space-x-2 mb-4">
         <Book className="h-6 w-6 text-bookverse-accent" />
-        <h2 className="text-lg font-serif font-bold text-bookverse-ink">Your Reading</h2>
+        <h2 className="text-lg font-serif font-bold text-bookverse-ink">Your Library</h2>
       </div>
 
       <Separator className="my-4" />
