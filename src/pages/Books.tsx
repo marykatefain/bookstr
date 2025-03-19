@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Book as BookIcon, Search, Filter, Loader2 } from "lucide-react";
+import { Book as BookIcon, Search, Loader2 } from "lucide-react";
 import { Book } from "@/lib/nostr";
 import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,7 +30,6 @@ const Books = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
 
-  // Initial loading of trending books
   useEffect(() => {
     console.log("Books component - trending books status:", {
       loading: loadingTrending,
@@ -43,13 +41,11 @@ const Books = () => {
       setBooks(weeklyTrendingBooks);
       setIsLoading(false);
     } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
-      // If not loading but we have no books, try to refresh
       console.log("No trending books loaded, attempting to refresh");
       refreshBooks();
     }
   }, [weeklyTrendingBooks, loadingTrending, refreshBooks]);
 
-  // Handle search debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -58,11 +54,9 @@ const Books = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Handle search
   useEffect(() => {
     const performSearch = async () => {
       if (!debouncedSearch && activeCategory === "All") {
-        // If search is cleared and category is All, use the weekly trending books
         if (weeklyTrendingBooks.length > 0) {
           console.log("Using trending books as no search or category is active");
           setBooks(weeklyTrendingBooks);
@@ -76,11 +70,9 @@ const Books = () => {
         let results: Book[] = [];
         
         if (debouncedSearch) {
-          // Use the OpenLibrary search API
           console.log(`Searching for books with query: "${debouncedSearch}"`);
           results = await searchBooks(debouncedSearch, 20);
         } else if (activeCategory !== "All") {
-          // Search by genre with the new implementation
           console.log(`Searching for books in category: "${activeCategory}"`);
           results = await searchBooksByGenre(activeCategory, 20);
         }
@@ -102,11 +94,9 @@ const Books = () => {
     performSearch();
   }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks]);
 
-  // Handle category change
   const handleCategoryChange = (category: string) => {
     console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
-    // Clear search query when changing categories
     if (searchQuery) {
       setSearchQuery("");
       setDebouncedSearch("");
@@ -137,7 +127,7 @@ const Books = () => {
             <div className="flex-1 md:flex-none">
               <Tabs defaultValue="all" className="w-full md:w-auto">
                 <TabsList className="w-full md:w-auto overflow-x-auto flex flex-nowrap justify-start px-1 h-auto py-1">
-                  {categories.slice(0, 5).map((category) => (
+                  {categories.slice(0, 6).map((category) => (
                     <TabsTrigger
                       key={category}
                       value={category.toLowerCase()}
@@ -147,10 +137,6 @@ const Books = () => {
                       {category}
                     </TabsTrigger>
                   ))}
-                  <TabsTrigger value="more" className="whitespace-nowrap text-xs md:text-sm">
-                    <Filter className="h-4 w-4 mr-1" />
-                    More
-                  </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
