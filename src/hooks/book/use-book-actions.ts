@@ -5,7 +5,6 @@ import {
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  reactToContent,
   isLoggedIn 
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +25,15 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
+      // First, check if the book is in TBR or Reading lists and remove it
+      if (book.readingStatus?.status === 'tbr') {
+        await removeBookFromList(book, 'tbr');
+        console.log("Removed book from TBR list before marking as read");
+      } else if (book.readingStatus?.status === 'reading') {
+        await removeBookFromList(book, 'reading');
+        console.log("Removed book from Reading list before marking as read");
+      }
+
       // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, 'finished');
       if (!success) {
@@ -53,6 +61,12 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
+      // If moving to reading list and book is in TBR, remove from TBR first
+      if (listType === 'reading' && book.readingStatus?.status === 'tbr') {
+        await removeBookFromList(book, 'tbr');
+        console.log("Removed book from TBR list before marking as reading");
+      }
+
       // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, listType);
       if (!success) {
