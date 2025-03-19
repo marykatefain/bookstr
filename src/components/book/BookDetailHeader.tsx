@@ -131,8 +131,8 @@ const BookReadButton: React.FC<{
       onClick={handleMarkAsRead}
       className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
         ${isRead 
-          ? "bg-green-500 text-white hover:bg-red-500" 
-          : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+          ? "bg-green-500 text-white hover:bg-red-500 hover:scale-110" 
+          : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500 hover:scale-110"}`}
       title={isRead ? "Remove from read list" : "Mark as read"}
     >
       {pendingAction === 'finished' ? (

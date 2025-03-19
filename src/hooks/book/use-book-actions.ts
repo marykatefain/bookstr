@@ -1,11 +1,11 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  isLoggedIn,
-  reactToContent 
+  isLoggedIn
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,9 +27,36 @@ export const useBookActions = () => {
     
     if (currentStatus === 'finished') {
       console.log("Book is already marked as read, removing from finished list");
-      const removed = await handleRemoveBookFromList(book, 'finished');
-      if (removed) {
-        setIsRead(false);
+      setPendingAction('finished');
+      
+      try {
+        // Attempt to remove the book from the finished list
+        const result = await removeBookFromList(book, 'finished');
+        
+        if (result) {
+          console.log("Successfully removed book from finished list", result);
+          setIsRead(false);
+          toast({
+            title: "Success!",
+            description: "Book removed from your read list",
+          });
+        } else {
+          console.log("Book was not found in the finished list or removal failed");
+          toast({
+            title: "Note",
+            description: "The book could not be removed from your read list",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Error removing book from finished list:", error);
+        toast({
+          title: "Error",
+          description: "Could not remove book from read list",
+          variant: "destructive"
+        });
+      } finally {
+        setPendingAction(null);
       }
       return;
     }
@@ -173,3 +200,6 @@ export const useBookActions = () => {
     handleReactToContent
   };
 };
+
+// Re-adding the import for reactToContent that was previously fixed
+import { reactToContent } from "@/lib/nostr";
