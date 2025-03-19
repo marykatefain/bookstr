@@ -26,8 +26,19 @@ const Index = () => {
     refetchOnWindowFocus: false
   });
   
+  // Create the right sidebar element
+  const rightSidebar = (
+    <div className="hidden xl:block w-80 flex-shrink-0 p-4">
+      <TrendingSidebar 
+        books={trendingBooks} 
+        loading={loadingTrending} 
+        refreshBooks={refreshTrending}
+      />
+    </div>
+  );
+  
   return (
-    <Layout>
+    <Layout rightSidebar={rightSidebar}>
       <HeroSection />
       
       <div className="container px-4 md:px-6 max-w-screen-xl mx-auto">
@@ -35,15 +46,6 @@ const Index = () => {
           {/* Main content area */}
           <div className="flex-1">
             <SocialSection />
-          </div>
-          
-          {/* Right sidebar - only visible on xl screens and up */}
-          <div className="hidden xl:block w-80 flex-shrink-0">
-            <TrendingSidebar 
-              books={trendingBooks} 
-              loading={loadingTrending} 
-              refreshBooks={refreshTrending}
-            />
           </div>
         </div>
       </div>

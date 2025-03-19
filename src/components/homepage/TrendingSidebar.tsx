@@ -15,16 +15,16 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
   const [visibleBooks, setVisibleBooks] = useState<BookType[]>([]);
   const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
   
-  // Initialize with some books immediately to avoid empty state
+  // Initialize with the first set of books immediately
   useEffect(() => {
-    // Show first 5 books initially before container measurement
     if (books.length > 0) {
-      const initialBooks = Math.min(books.length, 5);
-      setVisibleBooks(books.slice(0, initialBooks));
+      // Show initial books (up to 5) before container measurement
+      const initialCount = Math.min(books.length, 5);
+      setVisibleBooks(books.slice(0, initialCount));
     }
   }, [books]);
   
-  // Calculate how many books can fit in the container
+  // Calculate how many books can fit in the container without scrolling
   useEffect(() => {
     if (!containerRef || books.length === 0) return;
     
@@ -33,9 +33,12 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
       // Approximate height of each book card + margin
       const bookCardHeight = 100; // Height of small BookCard + margin
       const maxBooks = Math.floor(containerHeight / bookCardHeight);
-      // Limit to available books, up to 10 maximum
-      const booksToShow = Math.min(maxBooks, books.length, 10);
-      setVisibleBooks(books.slice(0, booksToShow));
+      // Limit to available books
+      const booksToShow = Math.min(maxBooks, books.length);
+      
+      if (booksToShow > 0) {
+        setVisibleBooks(books.slice(0, booksToShow));
+      }
     };
     
     calculateVisibleBooks();
@@ -48,7 +51,7 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
   }, [containerRef, books]);
   
   return (
-    <Card className="bg-bookverse-paper shadow sticky top-8 h-full">
+    <Card className="bg-bookverse-paper shadow sticky top-8 h-full flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-serif flex items-center">
           <Book className="mr-2 h-5 w-5 text-bookverse-accent" />
@@ -56,8 +59,7 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
         </CardTitle>
       </CardHeader>
       <CardContent 
-        className="space-y-4 overflow-y-auto"
-        style={{ maxHeight: 'calc(100vh - 10rem)' }}
+        className="space-y-4 flex-grow"
         ref={setContainerRef}
       >
         {visibleBooks.length > 0 ? (

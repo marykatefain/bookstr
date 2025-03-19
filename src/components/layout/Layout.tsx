@@ -12,7 +12,7 @@ interface LayoutProps {
   rightSidebar?: React.ReactNode;
 }
 
-export const Layout = ({ children }: LayoutProps) => {
+export const Layout = ({ children, rightSidebar }: LayoutProps) => {
   const { toast } = useToast();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [user, setUser] = useState(getCurrentUser());
@@ -59,6 +59,8 @@ export const Layout = ({ children }: LayoutProps) => {
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
+        
+        {rightSidebar}
       </div>
     </div>
   );
