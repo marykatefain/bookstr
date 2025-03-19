@@ -111,6 +111,8 @@ export const MobileSidebar = ({
             ))}
           </nav>
           
+          <Separator className="my-2" />
+          
           <div className="px-4 pt-2 pb-4">
             <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
               <h3 className="font-medium text-sm">What is Nostr?</h3>
