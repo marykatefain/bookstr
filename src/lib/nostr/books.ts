@@ -461,9 +461,14 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
     const result = await updateNostrEvent(
       { kind },
       (prevTags) => {
+        console.log("Previous tags before removal:", prevTags);
+        
         // Keep all tags that are not this specific ISBN
         const isbnToRemove = `isbn:${book.isbn}`;
         const updatedTags = prevTags.filter(tag => !(tag[0] === 'i' && tag[1] === isbnToRemove));
+        
+        console.log("Updated tags after filtering ISBN:", updatedTags);
+        console.log(`Removed ISBN tag? ${prevTags.length !== updatedTags.length}`);
         
         // Ensure we still have the 'k' tag for isbn
         if (updatedTags.some(tag => tag[0] === 'i')) {
@@ -471,9 +476,13 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
           if (!updatedTags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
             updatedTags.push(['k', 'isbn']);
           }
+        } else {
+          // If no ISBNs left, remove the 'k' tag as well
+          const tagsWithoutK = updatedTags.filter(tag => !(tag[0] === 'k' && tag[1] === 'isbn'));
+          return tagsWithoutK;
         }
         
-        console.log('Updated tags after removing ISBN:', updatedTags);
+        console.log('Final updated tags after removing ISBN:', updatedTags);
         return updatedTags;
       }
     );

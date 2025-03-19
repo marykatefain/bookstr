@@ -96,14 +96,22 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
-      await removeBookFromList(book, listType);
-      toast({
-        title: "Success!",
-        description: `Book removed from your ${
-          listType === 'tbr' ? 'to be read' : 
-          listType === 'reading' ? 'currently reading' : 'finished reading'
-        } list.`,
-      });
+      const result = await removeBookFromList(book, listType);
+      
+      if (result) {
+        toast({
+          title: "Success!",
+          description: `Book removed from your ${
+            listType === 'tbr' ? 'to be read' : 
+            listType === 'reading' ? 'currently reading' : 'finished reading'
+          } list.`,
+        });
+      } else {
+        toast({
+          title: "Note",
+          description: "Book was not found in the list",
+        });
+      }
       
       if (listType === 'finished' && book.readingStatus?.status === 'finished') {
         return true;
