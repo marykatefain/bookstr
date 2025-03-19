@@ -5,7 +5,8 @@ import {
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  isLoggedIn
+  isLoggedIn,
+  reactToContent
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 

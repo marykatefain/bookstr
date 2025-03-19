@@ -104,7 +104,7 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
   }
 }
 
-// Add placeholder functions for the missing exports
+// Update placeholder functions with the correct parameter signatures
 export const addBookToList = async (book: Book, listType: BookActionType): Promise<string | null> => {
   console.log(`Adding book to ${listType} list`);
   return null;
@@ -115,12 +115,43 @@ export const updateBookInList = async (book: Book, listType: BookActionType): Pr
   return false;
 };
 
-// Placeholder for other required functions referenced in index.ts
-export const addBookToTBR = async () => null;
-export const markBookAsReading = async () => null;
-export const markBookAsRead = async () => null;
-export const rateBook = async () => null;
-export const reviewBook = async () => null;
-export const reactToContent = async () => null;
-export const replyToContent = async () => null;
-export const followUser = async () => null;
+// Update placeholder functions with the correct parameter signatures for all exported functions
+export const addBookToTBR = async (book: Book): Promise<string | null> => {
+  console.log(`Adding book to TBR list: ${book.title}`);
+  return null;
+};
+
+export const markBookAsReading = async (book: Book): Promise<string | null> => {
+  console.log(`Marking book as reading: ${book.title}`);
+  return null;
+};
+
+export const markBookAsRead = async (book: Book): Promise<string | null> => {
+  console.log(`Marking book as read: ${book.title}`);
+  return null;
+};
+
+export const rateBook = async (book: Book, rating: number): Promise<string | null> => {
+  console.log(`Rating book ${book.title} with ${rating} stars`);
+  return null;
+};
+
+export const reviewBook = async (book: Book, review: string, rating?: number): Promise<string | null> => {
+  console.log(`Reviewing book ${book.title} with rating ${rating || 'none'}`);
+  return null;
+};
+
+export const reactToContent = async (contentId: string): Promise<string | null> => {
+  console.log(`Reacting to content with ID: ${contentId}`);
+  return null;
+};
+
+export const replyToContent = async (contentId: string, reply: string): Promise<string | null> => {
+  console.log(`Replying to content with ID: ${contentId}`);
+  return null;
+};
+
+export const followUser = async (pubkey: string): Promise<string | null> => {
+  console.log(`Following user with pubkey: ${pubkey}`);
+  return null;
+};

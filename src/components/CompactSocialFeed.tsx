@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { fetchGlobalSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
@@ -21,7 +20,6 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
-        // Use global feed instead of followers feed
         const globalFeed = await fetchGlobalSocialFeed(maxItems);
         setActivities(globalFeed.slice(0, maxItems));
         setLoading(false);
