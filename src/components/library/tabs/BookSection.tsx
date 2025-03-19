@@ -11,6 +11,8 @@ interface BookSectionProps {
 }
 
 export const BookSection: React.FC<BookSectionProps> = ({ title, books, emptyStateType }) => {
+  console.log(`Rendering ${title} section with ${books.length} books`);
+  
   return (
     <section className="mb-12">
       <h2 className="text-2xl font-serif font-semibold mb-4">{title}</h2>

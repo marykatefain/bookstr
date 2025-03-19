@@ -3,6 +3,7 @@ import React from "react";
 import { BookSection } from "./BookSection";
 import { Book } from "@/lib/nostr/types";
 import { EmptyState } from "@/components/profile/EmptyState";
+import { BookCard } from "@/components/BookCard";
 
 interface BooksTabContentProps {
   books: {

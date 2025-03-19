@@ -74,33 +74,39 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Extract book details from events and deduplicate by ISBN
-    const bookEvents = events.map(event => eventToBook(event)).filter(book => book !== null) as Book[];
-    const uniqueBooks = new Map<string, Book>();
+    // Extract book details from events
+    const bookEvents = events.map(event => {
+      console.log(`Processing event: ${event.id}, kind: ${event.kind}, tags:`, event.tags);
+      return eventToBook(event);
+    }).filter(book => book !== null) as Book[];
     
-    // Group by ISBN and keep the most recent event for each ISBN based on status
+    console.log(`Processed ${bookEvents.length} valid book events`);
+    
+    // Group by ISBN but keep all unique event IDs as separate books
+    // This change ensures we show all book entries even with the same ISBN
     bookEvents.forEach(book => {
-      if (!book.isbn || !book.readingStatus) return;
+      if (!book.readingStatus) return;
       
-      const existingBook = uniqueBooks.get(book.isbn);
-      
-      // If we don't have this ISBN yet, or if this event is newer than what we have
-      if (!existingBook || 
-          (book.readingStatus.dateAdded > (existingBook.readingStatus?.dateAdded || 0))) {
-        uniqueBooks.set(book.isbn, book);
+      const status = book.readingStatus.status;
+      if (status === 'reading') {
+        readingBooks.push(book);
+      } else if (status === 'finished') {
+        readBooks.push(book);
+      } else {
+        tbrBooks.push(book);
       }
     });
     
-    // Now we have unique books by ISBN with the most recent status
-    const dedupedBooks = Array.from(uniqueBooks.values());
-    
     // Extract all unique ISBNs 
-    const isbns = dedupedBooks.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
+    const isbns = bookEvents.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
+    const uniqueIsbns = [...new Set(isbns)];
+    
+    console.log(`Found ${uniqueIsbns.length} unique ISBNs to fetch details for`);
     
     // Fetch additional book details from OpenLibrary if we have ISBNs
-    if (isbns.length > 0) {
+    if (uniqueIsbns.length > 0) {
       try {
-        const bookDetails = await getBooksByISBN(isbns);
+        const bookDetails = await getBooksByISBN(uniqueIsbns);
         
         // Create a map for quick lookup
         const bookDetailsMap = new Map<string, Partial<Book>>();
@@ -111,67 +117,56 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         });
         
         // Enhance books with OpenLibrary data
-        dedupedBooks.forEach(book => {
-          if (!book.isbn || !book.readingStatus) return;
+        const enhanceBook = (book: Book) => {
+          if (!book.isbn) return book;
           
           const details = bookDetailsMap.get(book.isbn);
           if (details) {
             // Merge the details while preserving the id and reading status
-            Object.assign(book, {
+            return {
+              ...book,
               ...details,
               id: book.id, // Keep the original Nostr event ID
+              isbn: book.isbn, // Keep the original ISBN
               readingStatus: book.readingStatus // Keep the reading status
-            });
+            };
           }
-          
-          const status = book.readingStatus.status;
-          if (status === 'reading') {
-            readingBooks.push(book);
-          } else if (status === 'finished') {
-            readBooks.push(book);
-          } else {
-            tbrBooks.push(book);
-          }
-        });
+          return book;
+        };
+        
+        // Apply enhancements to each list
+        const enhancedTbrBooks = tbrBooks.map(enhanceBook);
+        const enhancedReadingBooks = readingBooks.map(enhanceBook);
+        const enhancedReadBooks = readBooks.map(enhanceBook);
+        
+        console.log(`Categorized books: TBR=${enhancedTbrBooks.length}, Reading=${enhancedReadingBooks.length}, Read=${enhancedReadBooks.length}`);
+        
+        return {
+          tbr: enhancedTbrBooks,
+          reading: enhancedReadingBooks,
+          read: enhancedReadBooks
+        };
       } catch (error) {
         console.error('Error enhancing books with OpenLibrary data:', error);
         // Fall back to using basic book data without enhancements
-        dedupedBooks.forEach(book => {
-          if (!book.readingStatus) return;
-          
-          const status = book.readingStatus.status;
-          if (status === 'reading') {
-            readingBooks.push(book);
-          } else if (status === 'finished') {
-            readBooks.push(book);
-          } else {
-            tbrBooks.push(book);
-          }
-        });
+        console.log(`Falling back to unenhanced data: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+        
+        return {
+          tbr: tbrBooks,
+          reading: readingBooks,
+          read: readBooks
+        };
       }
     } else {
       // No ISBNs, just use the basic book data
-      dedupedBooks.forEach(book => {
-        if (!book.readingStatus) return;
-        
-        const status = book.readingStatus.status;
-        if (status === 'reading') {
-          readingBooks.push(book);
-        } else if (status === 'finished') {
-          readBooks.push(book);
-        } else {
-          tbrBooks.push(book);
-        }
-      });
+      console.log(`No ISBNs found, using basic data: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+      
+      return {
+        tbr: tbrBooks,
+        reading: readingBooks,
+        read: readBooks
+      };
     }
-    
-    console.log(`Categorized books: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
-    
-    return {
-      tbr: tbrBooks,
-      reading: readingBooks,
-      read: readBooks
-    };
   } catch (error) {
     console.error('Error fetching books from relays:', error);
     return { tbr: [], reading: [], read: [] };
