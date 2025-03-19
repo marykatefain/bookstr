@@ -103,6 +103,3 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     </>
   );
 };
-
-// Import BookCard component at the top
-import { BookCard } from "@/components/BookCard";
