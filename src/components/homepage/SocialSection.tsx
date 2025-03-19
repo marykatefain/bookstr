@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, Hash } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { Card } from "@/components/ui/card";
@@ -41,8 +41,8 @@ export function SocialSection() {
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
-              <Users className="mr-2 h-5 w-5" />
-              Global Activity
+              <Hash className="mr-2 h-5 w-5" />
+              Bookstr Community on Nostr
             </h2>
             <Link to="/social" className="text-sm text-bookverse-accent hover:underline">
               View All
