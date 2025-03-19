@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -216,6 +215,8 @@ export const BookCard: React.FC<BookCardProps> = ({
                 onStartReading={() => handleAction('reading')}
                 onRemove={handleRemove}
                 readingStatus={mappedReadingStatus}
+                book={book}
+                onUpdate={onUpdate}
               />
             </div>
           </div>
@@ -263,7 +264,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 book={book}
                 onUpdate={onUpdate}
                 size={size}
-                horizontal={true} // Fixed: Pass a boolean value instead of comparing string literals
+                horizontal={true}
               />
             </div>
           </>

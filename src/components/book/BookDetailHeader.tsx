@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
+import { rateBook } from "@/lib/nostr";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookDetailHeaderProps {
   book: Book;
@@ -53,9 +55,36 @@ const BookCoverSection: React.FC<{
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
+  const [isRating, setIsRating] = useState(false);
+  const { toast } = useToast();
   
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
+  
+  const userRating = book.readingStatus?.rating !== undefined 
+    ? Math.round(book.readingStatus.rating * 5) 
+    : 0;
+    
+  const handleRating = async (rating: number) => {
+    try {
+      setIsRating(true);
+      await rateBook(book, rating / 5);
+      
+      toast({
+        title: "Rating submitted",
+        description: `You've rated "${book.title}" ${rating} stars.`
+      });
+    } catch (error) {
+      console.error("Error rating book:", error);
+      toast({
+        title: "Error",
+        description: "Could not submit rating",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRating(false);
+    }
+  };
   
   return (
     <div className="md:w-1/3">
@@ -66,6 +95,23 @@ const BookCoverSection: React.FC<{
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
         />
+        {isFinished && (
+          <div className="mt-3 flex justify-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                onClick={() => !isRating && handleRating(star)}
+                className={`h-6 w-6 cursor-pointer mx-0.5 ${
+                  isRating ? 'opacity-50' : ''
+                } ${
+                  star <= userRating
+                    ? "text-yellow-500 fill-yellow-500"
+                    : "text-gray-300"
+                }`}
+              />
+            ))}
+          </div>
+        )}
         <div className="mt-4 flex gap-2">
           {showActionButtons && (
             <>

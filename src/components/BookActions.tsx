@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
-import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn } from "@/lib/nostr";
+import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn, rateBook } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookOpen, Eye, Check, X } from "lucide-react";
+import { BookOpen, Eye, Check, X, Star } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;
@@ -17,6 +17,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const [isLoading, setIsLoading] = useState<BookActionType | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
+  const [isRating, setIsRating] = useState(false);
   const { toast } = useToast();
 
   const handleAction = async (action: BookActionType) => {
@@ -129,6 +130,35 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     }
   };
 
+  const handleRating = async (rating: number) => {
+    try {
+      setIsRating(true);
+      if (!book.isbn) {
+        throw new Error("ISBN is required");
+      }
+      
+      await rateBook(book, rating / 5); // Convert 1-5 to 0-1 scale
+      
+      toast({
+        title: "Success!",
+        description: `You've rated "${book.title}" ${rating} stars.`,
+      });
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error(`Error rating book:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to rate the book. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRating(false);
+    }
+  };
+
   const getButtonSize = () => {
     switch (size) {
       case 'small': return 'h-8 text-xs px-2';
@@ -149,6 +179,10 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
 
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
+  
+  const userRating = book.readingStatus?.rating !== undefined 
+    ? Math.round(book.readingStatus.rating * 5) 
+    : 0;
 
   return (
     <>
@@ -188,16 +222,33 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         )}
         
         {showUnmarkButton && (
-          <Button 
-            variant="secondary" 
-            size="sm"
-            className={buttonSize}
-            onClick={() => handleAction('finished')}
-            disabled={isLoading !== null}
-          >
-            <X size={iconSize} />
-            {size !== 'small' && <span>Mark Unread</span>}
-          </Button>
+          <>
+            <div className="flex justify-center mt-1 mb-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  onClick={() => !isRating && handleRating(star)}
+                  className={`h-5 w-5 cursor-pointer ${
+                    isRating ? 'opacity-50' : ''
+                  } ${
+                    star <= userRating
+                      ? "text-yellow-500 fill-yellow-500"
+                      : "text-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              className={buttonSize}
+              onClick={() => handleAction('finished')}
+              disabled={isLoading !== null}
+            >
+              <X size={iconSize} />
+              {size !== 'small' && <span>Mark Unread</span>}
+            </Button>
+          </>
         )}
       </div>
 
