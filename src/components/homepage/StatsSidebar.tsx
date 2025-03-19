@@ -12,7 +12,7 @@ import { useLibraryData } from "@/hooks/use-library-data";
 export const StatsSidebar = () => {
   const { user, books, booksLoading } = useLibraryData();
   const isUserLoggedIn = isLoggedIn();
-  const currentlyReading = books.reading[0] || null;
+  const currentlyReadingBooks = books.reading || [];
 
   return (
     <aside className="hidden xl:block xl:w-64 border-l border-border bg-bookverse-paper dark:bg-gray-900 p-4">
@@ -42,22 +42,27 @@ export const StatsSidebar = () => {
             </Card>
           </div>
 
-          {currentlyReading && (
+          {currentlyReadingBooks.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Currently Reading</h3>
-              <div className="rounded-lg overflow-hidden border border-border bg-card">
-                <div className="aspect-[2/3] w-full max-w-[120px] mx-auto my-3">
-                  <BookCover
-                    isbn={currentlyReading.isbn}
-                    title={currentlyReading.title}
-                    author={currentlyReading.author}
-                    coverUrl={currentlyReading.coverUrl}
-                  />
-                </div>
-                <div className="p-3 pt-0 text-center">
-                  <h4 className="font-medium text-sm line-clamp-1">{currentlyReading.title}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{currentlyReading.author}</p>
-                </div>
+              
+              <div className="space-y-4">
+                {currentlyReadingBooks.map((book) => (
+                  <div key={book.id} className="rounded-lg overflow-hidden border border-border bg-card">
+                    <div className="aspect-[2/3] w-full max-w-[120px] mx-auto my-3">
+                      <BookCover
+                        isbn={book.isbn}
+                        title={book.title}
+                        author={book.author}
+                        coverUrl={book.coverUrl}
+                      />
+                    </div>
+                    <div className="p-3 pt-0 text-center">
+                      <h4 className="font-medium text-sm line-clamp-1">{book.title}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{book.author}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
