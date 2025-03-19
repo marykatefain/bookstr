@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
@@ -30,10 +31,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const displayRating = (): number | undefined => {
     if (review.rating === undefined) return undefined;
     
-    if (review.rating >= 1 && review.rating <= 5) {
-      return review.rating;
-    }
-    
+    // Always assume the rating is in 0-1 scale and convert to 1-5 scale
     return Math.round(review.rating * 5);
   };
 

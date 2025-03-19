@@ -12,6 +12,9 @@ interface BookRatingActivityProps {
 }
 
 export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, rating }: BookRatingActivityProps) {
+  // Convert rating from 0-1 scale to 1-5 scale
+  const displayRating = rating !== undefined ? Math.round(rating * 5) : undefined;
+  
   return (
     <div>
       <p>
@@ -23,12 +26,12 @@ export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, 
           {bookTitle}
         </Link>
       </p>
-      {rating && (
+      {displayRating && (
         <div className="flex items-center mt-1">
           {Array(5).fill(0).map((_, index) => (
             <Star
               key={index}
-              className={`h-4 w-4 ${index < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+              className={`h-4 w-4 ${index < displayRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
             />
           ))}
         </div>
