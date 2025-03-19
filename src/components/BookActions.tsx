@@ -239,9 +239,9 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ))}
             </div>
             <Button 
-              variant="secondary" 
+              variant="outline" 
               size="sm"
-              className={buttonSize}
+              className={`${buttonSize} text-muted-foreground hover:bg-muted/50`}
               onClick={() => handleAction('finished')}
               disabled={isLoading !== null}
             >

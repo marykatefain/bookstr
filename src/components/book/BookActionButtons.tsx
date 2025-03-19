@@ -108,8 +108,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         </div>
         <Button
           size="sm"
-          variant="default"
-          className="w-full text-xs bg-bookverse-highlight"
+          variant="outline"
+          className="w-full text-xs text-muted-foreground hover:bg-muted/50"
           onClick={handleUnmarkClick}
           disabled={!!pendingAction}
         >
