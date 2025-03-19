@@ -11,12 +11,16 @@ interface StatsCardsProps {
     read: BookType[];
   };
   postsCount: number;
+  onTabChange: (tab: string) => void;
 }
 
-export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount }) => {
+export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount, onTabChange }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <Card>
+      <Card 
+        className="cursor-pointer hover:border-bookverse-accent transition-colors"
+        onClick={() => onTabChange("want-to-read")}
+      >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <BookMarked className="h-8 w-8 text-bookverse-accent mb-2" />
@@ -25,7 +29,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount }) => 
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card 
+        className="cursor-pointer hover:border-bookverse-accent transition-colors"
+        onClick={() => onTabChange("reading")}
+      >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <BookOpen className="h-8 w-8 text-bookverse-accent mb-2" />
@@ -34,7 +41,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount }) => 
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card 
+        className="cursor-pointer hover:border-bookverse-accent transition-colors"
+        onClick={() => onTabChange("read")}
+      >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <Book className="h-8 w-8 text-bookverse-accent mb-2" />
@@ -43,7 +53,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount }) => 
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card 
+        className="cursor-pointer hover:border-bookverse-accent transition-colors"
+        onClick={() => onTabChange("posts")}
+      >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <FileText className="h-8 w-8 text-bookverse-accent mb-2" />

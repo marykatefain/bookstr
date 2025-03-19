@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -102,6 +103,10 @@ const Profile = () => {
     setShowRelaySettings(!showRelaySettings);
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   return (
     <Layout>
       <div className="container px-4 md:px-6 py-8">
@@ -122,9 +127,10 @@ const Profile = () => {
           <StatsCards 
             books={books} 
             postsCount={posts.length} 
+            onTabChange={handleTabChange}
           />
 
-          <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <ProfileTabs 
               activeTab={activeTab} 
               setActiveTab={setActiveTab} 
