@@ -80,27 +80,6 @@ export function SocialSection() {
           <div className="grid grid-cols-1 gap-6">
             {/* Use SocialFeed with the selected feed type */}
             <SocialFeed type={feedType} useMockData={false} />
-            
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold font-serif mb-4">Reading Community</h3>
-              <p className="text-muted-foreground mb-4">
-                See what readers around the world are sharing on the decentralized Nostr network.
-              </p>
-              <div className="space-y-2">
-                <p className="flex items-start">
-                  <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Discover trending books and reviews</span>
-                </p>
-                <p className="flex items-start">
-                  <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Join conversations about your favorite books</span>
-                </p>
-                <p className="flex items-start">
-                  <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Share your own reading journey</span>
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
