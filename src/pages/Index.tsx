@@ -15,10 +15,10 @@ const Index = () => {
     isLoading: loadingTrending,
     refetch: refreshTrending 
   } = useQuery({
-    queryKey: ['trendingBooks', 10],
+    queryKey: ['trendingBooks', 20],
     queryFn: async () => {
       console.log('Fetching trending books for homepage');
-      const books = await getWeeklyTrendingBooks(10);
+      const books = await getWeeklyTrendingBooks(20);
       console.log(`Received ${books.length} trending books for homepage`);
       return books;
     },

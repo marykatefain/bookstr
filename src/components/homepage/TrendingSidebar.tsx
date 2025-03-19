@@ -20,8 +20,8 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
           Trending Books
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {books.slice(0, 5).map((book) => (
+      <CardContent className="space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
+        {books.slice(0, 10).map((book) => (
           <BookCard 
             key={book.id} 
             book={book}
