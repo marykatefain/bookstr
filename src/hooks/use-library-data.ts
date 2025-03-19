@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Book, Post } from "@/lib/nostr/types";
@@ -104,6 +105,23 @@ export const useLibraryData = () => {
     return null;
   };
 
+  // Helper function to get a book with all its metadata by ISBN
+  const getBookByISBN = (isbn: string | undefined): Book | null => {
+    if (!isbn || !booksData) return null;
+    
+    // Check each list for the book
+    const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
+    if (tbrBook) return tbrBook;
+    
+    const readingBook = booksData.reading.find(book => book.isbn === isbn);
+    if (readingBook) return readingBook;
+    
+    const readBook = booksData.read.find(book => book.isbn === isbn);
+    if (readBook) return readBook;
+    
+    return null;
+  };
+
   return {
     user,
     books: booksData,
@@ -112,6 +130,7 @@ export const useLibraryData = () => {
     postsLoading,
     isLoggedIn: isLoggedIn(),
     refetchBooks,
-    getBookReadingStatus
+    getBookReadingStatus,
+    getBookByISBN
   };
 };

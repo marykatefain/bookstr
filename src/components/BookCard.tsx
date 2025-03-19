@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
@@ -33,6 +33,12 @@ export const BookCard: React.FC<BookCardProps> = ({
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
+  const [localBook, setLocalBook] = useState<Book>(book);
+
+  useEffect(() => {
+    setLocalBook(book);
+    setIsRead(book.readingStatus?.status === 'finished');
+  }, [book]);
 
   const getCardClasses = () => {
     const baseClasses = "overflow-hidden h-full";
@@ -153,6 +159,12 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
+  const handleBookUpdate = () => {
+    if (onUpdate) {
+      onUpdate();
+    }
+  };
+
   const coverContainerClasses = variant === "horizontal"
     ? "relative flex-shrink-0" + (size === "small" ? " w-16 h-16" : " w-24 h-24")
     : "relative" + (variant === "vertical" ? " style={{ paddingTop: '150%' }}" : "");
@@ -163,11 +175,11 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
   
-  if (book.readingStatus?.status === 'tbr') {
+  if (localBook.readingStatus?.status === 'tbr') {
     mappedReadingStatus = 'tbr';
-  } else if (book.readingStatus?.status === 'reading') {
+  } else if (localBook.readingStatus?.status === 'reading') {
     mappedReadingStatus = 'reading';
-  } else if (book.readingStatus?.status === 'finished') {
+  } else if (localBook.readingStatus?.status === 'finished') {
     mappedReadingStatus = 'finished';
   }
 
@@ -178,10 +190,10 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="flex flex-row h-full">
             <div className={coverContainerClasses}>
               <BookCover 
-                isbn={book.isbn}
-                title={book.title}
-                author={book.author}
-                coverUrl={book.coverUrl}
+                isbn={localBook.isbn}
+                title={localBook.title}
+                author={localBook.author}
+                coverUrl={localBook.coverUrl}
                 isRead={isRead}
                 pendingAction={pendingAction}
                 onReadAction={() => handleAction('finished')}
@@ -192,20 +204,20 @@ export const BookCard: React.FC<BookCardProps> = ({
             <div className={contentContainerClasses}>
               <h3 className={getTitleClasses()}>
                 <Link 
-                  to={`/book/${book.isbn}`}
+                  to={`/book/${localBook.isbn}`}
                   className="hover:text-bookverse-accent transition-colors"
                 >
-                  {book.title}
+                  {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
+              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
               
               {showRating && (
-                <BookRating rating={book.readingStatus?.rating} />
+                <BookRating rating={localBook.readingStatus?.rating} />
               )}
               
               {showCategories && size !== "small" && (
-                <BookCategories categories={book.categories} />
+                <BookCategories categories={localBook.categories} />
               )}
               
               <BookActionButtons
@@ -215,8 +227,8 @@ export const BookCard: React.FC<BookCardProps> = ({
                 onStartReading={() => handleAction('reading')}
                 onRemove={handleRemove}
                 readingStatus={mappedReadingStatus}
-                book={book}
-                onUpdate={onUpdate}
+                book={localBook}
+                onUpdate={handleBookUpdate}
               />
             </div>
           </div>
@@ -225,10 +237,10 @@ export const BookCard: React.FC<BookCardProps> = ({
             <div className="relative" style={{ paddingTop: "150%" }}>
               <div className="absolute inset-0">
                 <BookCover 
-                  isbn={book.isbn}
-                  title={book.title}
-                  author={book.author}
-                  coverUrl={book.coverUrl}
+                  isbn={localBook.isbn}
+                  title={localBook.title}
+                  author={localBook.author}
+                  coverUrl={localBook.coverUrl}
                   isRead={isRead}
                   pendingAction={pendingAction}
                   onReadAction={() => handleAction('finished')}
@@ -240,29 +252,29 @@ export const BookCard: React.FC<BookCardProps> = ({
             <div className={contentContainerClasses}>
               <h3 className={getTitleClasses()}>
                 <Link 
-                  to={`/book/${book.isbn}`}
+                  to={`/book/${localBook.isbn}`}
                   className="hover:text-bookverse-accent transition-colors"
                 >
-                  {book.title}
+                  {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {book.author}</p>
+              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
               
               {showRating && (
-                <BookRating rating={book.readingStatus?.rating} />
+                <BookRating rating={localBook.readingStatus?.rating} />
               )}
               
               {showCategories && (
-                <BookCategories categories={book.categories} />
+                <BookCategories categories={localBook.categories} />
               )}
               
-              {showDescription && book.description && (
-                <p className="text-xs line-clamp-2">{book.description}</p>
+              {showDescription && localBook.description && (
+                <p className="text-xs line-clamp-2">{localBook.description}</p>
               )}
               
               <BookActions
-                book={book}
-                onUpdate={onUpdate}
+                book={localBook}
+                onUpdate={handleBookUpdate}
                 size={size}
                 horizontal={true}
               />

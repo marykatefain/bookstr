@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
 import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn, rateBook } from "@/lib/nostr";
@@ -23,12 +22,14 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const { toast } = useToast();
 
   // Initialize localRating from book's readingStatus if available
-  useState(() => {
+  useEffect(() => {
     if (book.readingStatus?.rating !== undefined) {
       // Convert from 0-1 scale to 1-5 scale
       setLocalRating(Math.round(book.readingStatus.rating * 5));
+    } else {
+      setLocalRating(0);
     }
-  });
+  }, [book.readingStatus?.rating]);
 
   const handleAction = async (action: BookActionType) => {
     const isInList = book.readingStatus?.status === action || 
