@@ -1,9 +1,8 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Heart, MessageCircle, Book } from "lucide-react";
+import { Heart, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RepliesSection } from "./RepliesSection";
 import { Reply } from "@/lib/nostr/types";
@@ -27,7 +26,6 @@ export function ActivityFooter({
   onReaction,
   replies = []
 }: ActivityFooterProps) {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   return (
