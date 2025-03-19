@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/components/ui/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead } from "@/lib/nostr";
+import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
@@ -95,6 +96,53 @@ export const BookCard: React.FC<BookCardProps> = ({
       }
     } catch (error) {
       console.error("Error adding book:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error processing your request",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleRemove = async (listType: 'tbr' | 'reading' | 'finished') => {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to remove books from your library",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!book.isbn) {
+      toast({
+        title: "Invalid book data",
+        description: "This book is missing an ISBN and cannot be removed from your library",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPendingAction(listType);
+
+    try {
+      await removeBookFromList(book, listType);
+      
+      let statusText = listType === 'tbr' ? 'TBR' : listType === 'reading' ? 'currently reading' : 'read';
+      toast({
+        title: `Removed from your ${statusText} list`,
+        description: `${book.title} has been removed from your ${statusText} list`
+      });
+      
+      if (listType === 'finished') {
+        setIsRead(false);
+      }
+      
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error("Error removing book:", error);
       toast({
         title: "Action failed",
         description: "There was an error processing your request",
@@ -206,6 +254,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 pendingAction={pendingAction}
                 onAddToTbr={() => handleAction('tbr')}
                 onStartReading={() => handleAction('reading')}
+                onRemove={handleRemove}
                 readingStatus={mappedReadingStatus}
               />
             </div>

@@ -1,4 +1,3 @@
-
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool } from "nostr-tools";
@@ -426,5 +425,68 @@ export async function addBookToList(book: Book, listType: BookActionType): Promi
     default:
       console.error(`Unknown list type: ${listType}`);
       return null;
+  }
+}
+
+/**
+ * Remove a book from a specific list
+ */
+export async function removeBookFromList(book: Book, listType: BookActionType): Promise<string | null> {
+  console.log(`==== Removing book from ${listType} list ====`);
+  
+  if (!book.isbn) {
+    console.error(`Cannot remove book from ${listType} list: ISBN is missing`);
+    return null;
+  }
+  
+  let kind: number;
+  switch (listType) {
+    case 'tbr':
+      kind = NOSTR_KINDS.BOOK_TBR;
+      break;
+    case 'reading':
+      kind = NOSTR_KINDS.BOOK_READING;
+      break;
+    case 'finished':
+      kind = NOSTR_KINDS.BOOK_READ;
+      break;
+    default:
+      console.error(`Unknown list type: ${listType}`);
+      return null;
+  }
+  
+  try {
+    // The updateNostrEvent function will try to find an existing event with the specified kind
+    // If found, it updates the event by removing the specified ISBN
+    const result = await updateNostrEvent(
+      { kind },
+      (prevTags) => {
+        // Keep all tags that are not this specific ISBN
+        const isbnToRemove = `isbn:${book.isbn}`;
+        const updatedTags = prevTags.filter(tag => !(tag[0] === 'i' && tag[1] === isbnToRemove));
+        
+        // Ensure we still have the 'k' tag for isbn
+        if (updatedTags.some(tag => tag[0] === 'i')) {
+          // Only keep 'k' tag if we still have other ISBNs
+          if (!updatedTags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
+            updatedTags.push(['k', 'isbn']);
+          }
+        }
+        
+        console.log('Updated tags after removing ISBN:', updatedTags);
+        return updatedTags;
+      }
+    );
+    
+    if (result) {
+      console.log(`Successfully removed book from ${listType} list:`, result);
+      return result;
+    }
+    
+    console.log(`No existing event found for ${listType} list, nothing to remove`);
+    return null;
+  } catch (error) {
+    console.error(`Error removing book from ${listType} list:`, error);
+    throw error;
   }
 }

@@ -40,7 +40,8 @@ export {
   replyToContent,
   followUser,
   addBookToList,
-  updateBookInList
+  updateBookInList,
+  removeBookFromList
 } from "./books";
 
 // Export fetch functions

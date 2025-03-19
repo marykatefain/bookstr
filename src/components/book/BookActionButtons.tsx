@@ -1,13 +1,14 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, BookOpen, Loader2, Check } from "lucide-react";
+import { PlusCircle, BookOpen, Loader2, Check, X } from "lucide-react";
 
 interface BookActionButtonsProps {
   size: "small" | "medium" | "large";
   pendingAction: string | null;
   onAddToTbr: () => void;
   onStartReading: () => void;
+  onRemove?: (listType: 'tbr' | 'reading' | 'finished') => void;
   readingStatus?: 'tbr' | 'reading' | 'finished' | null;
 }
 
@@ -16,10 +17,27 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   pendingAction,
   onAddToTbr,
   onStartReading,
+  onRemove,
   readingStatus
 }) => {
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
+
+  const handleTbrClick = () => {
+    if (isTbr && onRemove) {
+      onRemove('tbr');
+    } else {
+      onAddToTbr();
+    }
+  };
+
+  const handleReadingClick = () => {
+    if (isReading && onRemove) {
+      onRemove('reading');
+    } else {
+      onStartReading();
+    }
+  };
 
   return (
     <div className="pt-2 flex items-center gap-2">
@@ -27,32 +45,32 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         size="sm"
         variant={isTbr ? "default" : "outline"}
         className={`flex-1 text-xs ${isTbr ? "bg-bookverse-highlight" : ""}`}
-        onClick={onAddToTbr}
+        onClick={handleTbrClick}
         disabled={!!pendingAction}
       >
         {pendingAction === 'tbr' ? (
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
         ) : isTbr ? (
-          <Check className="mr-1 h-3 w-3" />
+          <X className="mr-1 h-3 w-3" />
         ) : (
           <PlusCircle className="mr-1 h-3 w-3" />
         )}
-        {isTbr ? "On TBR" : "TBR"}
+        {isTbr ? "Remove" : "TBR"}
       </Button>
       <Button
         size="sm"
         className={`flex-1 text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
-        onClick={onStartReading}
+        onClick={handleReadingClick}
         disabled={!!pendingAction}
       >
         {pendingAction === 'reading' ? (
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
         ) : isReading ? (
-          <Check className="mr-1 h-3 w-3" />
+          <X className="mr-1 h-3 w-3" />
         ) : (
           <BookOpen className="mr-1 h-3 w-3" />
         )}
-        {isReading ? "Reading" : "Start"}
+        {isReading ? "Remove" : "Start"}
       </Button>
     </div>
   );

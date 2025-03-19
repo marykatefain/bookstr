@@ -4,6 +4,7 @@ import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
   addBookToList,
   updateBookInList,
+  removeBookFromList,
   reactToContent,
   isLoggedIn 
 } from "@/lib/nostr";
@@ -73,6 +74,45 @@ export const useBookActions = () => {
     }
   };
 
+  const handleRemoveBookFromList = async (book: Book, listType: BookActionType) => {
+    if (!book || !isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to remove books from your list",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setPendingAction(listType);
+    try {
+      await removeBookFromList(book, listType);
+      toast({
+        title: "Success!",
+        description: `Book removed from your ${
+          listType === 'tbr' ? 'to be read' : 
+          listType === 'reading' ? 'currently reading' : 'finished reading'
+        } list.`,
+      });
+      
+      // If removing from "finished" list, update UI to show "not read"
+      if (listType === 'finished' && book.readingStatus?.status === 'finished') {
+        // This will trigger any UI updates in components that use this hook
+        return true;
+      }
+    } catch (error) {
+      console.error(`Error removing book from ${listType} list:`, error);
+      toast({
+        title: "Error",
+        description: "Could not remove book from list",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingAction(null);
+    }
+    return false;
+  };
+
   const handleReactToContent = async (contentId: string) => {
     if (!isLoggedIn()) {
       toast({
@@ -103,6 +143,7 @@ export const useBookActions = () => {
     pendingAction,
     handleMarkAsRead,
     handleAddBookToList,
+    handleRemoveBookFromList,
     handleReactToContent
   };
 };

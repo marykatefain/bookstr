@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
-import { addBookToList, updateBookInList, isLoggedIn } from "@/lib/nostr";
+import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookOpen, Eye, Check } from "lucide-react";
+import { BookOpen, Eye, Check, X } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;
@@ -21,6 +21,16 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const { toast } = useToast();
 
   const handleAction = async (action: BookActionType) => {
+    // Check if book is already in this list
+    const isInList = book.readingStatus?.status === action || 
+                     (action === 'tbr' && book.readingStatus?.status === 'want-to-read');
+    
+    // If book is already in the list, remove it
+    if (isInList) {
+      await handleRemoveAction(action);
+      return;
+    }
+    
     // If no ISBN, request manual entry
     if (!book.isbn) {
       setPendingAction(action);
@@ -67,6 +77,36 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     }
   };
 
+  const handleRemoveAction = async (action: BookActionType) => {
+    try {
+      setIsLoading(action);
+      
+      if (!book.isbn) {
+        throw new Error("ISBN is required");
+      }
+      
+      await removeBookFromList(book, action);
+      
+      toast({
+        title: "Success!",
+        description: `Book removed from your ${action === 'tbr' ? 'to be read' : action === 'reading' ? 'currently reading' : 'finished reading'} list.`,
+      });
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error(`Error removing book from ${action} list:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to remove book from your list. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
   const handleManualIsbn = (book: Book, isbn: string) => {
     const updatedBook = { ...book, isbn };
     
@@ -91,40 +131,56 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     ? 'flex flex-row space-x-2 mt-2' 
     : 'flex flex-col space-y-2 mt-2';
 
+  const isTbr = book.readingStatus?.status === 'tbr' || book.readingStatus?.status === 'want-to-read';
+  const isReading = book.readingStatus?.status === 'reading';
+  const isFinished = book.readingStatus?.status === 'finished';
+
   return (
     <>
       <div className={containerClass}>
         <Button 
-          variant="outline" 
+          variant={isTbr ? "secondary" : "outline"} 
           size="sm"
           className={buttonSize}
           onClick={() => handleAction('tbr')}
           disabled={isLoading !== null}
         >
-          <BookOpen size={iconSize} />
-          {size !== 'small' && <span>To Be Read</span>}
+          {isTbr ? (
+            <X size={iconSize} />
+          ) : (
+            <BookOpen size={iconSize} />
+          )}
+          {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "To Be Read"}</span>}
         </Button>
         
         <Button 
-          variant="outline" 
+          variant={isReading ? "secondary" : "outline"} 
           size="sm"
           className={buttonSize}
           onClick={() => handleAction('reading')}
           disabled={isLoading !== null}
         >
-          <Eye size={iconSize} />
-          {size !== 'small' && <span>Start Reading</span>}
+          {isReading ? (
+            <X size={iconSize} />
+          ) : (
+            <Eye size={iconSize} />
+          )}
+          {size !== 'small' && <span>{isReading ? "Stop Reading" : "Start Reading"}</span>}
         </Button>
         
         <Button 
-          variant="outline" 
+          variant={isFinished ? "secondary" : "outline"} 
           size="sm"
           className={buttonSize}
           onClick={() => handleAction('finished')}
           disabled={isLoading !== null}
         >
-          <Check size={iconSize} />
-          {size !== 'small' && <span>Finished</span>}
+          {isFinished ? (
+            <X size={iconSize} />
+          ) : (
+            <Check size={iconSize} />
+          )}
+          {size !== 'small' && <span>{isFinished ? "Unmark as Read" : "Finished"}</span>}
         </Button>
       </div>
 
