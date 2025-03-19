@@ -1,7 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { fetchSocialFeed, fetchGlobalSocialFeed, isLoggedIn } from "@/lib/nostr";
+import { 
+  fetchSocialFeed, 
+  fetchGlobalSocialFeed, 
+  isLoggedIn,
+  reactToContent
+} from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ActivityCard } from "./social/ActivityCard";
 import { EmptyFeedState } from "./social/EmptyFeedState";
@@ -31,36 +36,12 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
       setLoading(true);
       try {
         if (useMockData) {
-          // This branch is no longer the default, it's only kept for testing/fallback
-          const posts = await fetchPosts(10, true);
-          const postActivities = posts.map(post => ({
-            id: post.id,
-            pubkey: post.pubkey,
-            type: 'post' as const,
-            book: {
-              id: post.taggedBook?.isbn || '',
-              title: post.taggedBook?.title || '',
-              author: '',
-              isbn: post.taggedBook?.isbn || '',
-              coverUrl: post.taggedBook?.coverUrl || '',
-            },
-            content: post.content,
-            createdAt: post.createdAt,
-            author: post.author,
-            reactions: post.reactions,
-            mediaUrl: post.mediaUrl,
-            mediaType: post.mediaType,
-            isSpoiler: post.isSpoiler
-          }));
+          // We'll use mock data from fetchBookPosts
+          console.log("Using mock data for social feed");
           
-          // Get the base activities
-          const baseActivities = type === "followers" ? [] : [];
-          
-          // Combine and sort all activities by date
-          const allActivities = [...baseActivities, ...postActivities].sort((a, b) => b.createdAt - a.createdAt);
-          
+          // Create mock social activities that look like posts
           setTimeout(() => {
-            setLocalActivities(allActivities);
+            setLocalActivities([]);
             setLoading(false);
           }, 800);
         } else {

@@ -7,7 +7,7 @@ import { mockPosts } from "./types";
 import { SimplePool, type Filter } from "nostr-tools";
 import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
-import { fetchBookPosts } from "./fetch/socialFetch";
+import { fetchBookPosts as fetchBookPostsByISBN } from "./fetch/socialFetch";
 
 interface CreatePostParams {
   content: string;
@@ -82,7 +82,7 @@ export async function fetchPosts(limit: number = 20, useMockData: boolean = true
   }
   
   // This now delegates to fetchBookPosts which includes the tag filtering logic
-  return fetchBookPosts(undefined, false);
+  return fetchBookPostsByISBN(undefined, false);
 }
 
 /**
@@ -179,6 +179,6 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
  * Fetch posts by a specific user
  */
 export async function fetchUserPosts(pubkey: string, useMockData: boolean = true): Promise<Post[]> {
-  // Import the function from the fetch directory and call it
-  return fetchBookPosts(pubkey, useMockData);
+  // Use imported fetchBookPosts with renamed import to avoid conflict
+  return fetchBookPostsByISBN(pubkey, useMockData);
 }
