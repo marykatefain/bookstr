@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card";
 import { 
   getCurrentUser, 
   isLoggedIn
@@ -92,26 +91,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           </Link>
         ))}
       </nav>
-
-      <Separator className="my-4" />
-
-      <div className="bg-white p-4 rounded-lg shadow mb-4">
-        <h3 className="text-md font-bold font-serif mb-3">Reading Community</h3>
-        <div className="space-y-2">
-          <p className="flex items-start text-xs">
-            <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-            <span>Discover trending books and reviews</span>
-          </p>
-          <p className="flex items-start text-xs">
-            <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-            <span>Join conversations about your favorite books</span>
-          </p>
-          <p className="flex items-start text-xs">
-            <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-            <span>Share your own reading journey</span>
-          </p>
-        </div>
-      </div>
     </aside>
   );
 };
+
