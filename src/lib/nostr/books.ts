@@ -1,4 +1,4 @@
-import { Book, NOSTR_KINDS, BookActionType, BookReview } from "./types";
+import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 
 /**
@@ -237,16 +237,36 @@ export async function updateBookInList(book: Book, listType: BookActionType): Pr
     // The updateNostrEvent function will try to find an existing event with the specified kind
     // If found, it updates the event with the new tags
     const result = await updateNostrEvent(
-      { kind, isbn: book.isbn },
+      { kind },
       (prevTags) => {
-        // Keep any existing tags that aren't for this ISBN
-        const filteredTags = prevTags.filter(tag => 
-          tag[0] !== 'i' || !tag[1].includes(book.isbn!)
-        );
+        // Extract all existing ISBN tags
+        const isbnTags = prevTags.filter(tag => tag[0] === 'i');
         
-        // Add the current ISBN tag
-        filteredTags.push(["i", `isbn:${book.isbn}`]);
-        return filteredTags;
+        // Create a set to track unique ISBNs (without the 'isbn:' prefix)
+        const isbnSet = new Set<string>();
+        
+        // Add existing ISBNs to the set
+        isbnTags.forEach(tag => {
+          if (tag[1]) {
+            isbnSet.add(tag[1]);
+          }
+        });
+        
+        // Add the new ISBN if it's not already in the set
+        const newIsbnTag = `isbn:${book.isbn}`;
+        isbnSet.add(newIsbnTag);
+        
+        // Keep non-ISBN tags
+        const otherTags = prevTags.filter(tag => tag[0] !== 'i');
+        
+        // Create the updated tags array with all ISBNs
+        const updatedTags = [
+          ...otherTags,
+          ...Array.from(isbnSet).map(isbn => ['i', isbn])
+        ];
+        
+        console.log('Updated tags with all ISBNs:', updatedTags);
+        return updatedTags;
       }
     );
     
@@ -274,6 +294,15 @@ export async function addBookToList(book: Book, listType: BookActionType): Promi
     return null;
   }
   
+  // Try to update existing list first
+  const updated = await updateBookInList(book, listType);
+  
+  // If update succeeded, we're done
+  if (updated) {
+    return null; // We don't have the event ID here, but the update was successful
+  }
+  
+  // Otherwise create a new list with just this book
   switch (listType) {
     case 'tbr':
       return addBookToTBR(book);

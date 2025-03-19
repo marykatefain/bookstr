@@ -217,7 +217,7 @@ export async function updateNostrEvent(
     // If ISBN is provided, create a filter to find events with this ISBN
     let existingEvent: Event | undefined;
     
-    // Use pool.list properly with the correct method
+    // Use pool.querySync properly with the correct method
     try {
       const events = await pool.querySync(relayUrls, filterParams);
       
@@ -229,7 +229,7 @@ export async function updateNostrEvent(
           )
         );
       } else {
-        // If no ISBN, just get the most recent event of this kind
+        // If no ISBN filter specified, just get the most recent event of this kind
         existingEvent = events[0];
       }
     } catch (queryError) {
