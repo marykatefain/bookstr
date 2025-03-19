@@ -100,7 +100,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         ) : (
           <BookOpen className="mr-1 h-3 w-3" />
         )}
-        {isReading ? "Remove" : "Start"}
+        {isReading ? "Stop" : "Start"}
       </Button>
     </div>
   );
