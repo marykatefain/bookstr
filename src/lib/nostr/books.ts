@@ -92,6 +92,9 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
     ? existingTags 
     : [...existingTags, newIsbnTag];
   
+  // Add k tag for isbn
+  allTags.push(["k", "isbn"]);
+  
   console.log("Combined tags for TBR event:", allTags);
   
   const event = {
@@ -139,6 +142,9 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     ? existingTags 
     : [...existingTags, newIsbnTag];
   
+  // Add k tag for isbn
+  allTags.push(["k", "isbn"]);
+  
   const event = {
     kind: NOSTR_KINDS.BOOK_READING,
     tags: allTags,
@@ -184,6 +190,9 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
     ? existingTags 
     : [...existingTags, newIsbnTag];
   
+  // Add k tag for isbn
+  allTags.push(["k", "isbn"]);
+  
   const event = {
     kind: NOSTR_KINDS.BOOK_READ,
     tags: allTags,
@@ -220,7 +229,8 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
     kind: NOSTR_KINDS.BOOK_RATING,
     tags: [
       ["i", `isbn:${book.isbn}`],
-      ["rating", rating.toString()]
+      ["rating", rating.toString()],
+      ["k", "isbn"]
     ],
     content: ""
   };
@@ -238,7 +248,9 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   }
   
   const tags = [
-    ["i", `isbn:${book.isbn}`]
+    ["i", `isbn:${book.isbn}`],
+    ["k", "isbn"],
+    ["t", "bookstr"]
   ];
   
   // Add rating tag if provided

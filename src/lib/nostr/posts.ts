@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { Post, Book, NOSTR_KINDS, SocialActivity } from "./types";
 import { publishToNostr } from "./publish";
@@ -32,15 +33,17 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
     // Build tags
     const tags: string[][] = [];
     
-    // Add book tag if provided - simplified format
+    // Add book tag if provided
     if (params.book?.isbn) {
       tags.push(["i", `isbn:${params.book.isbn}`]);
+      // k tag added in publishToNostr function
     }
+    
+    // Add the bookstr tag for all kind 1 events
+    tags.push(["t", "bookstr"]);
     
     // Add media if provided
     if (params.mediaFile && params.mediaType) {
-      // For simplicity, in a real app you'd upload to a service and store the URL
-      // Here we just mention it in a tag
       tags.push(["media", params.mediaType]);
     }
     

@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
@@ -42,6 +43,25 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
 
     console.log("Current user:", currentUser);
     console.log("Preparing event:", event);
+
+    // Add "k" tag with value "isbn" for any event that has ISBN tags
+    const hasIsbnTag = event.tags?.some(tag => tag[0] === 'i' && tag[1].includes('isbn:'));
+    if (hasIsbnTag) {
+      event.tags = event.tags || [];
+      // Only add the k tag if it doesn't already exist
+      if (!event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
+        event.tags.push(["k", "isbn"]);
+      }
+    }
+
+    // Add "t" tag with value "bookstr" for kind 1 events
+    if (event.kind === NOSTR_KINDS.TEXT_NOTE) {
+      event.tags = event.tags || [];
+      // Only add the t tag if it doesn't already exist
+      if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
+        event.tags.push(["t", "bookstr"]);
+      }
+    }
 
     // Prepare the event
     const unsignedEvent: UnsignedEvent = {

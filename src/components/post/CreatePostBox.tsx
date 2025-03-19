@@ -20,7 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchUserBooks } from "@/lib/nostr";
 
 export function CreatePostBox() {
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState("#bookstr ");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Book[]>([]);
@@ -166,7 +166,7 @@ export function CreatePostBox() {
           title: "Post created",
           description: "Your post has been published"
         });
-        setContent("");
+        setContent("#bookstr ");
         setSelectedBook(null);
         clearMedia();
         setIsSpoiler(false);
