@@ -37,6 +37,23 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     await processBookAction(action, book);
   };
 
+  const removeFromOtherLists = async (bookWithIsbn: Book, targetList: BookActionType) => {
+    if (!bookWithIsbn.isbn) return;
+
+    const otherLists = ['tbr', 'reading', 'finished'].filter(list => list !== targetList) as BookActionType[];
+    
+    for (const listType of otherLists) {
+      try {
+        if (bookWithIsbn.readingStatus?.status === listType) {
+          await removeBookFromList(bookWithIsbn, listType);
+          console.log(`Removed book from ${listType} list before adding to ${targetList} list`);
+        }
+      } catch (error) {
+        console.error(`Error removing book from ${listType} list:`, error);
+      }
+    }
+  };
+
   const processBookAction = async (action: BookActionType, bookWithIsbn: Book) => {
     try {
       setIsLoading(action);
@@ -44,6 +61,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
       if (!bookWithIsbn.isbn) {
         throw new Error("ISBN is required");
       }
+      
+      await removeFromOtherLists(bookWithIsbn, action);
       
       const updated = await updateBookInList(bookWithIsbn, action);
       

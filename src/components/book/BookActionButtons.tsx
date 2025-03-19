@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Loader2, Check, X } from "lucide-react";
+import { Book, BookActionType } from "@/lib/nostr/types";
 
 interface BookActionButtonsProps {
   size: "small" | "medium" | "large";
@@ -62,7 +63,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
           ) : (
             <X className="mr-1 h-3 w-3" />
           )}
-          Unmark as Read
+          Mark Unread
         </Button>
       </div>
     );

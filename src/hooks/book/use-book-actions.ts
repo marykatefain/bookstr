@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -26,7 +25,8 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
-      // Try to update the book in the list first, if it fails then add it
+      await removeFromOtherLists(book, 'finished');
+      
       const success = await updateBookInList(book, 'finished');
       if (!success) {
         await addBookToList(book, 'finished');
@@ -48,12 +48,30 @@ export const useBookActions = () => {
     }
   };
 
+  const removeFromOtherLists = async (book: Book, targetList: BookActionType) => {
+    if (!book || !book.isbn) return;
+    
+    const otherLists = ['tbr', 'reading', 'finished'].filter(list => list !== targetList) as BookActionType[];
+    
+    for (const listType of otherLists) {
+      try {
+        if (book.readingStatus?.status === listType) {
+          await removeBookFromList(book, listType);
+          console.log(`Removed book from ${listType} list before adding to ${targetList} list`);
+        }
+      } catch (error) {
+        console.error(`Error removing book from ${listType} list:`, error);
+      }
+    }
+  };
+
   const handleAddBookToList = async (book: Book, listType: 'tbr' | 'reading') => {
     if (!book) return;
     
     setPendingAction(listType);
     try {
-      // Try to update the book in the list first, if it fails then add it
+      await removeFromOtherLists(book, listType);
+      
       const success = await updateBookInList(book, listType);
       if (!success) {
         await addBookToList(book, listType);
@@ -95,9 +113,7 @@ export const useBookActions = () => {
         } list.`,
       });
       
-      // If removing from "finished" list, update UI to show "not read"
       if (listType === 'finished' && book.readingStatus?.status === 'finished') {
-        // This will trigger any UI updates in components that use this hook
         return true;
       }
     } catch (error) {
