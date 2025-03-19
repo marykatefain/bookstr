@@ -34,7 +34,8 @@ export const useBookDetail = (isbn: string | undefined) => {
     activeTab, 
     setActiveTab, 
     bookActivity, 
-    loadingActivity 
+    loadingActivity,
+    refreshTrigger // Make sure we're accessing the refreshTrigger property
   } = useBookActivity(isbn);
 
   // Combine the hooks with book-specific wrappers
@@ -59,6 +60,7 @@ export const useBookDetail = (isbn: string | undefined) => {
     setActiveTab,
     bookActivity,
     loadingActivity,
+    refreshTrigger, // Add this to the returned object
     handleMarkAsRead,
     handleRateBook: handleRateBookWrapper,
     handleSubmitReview: handleSubmitReviewWrapper,
