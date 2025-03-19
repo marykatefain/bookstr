@@ -76,7 +76,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
 
       <Separator className="my-4" />
 
-      <nav className="flex-1 space-y-1 mb-4">
+      <nav className="space-y-1 mb-4">
         {filteredLinks.map((link) => (
           <Link
             key={link.path}
