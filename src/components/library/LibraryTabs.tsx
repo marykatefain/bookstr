@@ -27,6 +27,14 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
   booksLoading,
   postsLoading,
 }) => {
+  // Determine the book filter type based on activeTab
+  const getBookFilterType = () => {
+    if (activeTab === "tbr") return "tbr";
+    if (activeTab === "reading") return "reading";
+    if (activeTab === "read") return "read";
+    return "all";
+  };
+
   return (
     <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
       <LibraryTabList activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -36,7 +44,35 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
       </TabsContent>
       
       <TabsContent value="books">
-        <BooksTabContent books={books} isLoading={booksLoading} />
+        <BooksTabContent 
+          books={books} 
+          isLoading={booksLoading} 
+          filterType="all"
+        />
+      </TabsContent>
+      
+      <TabsContent value="reading">
+        <BooksTabContent 
+          books={books} 
+          isLoading={booksLoading} 
+          filterType="reading"
+        />
+      </TabsContent>
+      
+      <TabsContent value="tbr">
+        <BooksTabContent 
+          books={books} 
+          isLoading={booksLoading} 
+          filterType="tbr"
+        />
+      </TabsContent>
+      
+      <TabsContent value="read">
+        <BooksTabContent 
+          books={books} 
+          isLoading={booksLoading} 
+          filterType="read"
+        />
       </TabsContent>
     </Tabs>
   );
