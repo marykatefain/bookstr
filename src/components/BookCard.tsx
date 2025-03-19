@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -250,7 +249,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <p className="text-xs line-clamp-2">{book.description}</p>
               )}
               
-              {/* Replace the BookActionButtons with BookActions for more comprehensive functionality */}
               <BookActions
                 book={book}
                 onUpdate={onUpdate}
