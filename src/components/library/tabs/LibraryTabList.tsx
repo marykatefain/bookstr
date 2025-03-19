@@ -39,7 +39,7 @@ export const LibraryTabList: React.FC<LibraryTabListProps> = ({ activeTab, setAc
         className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
         onClick={() => setActiveTab("tbr")}
       >
-        Want to Read
+        To Be Read
         <div className={`${activeTab === "tbr" ? "bg-bookverse-accent" : "bg-transparent"} absolute bottom-0 left-0 right-0 h-0.5 transition-colors duration-200`}></div>
       </TabsTrigger>
       <TabsTrigger 

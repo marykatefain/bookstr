@@ -19,9 +19,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTa
         <MessageCircle className="mr-2 h-4 w-4" />
         Reviews
       </TabsTrigger>
-      <TabsTrigger value="want-to-read" onClick={() => setActiveTab("want-to-read")}>
+      <TabsTrigger value="tbr" onClick={() => setActiveTab("tbr")}>
         <BookMarked className="mr-2 h-4 w-4" />
-        Want to Read
+        To Be Read
       </TabsTrigger>
       <TabsTrigger value="reading" onClick={() => setActiveTab("reading")}>
         <BookOpen className="mr-2 h-4 w-4" />

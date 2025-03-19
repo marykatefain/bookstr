@@ -51,7 +51,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
   if (filterType === "tbr") {
     return (
       <div className="py-4">
-        <h1 className="text-3xl font-serif font-semibold mb-6">Want to Read</h1>
+        <h1 className="text-3xl font-serif font-semibold mb-6">To Be Read</h1>
         {books.tbr.length === 0 ? (
           <EmptyState type="want-to-read" />
         ) : (
@@ -91,7 +91,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         emptyStateType="reading" 
       />
       <BookSection 
-        title="Want to Read" 
+        title="To Be Read" 
         books={books.tbr} 
         emptyStateType="want-to-read" 
       />

@@ -19,7 +19,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount, onTab
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
       <Card 
         className="cursor-pointer hover:border-bookverse-accent transition-colors"
-        onClick={() => onTabChange("want-to-read")}
+        onClick={() => onTabChange("tbr")}
       >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
