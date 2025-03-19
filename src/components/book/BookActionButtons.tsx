@@ -140,11 +140,11 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
 
   // For books on TBR or currently reading, show both buttons side by side with full width
   return (
-    <div className="pt-2 flex items-center gap-2 w-full">
+    <div className="pt-2 grid grid-cols-2 gap-2 w-full">
       <Button
         size="sm"
         variant={isTbr ? "default" : "outline"}
-        className={`flex-1 text-xs ${isTbr ? "bg-bookverse-highlight" : ""} w-full`}
+        className={`text-xs ${isTbr ? "bg-bookverse-highlight" : ""} w-full`}
         onClick={handleTbrClick}
         disabled={!!pendingAction}
       >
@@ -159,7 +159,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
       </Button>
       <Button
         size="sm"
-        className={`flex-1 text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"} w-full`}
+        className={`text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"} w-full`}
         onClick={handleReadingClick}
         disabled={!!pendingAction}
       >

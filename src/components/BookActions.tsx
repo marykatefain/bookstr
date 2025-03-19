@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -195,9 +196,11 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
 
   const iconSize = size === 'small' ? 14 : size === 'large' ? 20 : 16;
   const buttonSize = getButtonSize();
+  
+  // Updated class for better layout control
   const containerClass = horizontal 
-    ? 'flex flex-row space-x-2 mt-2' 
-    : 'flex flex-col space-y-2 mt-2';
+    ? 'grid grid-cols-2 gap-2 mt-2 w-full' 
+    : 'flex flex-col space-y-2 mt-2 w-full';
 
   const isTbr = book.readingStatus?.status === 'tbr';
   const isReading = book.readingStatus?.status === 'reading';
@@ -217,7 +220,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
             <Button 
               variant={isTbr ? "secondary" : "outline"} 
               size="sm"
-              className={buttonSize}
+              className={`${buttonSize} w-full`}
               onClick={() => handleAction('tbr')}
               disabled={isLoading !== null}
             >
@@ -232,7 +235,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
             <Button 
               variant={isReading ? "secondary" : "outline"} 
               size="sm"
-              className={buttonSize}
+              className={`${buttonSize} w-full`}
               onClick={() => handleAction('reading')}
               disabled={isLoading !== null}
             >
@@ -248,7 +251,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         
         {showUnmarkButton && (
           <>
-            <div className="flex justify-center mt-1 mb-1">
+            <div className="flex justify-center mt-1 mb-1 col-span-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                   key={star}
@@ -266,7 +269,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
             <Button 
               variant="outline" 
               size="sm"
-              className={`${buttonSize} text-muted-foreground hover:bg-muted/50`}
+              className={`${buttonSize} text-muted-foreground hover:bg-muted/50 col-span-2 w-full`}
               onClick={() => handleAction('finished')}
               disabled={isLoading !== null}
             >
