@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { SocialFeed } from "@/components/SocialFeed";
-import { UserFinder } from "@/components/UserFinder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Globe } from "lucide-react";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
@@ -17,11 +16,7 @@ export default function SocialHub() {
         <h1 className="text-3xl font-serif font-bold text-bookverse-ink mb-6">Social Hub</h1>
         
         <div className="space-y-10">
-          {/* Find Friends Section */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-serif font-semibold text-bookverse-ink">Find Friends</h2>
-            <UserFinder hideRecentActivity={true} />
-          </div>
+          {/* Find Friends Section removed as requested */}
           
           {/* Post Creation Section */}
           {isLoggedIn() && (
