@@ -15,6 +15,15 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
   const [visibleBooks, setVisibleBooks] = useState<BookType[]>([]);
   const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
   
+  // Initialize with some books immediately to avoid empty state
+  useEffect(() => {
+    // Show first 5 books initially before container measurement
+    if (books.length > 0) {
+      const initialBooks = Math.min(books.length, 5);
+      setVisibleBooks(books.slice(0, initialBooks));
+    }
+  }, [books]);
+  
   // Calculate how many books can fit in the container
   useEffect(() => {
     if (!containerRef || books.length === 0) return;
@@ -51,15 +60,27 @@ export function TrendingSidebar({ books, loading, refreshBooks }: TrendingSideba
         style={{ maxHeight: 'calc(100vh - 10rem)' }}
         ref={setContainerRef}
       >
-        {visibleBooks.map((book) => (
-          <BookCard 
-            key={book.id} 
-            book={book}
-            showDescription={false}
-            size="small"
-            onUpdate={() => refreshBooks()}
-          />
-        ))}
+        {visibleBooks.length > 0 ? (
+          visibleBooks.map((book) => (
+            <BookCard 
+              key={book.id} 
+              book={book}
+              showDescription={false}
+              size="small"
+              onUpdate={() => refreshBooks()}
+            />
+          ))
+        ) : (
+          books.slice(0, 5).map((book) => (
+            <BookCard 
+              key={book.id} 
+              book={book}
+              showDescription={false}
+              size="small"
+              onUpdate={() => refreshBooks()}
+            />
+          ))
+        )}
       </CardContent>
     </Card>
   );
