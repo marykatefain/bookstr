@@ -7,7 +7,6 @@ import { ActivityCard } from "./social/ActivityCard";
 import { EmptyFeedState } from "./social/EmptyFeedState";
 import { FeedLoadingState } from "./social/FeedLoadingState";
 import { Card } from "@/components/ui/card";
-import { mockFollowersActivities, mockGlobalActivities } from "@/lib/nostr/mockData";
 import { fetchPosts } from "@/lib/nostr/posts";
 import { PostCard } from "./post/PostCard";
 
@@ -17,7 +16,7 @@ interface SocialFeedProps {
   useMockData?: boolean;
 }
 
-export function SocialFeed({ activities, type = "followers", useMockData = true }: SocialFeedProps) {
+export function SocialFeed({ activities, type = "followers", useMockData = false }: SocialFeedProps) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -33,7 +32,7 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
       setLoading(true);
       try {
         if (useMockData) {
-          // Fetch mock posts and combine with mock activities
+          // This branch is no longer the default, it's only kept for testing/fallback
           const posts = await fetchPosts(10, true);
           const postActivities = posts.map(post => ({
             id: post.id,
@@ -56,29 +55,42 @@ export function SocialFeed({ activities, type = "followers", useMockData = true 
           }));
           
           // Get the base activities
-          const baseActivities = type === "followers" ? mockFollowersActivities : mockGlobalActivities;
+          const baseActivities = type === "followers" ? [] : [];
           
           // Combine and sort all activities by date
           const allActivities = [...baseActivities, ...postActivities].sort((a, b) => b.createdAt - a.createdAt);
           
-          // Set the activities after a delay to simulate loading
           setTimeout(() => {
             setLocalActivities(allActivities);
             setLoading(false);
           }, 800);
         } else {
-          const feed = await fetchSocialFeed(10);
+          // This is now the default branch: fetch real activities from the network
+          console.log(`Fetching ${type} feed from Nostr network`);
+          
+          // For global feed we'd need a different function, but we'll use the same one for now
+          // TODO: implement separate global feed fetching
+          const feed = await fetchSocialFeed(type === "followers" ? 20 : 30);
+          
+          console.log(`Received ${feed.length} activities from Nostr network`);
           setLocalActivities(feed);
           setLoading(false);
         }
       } catch (error) {
         console.error("Error loading social feed:", error);
         setLoading(false);
+        
+        // Show a toast for the error
+        toast({
+          title: "Error loading feed",
+          description: "Could not load activities from the Nostr network. Check your connection.",
+          variant: "destructive"
+        });
       }
     };
 
     loadSocialFeed();
-  }, [activities, type, useMockData]);
+  }, [activities, type, useMockData, toast]);
 
   const handleReact = async (activityId: string) => {
     if (!isLoggedIn()) {

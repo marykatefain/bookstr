@@ -49,10 +49,31 @@ export function ActivityContent({ activity }: ActivityContentProps) {
         />
       );
     case 'post':
+      if (!activity.book || !activity.book.isbn) {
+        console.warn("Post activity missing book data:", activity);
+      }
       return (
-        <PostCard post={activity} />
+        <div className="space-y-2">
+          <p>{activity.content}</p>
+          {activity.mediaUrl && activity.mediaType === 'image' && (
+            <img 
+              src={activity.mediaUrl} 
+              alt="Post media" 
+              className="max-h-64 rounded-md mt-2 object-cover"
+              onError={(e) => {
+                console.log(`Error loading media: ${activity.mediaUrl}`);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+        </div>
       );
     default:
-      return null;
+      console.warn(`Unknown activity type: ${activity.type}`);
+      return (
+        <div className="text-sm text-muted-foreground">
+          Activity type not supported
+        </div>
+      );
   }
 }

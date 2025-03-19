@@ -61,7 +61,7 @@ export default function SocialHub() {
               </div>
             </div>
             
-            <SocialFeed type={feedType} />
+            <SocialFeed type={feedType} useMockData={false} />
           </div>
         </div>
       </div>
