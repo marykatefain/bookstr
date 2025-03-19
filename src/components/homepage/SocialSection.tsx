@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Hash, Users, Globe } from "lucide-react";
+import { Users, Globe } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,7 @@ export function SocialSection() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col space-y-4">
             <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
-              <Hash className="mr-2 h-5 w-5" />
+              <Users className="mr-2 h-5 w-5" />
               #Bookstr Community on Nostr
             </h2>
             <Card className="p-6">
@@ -44,7 +44,7 @@ export function SocialSection() {
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
-              <Hash className="mr-2 h-5 w-5" />
+              <Users className="mr-2 h-5 w-5" />
               #Bookstr Community on Nostr
             </h2>
             <div className="inline-flex h-9 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
