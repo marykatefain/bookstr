@@ -1,5 +1,70 @@
+
 import { Book, NOSTR_KINDS, BookActionType } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
+import { SimplePool } from "nostr-tools";
+import { getCurrentUser } from "./user";
+import { getUserRelays } from "./relay";
+
+/**
+ * Fetch all ISBNs from a specific list type
+ */
+async function fetchExistingIsbnTags(listType: BookActionType): Promise<string[][]> {
+  console.log(`==== Fetching existing ISBNs from ${listType} list ====`);
+  
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    console.error("Cannot fetch ISBNs: User not logged in");
+    return [];
+  }
+  
+  let kind: number;
+  switch (listType) {
+    case 'tbr':
+      kind = NOSTR_KINDS.BOOK_TBR;
+      break;
+    case 'reading':
+      kind = NOSTR_KINDS.BOOK_READING;
+      break;
+    case 'finished':
+      kind = NOSTR_KINDS.BOOK_READ;
+      break;
+    default:
+      console.error(`Unknown list type: ${listType}`);
+      return [];
+  }
+  
+  const pool = new SimplePool();
+  const relayUrls = getUserRelays();
+  
+  try {
+    const filterParams = {
+      kinds: [kind],
+      authors: [currentUser.pubkey],
+      limit: 10
+    };
+    
+    const events = await pool.querySync(relayUrls, filterParams);
+    
+    if (events.length === 0) {
+      console.log(`No existing events found for ${listType} list`);
+      return [];
+    }
+    
+    // Get the most recent event
+    const mostRecent = events[0];
+    
+    // Extract all ISBN tags
+    const isbnTags = mostRecent.tags.filter(tag => tag[0] === 'i');
+    console.log(`Found ${isbnTags.length} existing ISBN tags:`, isbnTags);
+    
+    return isbnTags;
+  } catch (error) {
+    console.error(`Error fetching existing ISBNs for ${listType} list:`, error);
+    return [];
+  } finally {
+    pool.close(relayUrls);
+  }
+}
 
 /**
  * Add a book to the "TBR" list
@@ -13,11 +78,25 @@ export async function addBookToTBR(book: Book): Promise<string | null> {
     return null;
   }
   
+  // First, try to fetch existing ISBN tags
+  const existingTags = await fetchExistingIsbnTags('tbr');
+  
+  // Create a new tag for the current book
+  const newIsbnTag = ["i", `isbn:${book.isbn}`];
+  
+  // Check if this ISBN is already in the list to avoid duplicates
+  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
+  
+  // Create the full list of tags, avoiding duplicates
+  const allTags = isbnAlreadyExists 
+    ? existingTags 
+    : [...existingTags, newIsbnTag];
+  
+  console.log("Combined tags for TBR event:", allTags);
+  
   const event = {
     kind: NOSTR_KINDS.BOOK_TBR,
-    tags: [
-      ["i", `isbn:${book.isbn}`]
-    ],
+    tags: allTags,
     content: ""
   };
   
@@ -46,11 +125,23 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
     return null;
   }
   
+  // First, try to fetch existing ISBN tags
+  const existingTags = await fetchExistingIsbnTags('reading');
+  
+  // Create a new tag for the current book
+  const newIsbnTag = ["i", `isbn:${book.isbn}`];
+  
+  // Check if this ISBN is already in the list to avoid duplicates
+  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
+  
+  // Create the full list of tags, avoiding duplicates
+  const allTags = isbnAlreadyExists 
+    ? existingTags 
+    : [...existingTags, newIsbnTag];
+  
   const event = {
     kind: NOSTR_KINDS.BOOK_READING,
-    tags: [
-      ["i", `isbn:${book.isbn}`]
-    ],
+    tags: allTags,
     content: ""
   };
   
@@ -79,13 +170,23 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
     return null;
   }
   
-  const tags = [
-    ["i", `isbn:${book.isbn}`]
-  ];
+  // First, try to fetch existing ISBN tags
+  const existingTags = await fetchExistingIsbnTags('finished');
+  
+  // Create a new tag for the current book
+  const newIsbnTag = ["i", `isbn:${book.isbn}`];
+  
+  // Check if this ISBN is already in the list to avoid duplicates
+  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
+  
+  // Create the full list of tags, avoiding duplicates
+  const allTags = isbnAlreadyExists 
+    ? existingTags 
+    : [...existingTags, newIsbnTag];
   
   const event = {
     kind: NOSTR_KINDS.BOOK_READ,
-    tags,
+    tags: allTags,
     content: ""
   };
   
