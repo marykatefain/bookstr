@@ -36,13 +36,16 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
       setLoading(true);
       try {
         if (useMockData) {
+          // We'll use mock data from fetchBookPosts
           console.log("Using mock data for social feed");
           
+          // Create mock social activities that look like posts
           setTimeout(() => {
             setLocalActivities([]);
             setLoading(false);
           }, 800);
         } else {
+          // This is the default branch: fetch real activities from the network
           console.log(`Fetching ${type} feed from Nostr network`);
           
           let feed: SocialActivity[] = [];
@@ -50,11 +53,13 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
           if (type === "followers") {
             feed = await fetchSocialFeed(maxItems || 20);
           } else {
+            // Global feed uses the fetchGlobalSocialFeed function
             feed = await fetchGlobalSocialFeed(maxItems || 30);
           }
           
           console.log(`Received ${feed.length} activities from Nostr network`);
           
+          // Apply maxItems limit if specified
           if (maxItems && feed.length > maxItems) {
             feed = feed.slice(0, maxItems);
           }
@@ -66,6 +71,7 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
         console.error("Error loading social feed:", error);
         setLoading(false);
         
+        // Show a toast for the error
         toast({
           title: "Error loading feed",
           description: "Could not load activities from the Nostr network. Check your connection.",
@@ -119,6 +125,7 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
   };
 
   const handleFindFriends = () => {
+    // Find and click the find-friends tab
     const findFriendsTab = document.querySelector('[value="find-friends"]');
     if (findFriendsTab && findFriendsTab instanceof HTMLElement) {
       findFriendsTab.click();

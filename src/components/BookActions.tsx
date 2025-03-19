@@ -48,22 +48,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         throw new Error("ISBN is required");
       }
       
-      // Handle transitions between lists
-      if (action === 'finished') {
-        // If marking as read, remove from tbr or reading first
-        if (bookWithIsbn.readingStatus?.status === 'tbr') {
-          await removeBookFromList(bookWithIsbn, 'tbr');
-          console.log("Removed book from TBR list before marking as read");
-        } else if (bookWithIsbn.readingStatus?.status === 'reading') {
-          await removeBookFromList(bookWithIsbn, 'reading');
-          console.log("Removed book from Reading list before marking as read");
-        }
-      } else if (action === 'reading' && bookWithIsbn.readingStatus?.status === 'tbr') {
-        // If moving to reading, remove from tbr first
-        await removeBookFromList(bookWithIsbn, 'tbr');
-        console.log("Removed book from TBR list before marking as reading");
-      }
-      
       // First try to update the book in an existing list
       const updated = await updateBookInList(bookWithIsbn, action);
       

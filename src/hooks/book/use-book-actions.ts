@@ -1,11 +1,12 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  isLoggedIn,
-  reactToContent
+  reactToContent,
+  isLoggedIn 
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,54 +24,9 @@ export const useBookActions = () => {
       return;
     }
 
-    const currentStatus = book.readingStatus?.status;
-    
-    if (currentStatus === 'finished') {
-      console.log("Book is already marked as read, removing from finished list");
-      setPendingAction('finished');
-      
-      try {
-        // Attempt to remove the book from the finished list
-        const result = await removeBookFromList(book, 'finished');
-        
-        if (result) {
-          console.log("Successfully removed book from finished list", result);
-          setIsRead(false);
-          toast({
-            title: "Success!",
-            description: "Book removed from your read list",
-          });
-        } else {
-          console.log("Book was not found in the finished list or removal failed");
-          toast({
-            title: "Note",
-            description: "The book could not be removed from your read list",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        console.error("Error removing book from finished list:", error);
-        toast({
-          title: "Error",
-          description: "Could not remove book from read list",
-          variant: "destructive"
-        });
-      } finally {
-        setPendingAction(null);
-      }
-      return;
-    }
-
     setPendingAction('finished');
     try {
-      if (currentStatus === 'tbr') {
-        await removeBookFromList(book, 'tbr');
-        console.log("Removed book from TBR list before marking as read");
-      } else if (currentStatus === 'reading') {
-        await removeBookFromList(book, 'reading');
-        console.log("Removed book from Reading list before marking as read");
-      }
-
+      // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, 'finished');
       if (!success) {
         await addBookToList(book, 'finished');
@@ -97,11 +53,7 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
-      if (listType === 'reading' && book.readingStatus?.status === 'tbr') {
-        await removeBookFromList(book, 'tbr');
-        console.log("Removed book from TBR list before marking as reading");
-      }
-
+      // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, listType);
       if (!success) {
         await addBookToList(book, listType);
@@ -122,36 +74,31 @@ export const useBookActions = () => {
     }
   };
 
-  const handleRemoveBookFromList = async (book: Book, listType: BookActionType): Promise<boolean> => {
+  const handleRemoveBookFromList = async (book: Book, listType: BookActionType) => {
     if (!book || !isLoggedIn()) {
       toast({
         title: "Login required",
         description: "Please sign in to remove books from your list",
         variant: "destructive"
       });
-      return false;
+      return;
     }
     
     setPendingAction(listType);
     try {
-      console.log(`Removing book ${book.title} (ISBN: ${book.isbn}) from ${listType} list`);
-      const result = await removeBookFromList(book, listType);
+      await removeBookFromList(book, listType);
+      toast({
+        title: "Success!",
+        description: `Book removed from your ${
+          listType === 'tbr' ? 'to be read' : 
+          listType === 'reading' ? 'currently reading' : 'finished reading'
+        } list.`,
+      });
       
-      if (result) {
-        toast({
-          title: "Success!",
-          description: `Book removed from your ${
-            listType === 'tbr' ? 'to be read' : 
-            listType === 'reading' ? 'currently reading' : 'finished reading'
-          } list.`,
-        });
+      // If removing from "finished" list, update UI to show "not read"
+      if (listType === 'finished' && book.readingStatus?.status === 'finished') {
+        // This will trigger any UI updates in components that use this hook
         return true;
-      } else {
-        toast({
-          title: "Note",
-          description: "Book was not found in the list",
-        });
-        return false;
       }
     } catch (error) {
       console.error(`Error removing book from ${listType} list:`, error);
@@ -160,10 +107,10 @@ export const useBookActions = () => {
         description: "Could not remove book from list",
         variant: "destructive"
       });
-      return false;
     } finally {
       setPendingAction(null);
     }
+    return false;
   };
 
   const handleReactToContent = async (contentId: string) => {
