@@ -93,7 +93,7 @@ export const MobileSidebar = ({
 
           <Separator className="my-2" />
 
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <nav className="p-4 space-y-1">
             {filteredLinks.map((link) => (
               <Link
                 key={link.path}
@@ -111,9 +111,7 @@ export const MobileSidebar = ({
             ))}
           </nav>
           
-          <Separator className="my-2" />
-          
-          <div className="p-4">
+          <div className="px-4 pt-2 pb-4">
             <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
               <h3 className="font-medium text-sm">What is Nostr?</h3>
               <p className="text-xs text-muted-foreground">
@@ -129,6 +127,8 @@ export const MobileSidebar = ({
               </Link>
             </div>
           </div>
+          
+          <Separator className="my-2" />
         </div>
         <div 
           className="flex-1 bg-black bg-opacity-50" 

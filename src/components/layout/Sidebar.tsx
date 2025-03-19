@@ -76,7 +76,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
 
       <Separator className="my-4" />
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-1 mb-4">
         {filteredLinks.map((link) => (
           <Link
             key={link.path}
@@ -93,8 +93,6 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
         ))}
       </nav>
       
-      <Separator className="my-4" />
-      
       <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
         <h3 className="font-medium text-sm">What is Nostr?</h3>
         <p className="text-xs text-muted-foreground">
@@ -108,6 +106,8 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           <span>Learn more about Bookstr</span>
         </Link>
       </div>
+      
+      <Separator className="my-4" />
     </aside>
   );
 };
