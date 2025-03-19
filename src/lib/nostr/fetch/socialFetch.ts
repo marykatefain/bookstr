@@ -1,4 +1,3 @@
-
 import { SimplePool, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book, Post } from "../types";
 import { getUserRelays } from "../relay";
@@ -38,16 +37,48 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
         NOSTR_KINDS.BOOK_READING, 
         NOSTR_KINDS.BOOK_READ,
         NOSTR_KINDS.BOOK_RATING,
-        NOSTR_KINDS.REVIEW
+        NOSTR_KINDS.REVIEW,
+        NOSTR_KINDS.TEXT_NOTE
       ],
       authors: follows,
       limit
     };
     
-    const events = await pool.querySync(relays, filter);
+    // Add filters for k=isbn and t=bookstr for TEXT_NOTE kind
+    const textNoteFilter: Filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      authors: follows,
+      "#t": ["bookstr"],
+      limit
+    };
+    
+    const isbnFilter: Filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      authors: follows,
+      "#k": ["isbn"],
+      limit
+    };
+    
+    // Execute all queries in parallel
+    const [events, textNoteEvents, isbnEvents] = await Promise.all([
+      pool.querySync(relays, filter),
+      pool.querySync(relays, textNoteFilter),
+      pool.querySync(relays, isbnFilter)
+    ]);
+    
+    // Combine events, removing duplicates
+    const eventMap = new Map();
+    
+    // Add all events to the map, using the event ID as the key
+    [...events, ...textNoteEvents, ...isbnEvents].forEach(event => {
+      eventMap.set(event.id, event);
+    });
+    
+    // Convert back to array
+    const allEvents = Array.from(eventMap.values());
     
     // Get all unique pubkeys to fetch profiles
-    const uniquePubkeys = [...new Set(events.map(event => event.pubkey))];
+    const uniquePubkeys = [...new Set(allEvents.map(event => event.pubkey))];
     
     // Fetch profiles for these pubkeys
     const profileFilter: Filter = {
@@ -74,7 +105,7 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     }
     
     // Extract all ISBNs to fetch book details
-    const isbns = events
+    const isbns = allEvents
       .map(event => extractISBNFromTags(event))
       .filter((isbn): isbn is string => isbn !== null);
     
@@ -92,29 +123,47 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     // Convert events to social activities
     const socialFeed: SocialActivity[] = [];
     
-    for (const event of events) {
+    for (const event of allEvents) {
       const isbn = extractISBNFromTags(event);
       
-      if (!isbn) {
-        continue; // Skip events without ISBN
+      if (!isbn && event.kind !== NOSTR_KINDS.TEXT_NOTE) {
+        continue; // Skip non-TEXT_NOTE events without ISBN
+      }
+      
+      // For TEXT_NOTE (kind 1), check if it has either k=isbn or t=bookstr
+      if (event.kind === NOSTR_KINDS.TEXT_NOTE) {
+        const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
+        const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
+        
+        if (!hasIsbnTag && !hasBookstrTag) {
+          continue; // Skip TEXT_NOTE events without k=isbn or t=bookstr
+        }
       }
       
       // Get book details from the map or create a basic book object
-      let book = bookMap.get(isbn);
+      let book: Book;
       
-      if (!book) {
-        // Basic book object if we couldn't fetch details
-        book = {
+      if (isbn) {
+        book = bookMap.get(isbn) || {
           id: `isbn:${isbn}`,
           title: "Unknown Book",
           author: "Unknown Author",
           isbn,
           coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
         };
+      } else {
+        // For posts without ISBN but with bookstr tag, create a generic book object
+        book = {
+          id: "generic",
+          title: "Book Discussion",
+          author: "",
+          isbn: "",
+          coverUrl: ""
+        };
       }
       
       // Determine activity type based on event kind
-      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished';
+      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
       
       switch (event.kind) {
         case NOSTR_KINDS.REVIEW:
@@ -132,9 +181,16 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
         case NOSTR_KINDS.BOOK_READ:
           activityType = 'finished';
           break;
+        case NOSTR_KINDS.TEXT_NOTE:
+          activityType = 'post';
+          break;
         default:
           continue; // Skip unknown event kinds
       }
+      
+      // Find media tags for posts
+      const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
       
       // Create social activity object
       const activity: SocialActivity = {
@@ -149,7 +205,10 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
         reactions: {
           count: 0,
           userReacted: false
-        }
+        },
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
+        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
       };
       
       socialFeed.push(activity);
@@ -292,6 +351,178 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
 }
 
 /**
+ * Fetch global social feed (no author filter)
+ */
+export async function fetchGlobalSocialFeed(limit = 20): Promise<SocialActivity[]> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  
+  try {
+    console.log("Fetching global social feed");
+    
+    // Fetch book-related events (with k=isbn tag)
+    const isbnFilter: Filter = {
+      kinds: [
+        NOSTR_KINDS.BOOK_TBR,
+        NOSTR_KINDS.BOOK_READING, 
+        NOSTR_KINDS.BOOK_READ,
+        NOSTR_KINDS.BOOK_RATING,
+        NOSTR_KINDS.REVIEW,
+        NOSTR_KINDS.TEXT_NOTE
+      ],
+      "#k": ["isbn"],
+      limit
+    };
+    
+    // Fetch posts with t=bookstr tag
+    const bookstrFilter: Filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      "#t": ["bookstr"],
+      limit
+    };
+    
+    // Execute queries in parallel
+    const [isbnEvents, bookstrEvents] = await Promise.all([
+      pool.querySync(relays, isbnFilter),
+      pool.querySync(relays, bookstrFilter)
+    ]);
+    
+    console.log(`Found ${isbnEvents.length} events with k=isbn and ${bookstrEvents.length} events with t=bookstr`);
+    
+    // Combine events, removing duplicates
+    const eventMap = new Map();
+    
+    // Add all events to the map, using the event ID as the key
+    [...isbnEvents, ...bookstrEvents].forEach(event => {
+      eventMap.set(event.id, event);
+    });
+    
+    // Convert back to array
+    const allEvents = Array.from(eventMap.values());
+    
+    // Get all unique pubkeys to fetch profiles
+    const uniquePubkeys = [...new Set(allEvents.map(event => event.pubkey))];
+    
+    // Fetch profiles for these pubkeys
+    const profiles = await fetchUserProfiles(uniquePubkeys);
+    
+    // Create a map of pubkey to profile data
+    const profileMap = new Map();
+    profiles.forEach(profile => {
+      profileMap.set(profile.pubkey, {
+        name: profile.name || profile.display_name,
+        picture: profile.picture,
+        npub: profile.pubkey
+      });
+    });
+    
+    // Extract all ISBNs to fetch book details
+    const isbns = allEvents
+      .map(event => extractISBNFromTags(event))
+      .filter((isbn): isbn is string => isbn !== null);
+    
+    // Fetch book details
+    const books = await getBooksByISBN([...new Set(isbns)]);
+    
+    // Create a map of ISBN to book details
+    const bookMap = new Map<string, Book>();
+    books.forEach(book => {
+      if (book.isbn) {
+        bookMap.set(book.isbn, book);
+      }
+    });
+    
+    // Convert events to social activities
+    const socialFeed: SocialActivity[] = [];
+    
+    for (const event of allEvents) {
+      const isbn = extractISBNFromTags(event);
+      
+      // Get book details from the map or create a basic book object
+      let book: Book;
+      
+      if (isbn) {
+        book = bookMap.get(isbn) || {
+          id: `isbn:${isbn}`,
+          title: "Unknown Book",
+          author: "Unknown Author",
+          isbn,
+          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+        };
+      } else {
+        // For posts without ISBN but with bookstr tag, create a generic book object
+        book = {
+          id: "generic",
+          title: "Book Discussion",
+          author: "",
+          isbn: "",
+          coverUrl: ""
+        };
+      }
+      
+      // Determine activity type based on event kind
+      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
+      
+      switch (event.kind) {
+        case NOSTR_KINDS.REVIEW:
+          activityType = 'review';
+          break;
+        case NOSTR_KINDS.BOOK_RATING:
+          activityType = 'rating';
+          break;
+        case NOSTR_KINDS.BOOK_TBR:
+          activityType = 'tbr';
+          break;
+        case NOSTR_KINDS.BOOK_READING:
+          activityType = 'reading';
+          break;
+        case NOSTR_KINDS.BOOK_READ:
+          activityType = 'finished';
+          break;
+        case NOSTR_KINDS.TEXT_NOTE:
+          activityType = 'post';
+          break;
+        default:
+          continue; // Skip unknown event kinds
+      }
+      
+      // Find media tags for posts
+      const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      
+      // Create social activity object
+      const activity: SocialActivity = {
+        id: event.id,
+        pubkey: event.pubkey,
+        type: activityType,
+        book,
+        content: event.content,
+        rating: extractRatingFromTags(event),
+        createdAt: event.created_at * 1000,
+        author: profileMap.get(event.pubkey),
+        reactions: {
+          count: 0,
+          userReacted: false
+        },
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
+        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
+      };
+      
+      socialFeed.push(activity);
+    }
+    
+    // Sort by creation date, newest first
+    return socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching global social feed:", error);
+    return [];
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
  * Fetch posts that have book tags (kind 1 with 'i' tag)
  */
 export async function fetchBookPosts(pubkey?: string, useMockData: boolean = false): Promise<Post[]> {
@@ -304,45 +535,58 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     console.log("Fetching book posts from relays:", relays);
     console.log("For pubkey:", pubkey || "all users");
     
-    // Configure filter for posts with book tags
-    const filter: Filter = {
+    // Base filter for all posts
+    const baseFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
       limit: limit
     };
     
     // If pubkey is provided, only fetch posts from that user
     if (pubkey) {
-      filter.authors = [pubkey];
-      
-      // Use an empty string for the i tag to ensure we're fetching book posts
-      // but not filtering by a specific ISBN
-      filter['i'] = ['']; // Removed the # sign here
+      baseFilter.authors = [pubkey];
     }
     
-    console.log("Using filter:", filter);
-    const events = await pool.querySync(relays, filter);
-    console.log("Fetched events:", events.length);
+    // Create separate filters for k=isbn and t=bookstr
+    const isbnFilter = { ...baseFilter, "#k": ["isbn"] };
+    const bookstrFilter = { ...baseFilter, "#t": ["bookstr"] };
     
-    // Process events to extract posts with book tags
+    // Execute queries in parallel
+    const [isbnEvents, bookstrEvents] = await Promise.all([
+      pool.querySync(relays, isbnFilter),
+      pool.querySync(relays, bookstrFilter)
+    ]);
+    
+    console.log(`Found ${isbnEvents.length} posts with k=isbn and ${bookstrEvents.length} posts with t=bookstr`);
+    
+    // Combine events, removing duplicates
+    const eventMap = new Map();
+    
+    // Add all events to the map, using the event ID as the key
+    [...isbnEvents, ...bookstrEvents].forEach(event => {
+      eventMap.set(event.id, event);
+    });
+    
+    // Convert back to array
+    const allEvents = Array.from(eventMap.values());
+    console.log(`Combined into ${allEvents.length} unique events`);
+    
+    // Process events to extract posts
     const posts: Post[] = [];
     const userPubkeys = new Set<string>();
     
-    for (const event of events) {
-      // Only include posts that have book tags (i tags)
-      const bookTag = event.tags.find(tag => tag[0] === 'i');
-      if (!bookTag) {
-        console.log("Skipping event without book tag:", event.id);
-        continue;
-      }
-      
-      console.log("Found post with book tag:", event.id, bookTag);
+    for (const event of allEvents) {
       userPubkeys.add(event.pubkey);
       
       // Extract ISBN from the tag (could be in format "isbn:1234567890" or just the ISBN)
-      const isbnValue = bookTag[1];
-      const isbn = isbnValue.startsWith('isbn:') 
-        ? isbnValue.substring(5) 
-        : isbnValue;
+      const bookTag = event.tags.find(tag => tag[0] === 'i');
+      let isbn = "";
+      
+      if (bookTag) {
+        const isbnValue = bookTag[1];
+        isbn = isbnValue.startsWith('isbn:') 
+          ? isbnValue.substring(5) 
+          : isbnValue;
+      }
       
       // Find optional media tags
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
@@ -354,11 +598,11 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
         pubkey: event.pubkey,
         content: event.content,
         createdAt: event.created_at * 1000,
-        taggedBook: {
+        taggedBook: isbn ? {
           isbn: isbn,
           title: "Book", // Will be updated when we fetch book details
           coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
-        },
+        } : undefined,
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
         mediaUrl: mediaTag ? mediaTag[2] : undefined,
         isSpoiler: !!spoilerTag && spoilerTag[1] === "true",

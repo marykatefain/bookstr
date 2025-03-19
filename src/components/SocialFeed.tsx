@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { fetchSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
+import { fetchSocialFeed, fetchGlobalSocialFeed, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ActivityCard } from "./social/ActivityCard";
 import { EmptyFeedState } from "./social/EmptyFeedState";
 import { FeedLoadingState } from "./social/FeedLoadingState";
 import { Card } from "@/components/ui/card";
-import { fetchPosts } from "@/lib/nostr/posts";
 import { PostCard } from "./post/PostCard";
 
 interface SocialFeedProps {
@@ -65,12 +64,17 @@ export function SocialFeed({ activities, type = "followers", useMockData = false
             setLoading(false);
           }, 800);
         } else {
-          // This is now the default branch: fetch real activities from the network
+          // This is the default branch: fetch real activities from the network
           console.log(`Fetching ${type} feed from Nostr network`);
           
-          // For global feed we'd need a different function, but we'll use the same one for now
-          // TODO: implement separate global feed fetching
-          const feed = await fetchSocialFeed(type === "followers" ? 20 : 30);
+          let feed: SocialActivity[] = [];
+          
+          if (type === "followers") {
+            feed = await fetchSocialFeed(20);
+          } else {
+            // Global feed uses the new fetchGlobalSocialFeed function
+            feed = await fetchGlobalSocialFeed(30);
+          }
           
           console.log(`Received ${feed.length} activities from Nostr network`);
           setLocalActivities(feed);

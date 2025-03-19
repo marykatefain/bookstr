@@ -7,6 +7,7 @@ import { mockPosts } from "./types";
 import { SimplePool, type Filter } from "nostr-tools";
 import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
+import { fetchBookPosts } from "./fetch/socialFetch";
 
 interface CreatePostParams {
   content: string;
@@ -80,56 +81,76 @@ export async function fetchPosts(limit: number = 20, useMockData: boolean = true
     return mockPosts;
   }
   
+  // This now delegates to fetchBookPosts which includes the tag filtering logic
+  return fetchBookPosts(undefined, false);
+}
+
+/**
+ * Fetch posts for a specific book by ISBN
+ */
+export async function fetchBookPosts(isbn: string, useMockData: boolean = true): Promise<Post[]> {
+  if (useMockData) {
+    return mockPosts.filter(post => post.taggedBook?.isbn === isbn);
+  }
+  
   try {
     const relayUrls = getUserRelays();
     const pool = new SimplePool();
     
-    const filter: Filter = {
+    // Create two filters: one for k=isbn and one for t=bookstr
+    const isbnFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
-      limit: limit
+      '#i': [`isbn:${isbn}`],
+      '#k': ['isbn']
     };
     
-    // Fixed: pass a single filter object instead of an array
-    const events = await pool.querySync(relayUrls, filter);
+    const bookstrFilter: Filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      '#i': [`isbn:${isbn}`],
+      '#t': ['bookstr']
+    };
     
+    // Query both filters in parallel
+    const [isbnEvents, bookstrEvents] = await Promise.all([
+      pool.querySync(relayUrls, isbnFilter),
+      pool.querySync(relayUrls, bookstrFilter)
+    ]);
+    
+    // Combine and deduplicate events
+    const combinedEvents = [...isbnEvents, ...bookstrEvents];
+    const uniqueEvents = Array.from(new Map(combinedEvents.map(event => [event.id, event])).values());
+    
+    // Process events to create posts
     const posts: Post[] = [];
     const userPubkeys = new Set<string>();
     
-    for (const event of events) {
-      // Only include posts that have book tags
-      const bookTag = event.tags.find(tag => tag[0] === 'i' && tag[2] === 'book');
-      if (!bookTag) continue;
-      
+    for (const event of uniqueEvents) {
       userPubkeys.add(event.pubkey);
       
-      const titleTag = event.tags.find(tag => tag[0] === 'title');
-      const coverTag = event.tags.find(tag => tag[0] === 'cover');
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
       
-      const post: Post = {
+      posts.push({
         id: event.id,
         pubkey: event.pubkey,
         content: event.content,
         createdAt: event.created_at * 1000,
         taggedBook: {
-          isbn: bookTag[1],
-          title: titleTag ? titleTag[1] : "Unknown Book",
-          coverUrl: coverTag ? coverTag[1] : ""
+          isbn: isbn,
+          title: "Book", // Will be updated with actual title
+          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
         },
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-        mediaUrl: undefined, // We'd resolve this from a storage service in a real app
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
         isSpoiler: !!spoilerTag && spoilerTag[1] === "true",
         reactions: {
           count: 0,
           userReacted: false
         }
-      };
-      
-      posts.push(post);
+      });
     }
     
-    // Fetch user profiles for authors
+    // Fetch user profiles for post authors
     if (userPubkeys.size > 0) {
       const profiles = await fetchUserProfiles(Array.from(userPubkeys));
       
@@ -149,37 +170,6 @@ export async function fetchPosts(limit: number = 20, useMockData: boolean = true
     pool.close(relayUrls);
     return posts.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    return [];
-  }
-}
-
-/**
- * Fetch posts for a specific book by ISBN
- */
-export async function fetchBookPosts(isbn: string, useMockData: boolean = true): Promise<Post[]> {
-  if (useMockData) {
-    return mockPosts.filter(post => post.taggedBook?.isbn === isbn);
-  }
-  
-  try {
-    const relayUrls = getUserRelays();
-    const pool = new SimplePool();
-    
-    const filter: Filter = {
-      kinds: [NOSTR_KINDS.TEXT_NOTE],
-      '#i': [isbn]
-    };
-    
-    // Fixed: pass a single filter object instead of an array
-    const events = await pool.querySync(relayUrls, filter);
-    
-    // Process events similarly to fetchPosts
-    // ... processing code here ...
-    
-    pool.close(relayUrls);
-    return []; // Replace with actual posts
-  } catch (error) {
     console.error(`Error fetching posts for book ${isbn}:`, error);
     return [];
   }
@@ -190,6 +180,5 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
  */
 export async function fetchUserPosts(pubkey: string, useMockData: boolean = true): Promise<Post[]> {
   // Import the function from the fetch directory and call it
-  const { fetchBookPosts } = require('./fetch/socialFetch');
   return fetchBookPosts(pubkey, useMockData);
 }

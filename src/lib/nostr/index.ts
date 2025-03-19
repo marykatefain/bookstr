@@ -53,6 +53,7 @@ export {
   fetchFollowingList,
   fetchUserProfile,
   fetchSocialFeed,
+  fetchGlobalSocialFeed,
   fetchUserReviews,
   ensureBookMetadata,
   fetchBookActivity
