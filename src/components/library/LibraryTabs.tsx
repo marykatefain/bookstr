@@ -17,6 +17,7 @@ interface LibraryTabsProps {
   posts: Post[];
   booksLoading: boolean;
   postsLoading: boolean;
+  refetchBooks: () => void;
 }
 
 export const LibraryTabs: React.FC<LibraryTabsProps> = ({
@@ -26,6 +27,7 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
   posts,
   booksLoading,
   postsLoading,
+  refetchBooks
 }) => {
   return (
     <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
@@ -40,6 +42,7 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           books={books} 
           isLoading={booksLoading} 
           filterType="all"
+          onUpdate={refetchBooks}
         />
       </TabsContent>
       
@@ -48,6 +51,7 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           books={books} 
           isLoading={booksLoading} 
           filterType="reading"
+          onUpdate={refetchBooks}
         />
       </TabsContent>
       
@@ -56,6 +60,7 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           books={books} 
           isLoading={booksLoading} 
           filterType="tbr"
+          onUpdate={refetchBooks}
         />
       </TabsContent>
       
@@ -64,6 +69,7 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           books={books} 
           isLoading={booksLoading} 
           filterType="read"
+          onUpdate={refetchBooks}
         />
       </TabsContent>
     </Tabs>

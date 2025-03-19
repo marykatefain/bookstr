@@ -13,7 +13,7 @@ import { isLoggedIn } from "@/lib/nostr";
 const Library: React.FC = () => {
   const [activeTab, setActiveTab] = useState("posts");
   const [showRelaySettings, setShowRelaySettings] = useState(false);
-  const { user, books, posts, booksLoading, postsLoading } = useLibraryData();
+  const { user, books, posts, booksLoading, postsLoading, refetchBooks } = useLibraryData();
 
   const toggleRelaySettings = () => {
     setShowRelaySettings(!showRelaySettings);
@@ -57,6 +57,7 @@ const Library: React.FC = () => {
             posts={posts}
             booksLoading={booksLoading}
             postsLoading={postsLoading}
+            refetchBooks={refetchBooks}
           />
         </div>
       </div>

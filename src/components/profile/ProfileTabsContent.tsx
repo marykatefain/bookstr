@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { Book, FileText, MessageCircle } from "lucide-react";
@@ -128,7 +127,7 @@ export const ProfileTabsContent: React.FC<ProfileTabsContentProps> = ({
         {books.read.length > 0 ? renderBookGrid(books.read) : <EmptyState type="read" />}
       </TabsContent>
 
-      <TabsContent value="want-to-read" className="pt-6">
+      <TabsContent value="tbr" className="pt-6">
         {books.tbr.length > 0 ? renderBookGrid(books.tbr) : <EmptyState type="want-to-read" />}
       </TabsContent>
     </>

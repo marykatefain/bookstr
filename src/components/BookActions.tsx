@@ -115,7 +115,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     }
   };
 
-  // Style variations based on size
   const getButtonSize = () => {
     switch (size) {
       case 'small': return 'h-8 text-xs px-2';

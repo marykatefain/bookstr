@@ -13,12 +13,14 @@ interface BooksTabContentProps {
   };
   isLoading: boolean;
   filterType?: "all" | "tbr" | "reading" | "read";
+  onUpdate?: () => void;
 }
 
 export const BooksTabContent: React.FC<BooksTabContentProps> = ({ 
   books, 
   isLoading,
-  filterType = "all" 
+  filterType = "all",
+  onUpdate
 }) => {
   if (isLoading) {
     return (
@@ -40,7 +42,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.reading.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={() => {}} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -57,7 +59,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.tbr.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={() => {}} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -74,7 +76,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.read.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={() => {}} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -88,17 +90,20 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
       <BookSection 
         title="Currently Reading" 
         books={books.reading} 
-        emptyStateType="reading" 
+        emptyStateType="reading"
+        onUpdate={onUpdate} 
       />
       <BookSection 
         title="To Be Read" 
         books={books.tbr} 
-        emptyStateType="want-to-read" 
+        emptyStateType="want-to-read"
+        onUpdate={onUpdate} 
       />
       <BookSection 
         title="Read" 
         books={books.read} 
-        emptyStateType="read" 
+        emptyStateType="read"
+        onUpdate={onUpdate} 
       />
     </>
   );
