@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -163,7 +162,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
   
-  if (book.readingStatus?.status === 'tbr' || book.readingStatus?.status === 'want-to-read') {
+  if (book.readingStatus?.status === 'tbr') {
     mappedReadingStatus = 'tbr';
   } else if (book.readingStatus?.status === 'reading') {
     mappedReadingStatus = 'reading';

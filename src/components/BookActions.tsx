@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -23,7 +22,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const handleAction = async (action: BookActionType) => {
     // Check if book is already in this list
     const isInList = book.readingStatus?.status === action || 
-                     (action === 'tbr' && book.readingStatus?.status === 'want-to-read');
+                     (action === 'tbr' && book.readingStatus?.status === 'tbr');
     
     // If book is already in the list, remove it
     if (isInList) {
@@ -131,7 +130,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     ? 'flex flex-row space-x-2 mt-2' 
     : 'flex flex-col space-y-2 mt-2';
 
-  const isTbr = book.readingStatus?.status === 'tbr' || book.readingStatus?.status === 'want-to-read';
+  const isTbr = book.readingStatus?.status === 'tbr';
   const isReading = book.readingStatus?.status === 'reading';
   const isFinished = book.readingStatus?.status === 'finished';
 
