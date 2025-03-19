@@ -1,11 +1,12 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  isLoggedIn,
-  reactToContent 
+  reactToContent,
+  isLoggedIn 
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,14 +26,7 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
-      if (book.readingStatus?.status === 'tbr') {
-        await removeBookFromList(book, 'tbr');
-        console.log("Removed book from TBR list before marking as read");
-      } else if (book.readingStatus?.status === 'reading') {
-        await removeBookFromList(book, 'reading');
-        console.log("Removed book from Reading list before marking as read");
-      }
-
+      // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, 'finished');
       if (!success) {
         await addBookToList(book, 'finished');
@@ -59,11 +53,7 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
-      if (listType === 'reading' && book.readingStatus?.status === 'tbr') {
-        await removeBookFromList(book, 'tbr');
-        console.log("Removed book from TBR list before marking as reading");
-      }
-
+      // Try to update the book in the list first, if it fails then add it
       const success = await updateBookInList(book, listType);
       if (!success) {
         await addBookToList(book, listType);
@@ -96,24 +86,18 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
-      const result = await removeBookFromList(book, listType);
+      await removeBookFromList(book, listType);
+      toast({
+        title: "Success!",
+        description: `Book removed from your ${
+          listType === 'tbr' ? 'to be read' : 
+          listType === 'reading' ? 'currently reading' : 'finished reading'
+        } list.`,
+      });
       
-      if (result) {
-        toast({
-          title: "Success!",
-          description: `Book removed from your ${
-            listType === 'tbr' ? 'to be read' : 
-            listType === 'reading' ? 'currently reading' : 'finished reading'
-          } list.`,
-        });
-      } else {
-        toast({
-          title: "Note",
-          description: "Book was not found in the list",
-        });
-      }
-      
+      // If removing from "finished" list, update UI to show "not read"
       if (listType === 'finished' && book.readingStatus?.status === 'finished') {
+        // This will trigger any UI updates in components that use this hook
         return true;
       }
     } catch (error) {
