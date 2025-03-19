@@ -17,7 +17,7 @@ import {
   fetchUserBooks,
   fetchUserReviews,
   fetchFollowingList,
-  fetchBookPosts,
+  fetchUserPosts,
   followUser,
   isLoggedIn,
   getCurrentUser 
@@ -89,15 +89,16 @@ const UserProfile = () => {
           setFollowing(follows.includes(actualPubkey));
         }
         
-        // Fetch posts with separate loading state
+        // Fetch posts with separate loading state - use fetchUserPosts instead of fetchBookPosts
         setPostsLoading(true);
         try {
-          console.log("Fetching book posts for pubkey:", actualPubkey);
-          const userBookPosts = await fetchBookPosts(actualPubkey, false);
-          console.log("Fetched posts:", userBookPosts);
-          setPosts(userBookPosts);
+          console.log("Fetching user posts for pubkey:", actualPubkey);
+          // Pass false as second parameter to use relay data instead of mock data
+          const userPosts = await fetchUserPosts(actualPubkey, false);
+          console.log("Fetched posts:", userPosts);
+          setPosts(userPosts);
         } catch (error) {
-          console.error("Error fetching book posts:", error);
+          console.error("Error fetching user posts:", error);
           toast({
             title: "Error",
             description: "Could not load user's posts",
