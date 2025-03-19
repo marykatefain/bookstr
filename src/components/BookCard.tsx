@@ -113,9 +113,15 @@ export const BookCard: React.FC<BookCardProps> = ({
     ? "p-2 space-y-1 flex-grow"
     : "p-3 space-y-1.5 flex-grow";
 
-  const mappedReadingStatus = book.readingStatus?.status === 'tbr' 
-    ? 'tbr' 
-    : book.readingStatus?.status as 'want-to-read' | 'reading' | 'finished' | null;
+  let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
+  
+  if (book.readingStatus?.status === 'tbr' || book.readingStatus?.status === 'want-to-read') {
+    mappedReadingStatus = 'tbr';
+  } else if (book.readingStatus?.status === 'reading') {
+    mappedReadingStatus = 'reading';
+  } else if (book.readingStatus?.status === 'finished') {
+    mappedReadingStatus = 'finished';
+  }
 
   return (
     <Card className={getCardClasses()}>
