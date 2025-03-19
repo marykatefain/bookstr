@@ -4,7 +4,7 @@ import { Reply } from "@/lib/nostr/types";
 import { ReplyItem } from "./ReplyItem";
 import { ReplyForm } from "./ReplyForm";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { MessageCircle, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react";
 import { fetchReplies, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,12 +12,20 @@ interface RepliesSectionProps {
   eventId: string;
   authorPubkey: string;
   initialReplies?: Reply[];
+  buttonLayout?: "horizontal" | "vertical";
+  onReaction?: (eventId: string) => void;
+  reactionCount?: number;
+  userReacted?: boolean;
 }
 
 export function RepliesSection({ 
   eventId, 
   authorPubkey, 
-  initialReplies = [] 
+  initialReplies = [],
+  buttonLayout = "vertical",
+  onReaction,
+  reactionCount,
+  userReacted
 }: RepliesSectionProps) {
   const [replies, setReplies] = useState<Reply[]>(initialReplies);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -75,13 +83,31 @@ export function RepliesSection({
     setShowReplies(!showReplies);
   };
 
+  const handleReaction = () => {
+    if (onReaction) {
+      onReaction(eventId);
+    }
+  };
+
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center ${buttonLayout === "horizontal" ? "gap-4" : "flex-col items-start gap-2"}`}>
+        {onReaction && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-muted-foreground"
+            onClick={handleReaction}
+          >
+            <Heart className={`mr-1 h-4 w-4 ${userReacted ? 'fill-red-500 text-red-500' : ''}`} />
+            <span>{reactionCount ? reactionCount : 'Like'}</span>
+          </Button>
+        )}
+        
         <Button 
           variant="ghost" 
           size="sm" 
-          className="text-muted-foreground px-2"
+          className="text-muted-foreground"
           onClick={handleReplyClick}
         >
           <MessageCircle className="mr-1 h-4 w-4" />
@@ -92,7 +118,7 @@ export function RepliesSection({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-muted-foreground px-2"
+            className="text-muted-foreground"
             onClick={toggleReplies}
           >
             {loadingReplies ? (

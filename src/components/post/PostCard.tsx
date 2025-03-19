@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCover } from "@/components/book/BookCover";
 import { formatPubkey } from "@/lib/utils/format";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
@@ -152,22 +152,14 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       </CardContent>
       
       <CardFooter className="pt-0 py-2 flex-col items-start">
-        <div className="flex gap-4 w-full">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-            onClick={handleReaction}
-          >
-            <Heart className={`mr-1 h-4 w-4 ${postData.reactions?.userReacted ? 'fill-red-500 text-red-500' : ''}`} />
-            <span>{postData.reactions?.count || 'Like'}</span>
-          </Button>
-        </div>
-        
         <RepliesSection 
           eventId={postData.id}
           authorPubkey={postData.pubkey}
           initialReplies={postData.replies}
+          buttonLayout="horizontal"
+          onReaction={handleReaction}
+          reactionCount={postData.reactions?.count}
+          userReacted={postData.reactions?.userReacted}
         />
       </CardFooter>
     </Card>
