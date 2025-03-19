@@ -33,10 +33,6 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
     <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
       <LibraryTabList activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <TabsContent value="posts">
-        <PostsTabContent posts={posts} isLoading={postsLoading} />
-      </TabsContent>
-      
       <TabsContent value="books">
         <BooksTabContent 
           books={books} 
@@ -71,6 +67,10 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           filterType="read"
           onUpdate={refetchBooks}
         />
+      </TabsContent>
+      
+      <TabsContent value="posts">
+        <PostsTabContent posts={posts} isLoading={postsLoading} />
       </TabsContent>
     </Tabs>
   );

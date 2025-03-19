@@ -11,7 +11,7 @@ import { useLibraryData } from "@/hooks/use-library-data";
 import { isLoggedIn } from "@/lib/nostr";
 
 const Library: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState("books");
   const [showRelaySettings, setShowRelaySettings] = useState(false);
   const { user, books, posts, booksLoading, postsLoading, refetchBooks } = useLibraryData();
 
