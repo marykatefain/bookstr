@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
@@ -28,6 +27,18 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     }
   };
 
+  const displayRating = (): number | undefined => {
+    if (review.rating === undefined) return undefined;
+    
+    if (review.rating >= 1 && review.rating <= 5) {
+      return review.rating;
+    }
+    
+    return Math.round(review.rating * 5);
+  };
+
+  const starRating = displayRating();
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
@@ -53,13 +64,13 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               </Link>
             </div>
           )}
-          {review.rating && (
+          {starRating !== undefined && (
             <div className="flex items-center gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className={`h-4 w-4 ${
-                    i < review.rating!
+                    i < starRating
                       ? "fill-yellow-400 text-yellow-400"
                       : "text-muted-foreground"
                   }`}
