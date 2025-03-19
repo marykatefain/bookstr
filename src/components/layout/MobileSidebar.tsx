@@ -8,7 +8,7 @@ import {
   BarChart2,
   LogOut,
   X,
-  Users
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -31,8 +31,8 @@ export const MobileSidebar = ({
 
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
-    { path: "/books", label: "Discover", icon: Book },
     { path: "/library", label: "Library", icon: Library },
+    { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
 

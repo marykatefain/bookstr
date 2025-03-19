@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -7,7 +6,7 @@ import {
   Library, 
   BarChart2,
   LogOut,
-  Users
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,8 +27,8 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
-    { path: "/books", label: "Discover", icon: Book },
     { path: "/library", label: "Library", icon: Library },
+    { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
 
@@ -94,4 +93,3 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
     </aside>
   );
 };
-
