@@ -1,7 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
-import { Heart, Book } from "lucide-react";
+import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RepliesSection } from "./RepliesSection";
@@ -40,15 +39,6 @@ export function ActivityFooter({
           <Heart className={`mr-1 h-4 w-4 ${userReacted ? 'fill-red-500 text-red-500' : ''}`} />
           <span>{reactionCount ? reactionCount : 'Like'}</span>
         </Button>
-        
-        {!isMobile && (
-          <Link to={`/book/${bookIsbn}`} className="ml-auto">
-            <Button variant="ghost" size="sm">
-              <Book className="mr-1 h-4 w-4" />
-              <span>View Book</span>
-            </Button>
-          </Link>
-        )}
       </div>
       
       <RepliesSection 

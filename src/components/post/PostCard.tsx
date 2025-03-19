@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCover } from "@/components/book/BookCover";
 import { formatPubkey } from "@/lib/utils/format";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, Book, AlertTriangle, Eye } from "lucide-react";
+import { Heart, AlertTriangle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
@@ -162,15 +162,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
             <Heart className={`mr-1 h-4 w-4 ${postData.reactions?.userReacted ? 'fill-red-500 text-red-500' : ''}`} />
             <span>{postData.reactions?.count || 'Like'}</span>
           </Button>
-          
-          {postData.taggedBook && (
-            <Link to={`/book/${postData.taggedBook.isbn}`} className="ml-auto">
-              <Button variant="ghost" size="sm">
-                <Book className="mr-1 h-4 w-4" />
-                <span>View Book</span>
-              </Button>
-            </Link>
-          )}
         </div>
         
         <RepliesSection 
