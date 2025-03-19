@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { 
   fetchSocialFeed, 
   fetchGlobalSocialFeed, 
   isLoggedIn,
-  reactToContent
+  reactToContent,
+  fetchReplies
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ActivityCard } from "./social/ActivityCard";
@@ -75,9 +77,27 @@ export function SocialFeed({
         
         console.log(`Received ${feed.length} activities from Nostr network`);
         
+        // Fetch replies for each activity
+        const activitiesWithReplies = await Promise.all(
+          feed.map(async (activity) => {
+            try {
+              const replies = await fetchReplies(activity.id);
+              return {
+                ...activity,
+                replies
+              };
+            } catch (error) {
+              console.error(`Error fetching replies for activity ${activity.id}:`, error);
+              return activity;
+            }
+          })
+        );
+        
         // Apply maxItems limit if specified
-        if (maxItems && feed.length > maxItems) {
-          feed = feed.slice(0, maxItems);
+        if (maxItems && activitiesWithReplies.length > maxItems) {
+          feed = activitiesWithReplies.slice(0, maxItems);
+        } else {
+          feed = activitiesWithReplies;
         }
         
         setLocalActivities(feed);

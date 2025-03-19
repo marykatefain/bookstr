@@ -5,10 +5,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, Heart, MessageCircle } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
+import { RepliesSection } from "@/components/social/RepliesSection";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -144,7 +145,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
                     <>
                       <span className="mx-1">•</span>
                       <div className="flex items-center">
-                        {renderStars(review.rating)}
+                        {renderStars(Math.round(review.rating * 5))}
                       </div>
                     </>
                   )}
@@ -156,7 +157,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
         <CardContent className="py-2">
           <p className="text-sm whitespace-pre-wrap">{review.content}</p>
         </CardContent>
-        <CardFooter className="pt-0 flex gap-2">
+        <CardFooter className="pt-0 flex-col items-start">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -166,14 +167,12 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
             <Heart className="mr-1 h-4 w-4" />
             <span>Like</span>
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-          >
-            <MessageCircle className="mr-1 h-4 w-4" />
-            <span>Reply</span>
-          </Button>
+          
+          <RepliesSection 
+            eventId={review.id}
+            authorPubkey={review.pubkey}
+            initialReplies={review.replies}
+          />
         </CardFooter>
       </Card>
     ));

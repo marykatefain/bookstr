@@ -1,4 +1,3 @@
-
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -53,6 +52,20 @@ export interface BookReview {
   bookIsbn?: string;
   bookTitle?: string;
   bookCover?: string;
+  replies?: Reply[];
+}
+
+export interface Reply {
+  id: string;
+  pubkey: string;
+  content: string;
+  createdAt: number;
+  author?: {
+    name?: string;
+    picture?: string;
+    npub?: string;
+  };
+  parentId: string;
 }
 
 export interface Post {
@@ -77,6 +90,7 @@ export interface Post {
     count: number;
     userReacted: boolean;
   };
+  replies?: Reply[];
 }
 
 export interface SocialActivity {
@@ -99,6 +113,7 @@ export interface SocialActivity {
   mediaUrl?: string;
   mediaType?: 'image' | 'video';
   isSpoiler?: boolean;
+  replies?: Reply[];
 }
 
 export interface FollowList {
@@ -107,7 +122,6 @@ export interface FollowList {
 
 export type BookActionType = 'tbr' | 'reading' | 'finished';
 
-// Mock Posts
 export const mockPosts: Post[] = [
   {
     id: "post1",
@@ -205,5 +219,7 @@ export const NOSTR_KINDS = {
   REVIEW: 31985, // Updated to the correct kind for reviews
   BOOK_READ: 10073,
   BOOK_READING: 10074,
-  BOOK_TBR: 10075
+  BOOK_TBR: 10075,
+  BOOK_LIST_REPLY: 1111,  // Kind for replying to book-related events
+  POST_REPLY: 1           // Using standard kind 1 for post replies
 };

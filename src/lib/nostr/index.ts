@@ -38,6 +38,7 @@ export {
   reviewBook,
   reactToContent,
   replyToContent,
+  fetchReplies,
   followUser,
   addBookToList,
   updateBookInList,

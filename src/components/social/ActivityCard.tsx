@@ -39,9 +39,11 @@ export function ActivityCard({ activity, onReaction }: ActivityCardProps) {
         <ActivityFooter
           bookIsbn={activity.book.isbn}
           activityId={activity.id}
+          authorPubkey={activity.pubkey}
           reactionCount={activity.reactions?.count}
           userReacted={activity.reactions?.userReacted}
           onReaction={onReaction}
+          replies={activity.replies}
         />
       </CardFooter>
     </Card>

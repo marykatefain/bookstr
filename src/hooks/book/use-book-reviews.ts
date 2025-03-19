@@ -7,7 +7,8 @@ import {
   reviewBook,
   rateBook, 
   isLoggedIn,
-  getCurrentUser
+  getCurrentUser,
+  fetchReplies
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +27,24 @@ export const useBookReviews = (isbn: string | undefined) => {
       
       try {
         const bookReviews = await fetchBookReviews(isbn);
-        setReviews(bookReviews);
+        
+        // Fetch replies for each review
+        const reviewsWithReplies = await Promise.all(
+          bookReviews.map(async (review) => {
+            try {
+              const replies = await fetchReplies(review.id);
+              return {
+                ...review,
+                replies
+              };
+            } catch (error) {
+              console.error(`Error fetching replies for review ${review.id}:`, error);
+              return review;
+            }
+          })
+        );
+        
+        setReviews(reviewsWithReplies);
         
         const bookRatings = await fetchBookRatings(isbn);
         setRatings(bookRatings);
@@ -89,7 +107,24 @@ export const useBookReviews = (isbn: string | undefined) => {
       setReviewText("");
       
       const updatedReviews = await fetchBookReviews(isbn || "");
-      setReviews(updatedReviews);
+      
+      // Fetch replies for the updated reviews
+      const reviewsWithReplies = await Promise.all(
+        updatedReviews.map(async (review) => {
+          try {
+            const replies = await fetchReplies(review.id);
+            return {
+              ...review,
+              replies
+            };
+          } catch (error) {
+            console.error(`Error fetching replies for review ${review.id}:`, error);
+            return review;
+          }
+        })
+      );
+      
+      setReviews(reviewsWithReplies);
     } catch (error) {
       console.error("Error submitting review:", error);
       toast({

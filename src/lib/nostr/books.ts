@@ -1,4 +1,4 @@
-import { Book, NOSTR_KINDS, BookActionType } from "./types";
+import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool } from "nostr-tools";
 import { getCurrentUser } from "./user";
@@ -287,8 +287,31 @@ export async function reactToContent(eventId: string): Promise<string | null> {
  * Reply to content (review, rating, etc)
  */
 export async function replyToContent(eventId: string, pubkey: string, replyText: string): Promise<string | null> {
+  if (!eventId || !replyText.trim()) {
+    console.error("Cannot reply: missing eventId or reply text");
+    return null;
+  }
+
+  // Determine if this is a reply to a post or a book-related event
+  let kind = NOSTR_KINDS.BOOK_LIST_REPLY; // Default to book list reply
+
+  try {
+    // Fetch the original event to determine its kind
+    const originalEvent = await fetchEventById(eventId);
+    
+    if (originalEvent) {
+      // If the original event is a text note (kind 1), use kind 1 for the reply
+      if (originalEvent.kind === NOSTR_KINDS.TEXT_NOTE) {
+        kind = NOSTR_KINDS.POST_REPLY;
+      }
+    }
+  } catch (error) {
+    console.error("Error determining event kind for reply:", error);
+    // Continue with default kind if there's an error
+  }
+
   const event = {
-    kind: NOSTR_KINDS.REVIEW,
+    kind: kind,
     tags: [
       ["e", eventId, "", "reply"],
       ["p", pubkey]
@@ -297,6 +320,127 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
   };
   
   return publishToNostr(event);
+}
+
+/**
+ * Fetch an event by its ID
+ */
+async function fetchEventById(eventId: string) {
+  const pool = new SimplePool();
+  const relayUrls = getUserRelays();
+  
+  try {
+    const events = await pool.querySync(relayUrls, {
+      ids: [eventId],
+      limit: 1
+    });
+    
+    return events[0] || null;
+  } catch (error) {
+    console.error("Error fetching event by ID:", error);
+    return null;
+  } finally {
+    pool.close(relayUrls);
+  }
+}
+
+/**
+ * Fetch replies for a specific event
+ */
+export async function fetchReplies(eventId: string): Promise<Reply[]> {
+  if (!eventId) {
+    console.error("Cannot fetch replies: missing eventId");
+    return [];
+  }
+  
+  const pool = new SimplePool();
+  const relayUrls = getUserRelays();
+  
+  try {
+    // Query for replies to this event (both kinds)
+    const events = await pool.querySync(relayUrls, {
+      kinds: [NOSTR_KINDS.BOOK_LIST_REPLY, NOSTR_KINDS.POST_REPLY],
+      "#e": [eventId],
+      limit: 50
+    });
+    
+    if (!events.length) {
+      return [];
+    }
+    
+    // Format replies
+    const replies: Reply[] = events.map(event => ({
+      id: event.id,
+      pubkey: event.pubkey,
+      content: event.content,
+      createdAt: event.created_at * 1000, // Convert to milliseconds
+      parentId: eventId,
+      author: undefined // Will be populated later
+    }));
+    
+    // Fetch profiles for reply authors
+    const authorPubkeys = Array.from(new Set(replies.map(reply => reply.pubkey)));
+    const profiles = await fetchProfilesForPubkeys(authorPubkeys);
+    
+    // Attach profile data to replies
+    return replies.map(reply => {
+      const profile = profiles[reply.pubkey];
+      
+      if (profile) {
+        reply.author = {
+          name: profile.name,
+          picture: profile.picture,
+          npub: profile.npub
+        };
+      }
+      
+      return reply;
+    });
+  } catch (error) {
+    console.error("Error fetching replies:", error);
+    return [];
+  } finally {
+    pool.close(relayUrls);
+  }
+}
+
+/**
+ * Fetch profiles for a list of pubkeys
+ */
+async function fetchProfilesForPubkeys(pubkeys: string[]): Promise<Record<string, any>> {
+  if (!pubkeys.length) return {};
+  
+  const pool = new SimplePool();
+  const relayUrls = getUserRelays();
+  
+  try {
+    const events = await pool.querySync(relayUrls, {
+      kinds: [NOSTR_KINDS.SET_METADATA],
+      authors: pubkeys
+    });
+    
+    const profiles: Record<string, any> = {};
+    
+    for (const event of events) {
+      try {
+        const profileData = JSON.parse(event.content);
+        profiles[event.pubkey] = {
+          name: profileData.name || profileData.display_name,
+          picture: profileData.picture,
+          npub: event.pubkey
+        };
+      } catch (error) {
+        console.error("Error parsing profile data:", error);
+      }
+    }
+    
+    return profiles;
+  } catch (error) {
+    console.error("Error fetching profiles:", error);
+    return {};
+  } finally {
+    pool.close(relayUrls);
+  }
 }
 
 /**
