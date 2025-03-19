@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -201,6 +200,3 @@ export const useBookActions = () => {
     handleReactToContent
   };
 };
-
-// Re-adding the import for reactToContent that was previously fixed
-import { reactToContent } from "@/lib/nostr";
