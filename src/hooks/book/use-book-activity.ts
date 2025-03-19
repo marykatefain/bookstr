@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export const useBookActivity = (isbn: string | undefined) => {
   const [activeTab, setActiveTab] = useState<"reviews" | "activity">("reviews");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { toast } = useToast();
 
   const { 
@@ -15,7 +16,7 @@ export const useBookActivity = (isbn: string | undefined) => {
     refetch: refetchActivity,
     error
   } = useQuery({
-    queryKey: ['bookActivity', isbn],
+    queryKey: ['bookActivity', isbn, refreshTrigger],
     queryFn: async () => {
       if (!isbn) return [];
       console.log(`Fetching activity for book ISBN: ${isbn}`);
@@ -52,11 +53,18 @@ export const useBookActivity = (isbn: string | undefined) => {
     if (tab === activeTab) return; // Prevent unnecessary state updates
     setActiveTab(tab);
   };
+  
+  // Function to trigger a refresh of the activity data
+  const refreshActivity = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return {
     activeTab,
     setActiveTab: handleTabChange,
     bookActivity,
-    loadingActivity
+    loadingActivity,
+    refreshActivity,
+    refreshTrigger
   };
 };

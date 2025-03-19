@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, Globe } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
@@ -9,6 +9,12 @@ import { Button } from "@/components/ui/button";
 
 export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // This function will be passed to the CreatePostBox to trigger feed refresh
+  const refreshFeed = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   if (!isLoggedIn()) {
     return (
@@ -68,11 +74,11 @@ export function SocialSection() {
       </div>
       
       <div className="mb-6">
-        <CreatePostBox />
+        <CreatePostBox onPostSuccess={refreshFeed} />
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        <SocialFeed type={feedType} useMockData={false} />
+        <SocialFeed type={feedType} useMockData={false} refreshTrigger={refreshTrigger} />
       </div>
     </div>
   );

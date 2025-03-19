@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Book, Post } from "@/lib/nostr/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -19,7 +18,11 @@ import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchUserBooks } from "@/lib/nostr";
 
-export function CreatePostBox() {
+interface CreatePostBoxProps {
+  onPostSuccess?: () => void;
+}
+
+export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
   const [content, setContent] = useState("#bookstr ");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,6 +173,10 @@ export function CreatePostBox() {
         setSelectedBook(null);
         clearMedia();
         setIsSpoiler(false);
+        
+        if (onPostSuccess) {
+          onPostSuccess();
+        }
       }
     } catch (error) {
       console.error("Error creating post:", error);
