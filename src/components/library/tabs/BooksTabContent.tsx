@@ -76,7 +76,12 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.read.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+              <BookCard 
+                key={book.id} 
+                book={book} 
+                size="medium" 
+                onUpdate={onUpdate} 
+              />
             ))}
           </div>
         )}

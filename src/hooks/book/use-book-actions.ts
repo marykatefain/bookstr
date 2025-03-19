@@ -81,7 +81,7 @@ export const useBookActions = () => {
         description: "Please sign in to remove books from your list",
         variant: "destructive"
       });
-      return;
+      return false;
     }
     
     setPendingAction(listType);

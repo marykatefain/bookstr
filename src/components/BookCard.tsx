@@ -1,14 +1,16 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
 import { BookCategories } from "./book/BookCategories";
 import { BookActionButtons } from "./book/BookActionButtons";
+import { BookActions } from "./BookActions";
 
 interface BookCardProps {
   book: Book;
@@ -248,13 +250,12 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <p className="text-xs line-clamp-2">{book.description}</p>
               )}
               
-              <BookActionButtons 
+              {/* Replace the BookActionButtons with BookActions for more comprehensive functionality */}
+              <BookActions
+                book={book}
+                onUpdate={onUpdate}
                 size={size}
-                pendingAction={pendingAction}
-                onAddToTbr={() => handleAction('tbr')}
-                onStartReading={() => handleAction('reading')}
-                onRemove={handleRemove}
-                readingStatus={mappedReadingStatus}
+                horizontal={variant === "horizontal"}
               />
             </div>
           </>
