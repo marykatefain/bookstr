@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Book, 
   Home, 
@@ -26,6 +26,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
@@ -35,6 +36,12 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   ];
 
   const filteredLinks = navLinks.filter(() => true); // All links are shown now since we removed requiresAuth
+
+  const handleProfileClick = () => {
+    if (user && user.pubkey) {
+      navigate(`/users/${user.pubkey}`);
+    }
+  };
 
   return (
     <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
@@ -46,7 +53,10 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
       <div className="mb-4">
         {user ? (
           <div className="space-y-3">
-            <div className="flex items-center space-x-3 p-3">
+            <div 
+              className="flex items-center space-x-3 p-3 hover:bg-bookverse-cream rounded-md cursor-pointer transition-colors"
+              onClick={handleProfileClick}
+            >
               <div className="h-8 w-8 rounded-full overflow-hidden">
                 <img
                   src={user.picture || "https://i.pravatar.cc/300"}
