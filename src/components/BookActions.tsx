@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -133,53 +134,59 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const isReading = book.readingStatus?.status === 'reading';
   const isFinished = book.readingStatus?.status === 'finished';
 
+  // Determine which buttons to show based on reading status
+  const showActionButtons = !isFinished;
+  const showUnmarkButton = isFinished;
+
   return (
     <>
       <div className={containerClass}>
-        <Button 
-          variant={isTbr ? "secondary" : "outline"} 
-          size="sm"
-          className={buttonSize}
-          onClick={() => handleAction('tbr')}
-          disabled={isLoading !== null}
-        >
-          {isTbr ? (
-            <X size={iconSize} />
-          ) : (
-            <BookOpen size={iconSize} />
-          )}
-          {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "To Be Read"}</span>}
-        </Button>
+        {showActionButtons && (
+          <>
+            <Button 
+              variant={isTbr ? "secondary" : "outline"} 
+              size="sm"
+              className={buttonSize}
+              onClick={() => handleAction('tbr')}
+              disabled={isLoading !== null}
+            >
+              {isTbr ? (
+                <X size={iconSize} />
+              ) : (
+                <BookOpen size={iconSize} />
+              )}
+              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "To Be Read"}</span>}
+            </Button>
+            
+            <Button 
+              variant={isReading ? "secondary" : "outline"} 
+              size="sm"
+              className={buttonSize}
+              onClick={() => handleAction('reading')}
+              disabled={isLoading !== null}
+            >
+              {isReading ? (
+                <X size={iconSize} />
+              ) : (
+                <Eye size={iconSize} />
+              )}
+              {size !== 'small' && <span>{isReading ? "Stop Reading" : "Start Reading"}</span>}
+            </Button>
+          </>
+        )}
         
-        <Button 
-          variant={isReading ? "secondary" : "outline"} 
-          size="sm"
-          className={buttonSize}
-          onClick={() => handleAction('reading')}
-          disabled={isLoading !== null}
-        >
-          {isReading ? (
+        {showUnmarkButton && (
+          <Button 
+            variant="secondary" 
+            size="sm"
+            className={buttonSize}
+            onClick={() => handleAction('finished')}
+            disabled={isLoading !== null}
+          >
             <X size={iconSize} />
-          ) : (
-            <Eye size={iconSize} />
-          )}
-          {size !== 'small' && <span>{isReading ? "Stop Reading" : "Start Reading"}</span>}
-        </Button>
-        
-        <Button 
-          variant={isFinished ? "secondary" : "outline"} 
-          size="sm"
-          className={buttonSize}
-          onClick={() => handleAction('finished')}
-          disabled={isLoading !== null}
-        >
-          {isFinished ? (
-            <X size={iconSize} />
-          ) : (
-            <Check size={iconSize} />
-          )}
-          {size !== 'small' && <span>{isFinished ? "Unmark as Read" : "Finished"}</span>}
-        </Button>
+            {size !== 'small' && <span>Unmark as Read</span>}
+          </Button>
+        )}
       </div>
 
       <ISBNEntryModal

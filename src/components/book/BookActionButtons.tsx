@@ -22,6 +22,11 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
 }) => {
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
+  const isFinished = readingStatus === 'finished';
+
+  // Determine which buttons to show based on reading status
+  const showActionButtons = !isFinished;
+  const showUnmarkButton = isFinished;
 
   const handleTbrClick = () => {
     if (isTbr && onRemove) {
@@ -38,6 +43,33 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
       onStartReading();
     }
   };
+
+  const handleUnmarkClick = () => {
+    if (isFinished && onRemove) {
+      onRemove('finished');
+    }
+  };
+
+  if (isFinished) {
+    return (
+      <div className="pt-2">
+        <Button
+          size="sm"
+          variant="default"
+          className="w-full text-xs bg-bookverse-highlight"
+          onClick={handleUnmarkClick}
+          disabled={!!pendingAction}
+        >
+          {pendingAction === 'finished' ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <X className="mr-1 h-3 w-3" />
+          )}
+          Unmark as Read
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-2 flex items-center gap-2">

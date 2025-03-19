@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Star, Calendar, Clock, Check, Loader2 } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
 
@@ -53,6 +52,10 @@ const BookCoverSection: React.FC<{
   const readingStatus = book.readingStatus?.status;
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
+  const isFinished = readingStatus === 'finished';
+  
+  const showActionButtons = !isFinished;
+  const showUnmarkButton = isFinished;
   
   return (
     <div className="md:w-1/3">
@@ -64,32 +67,47 @@ const BookCoverSection: React.FC<{
           handleMarkAsRead={handleMarkAsRead}
         />
         <div className="mt-4 flex gap-2">
-          <Button 
-            className={`flex-1 ${isTbr ? "bg-bookverse-highlight" : ""}`}
-            variant={isTbr ? "default" : "outline"}
-            onClick={() => addBookToList(book, 'tbr')}
-            disabled={pendingAction !== null}
-          >
-            {isTbr ? (
-              <Check className="mr-2 h-4 w-4" />
-            ) : (
-              <BookOpen className="mr-2 h-4 w-4" />
-            )}
-            {isTbr ? "On TBR List" : "To Be Read"}
-          </Button>
+          {showActionButtons && (
+            <>
+              <Button 
+                className={`flex-1 ${isTbr ? "bg-bookverse-highlight" : ""}`}
+                variant={isTbr ? "default" : "outline"}
+                onClick={() => addBookToList(book, 'tbr')}
+                disabled={pendingAction !== null}
+              >
+                {isTbr ? (
+                  <Check className="mr-2 h-4 w-4" />
+                ) : (
+                  <BookOpen className="mr-2 h-4 w-4" />
+                )}
+                {isTbr ? "On TBR List" : "To Be Read"}
+              </Button>
+              
+              <Button 
+                className={`flex-1 ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
+                onClick={() => addBookToList(book, 'reading')}
+                disabled={pendingAction !== null}
+              >
+                {isReading ? (
+                  <Check className="mr-2 h-4 w-4" />
+                ) : (
+                  <Star className="mr-2 h-4 w-4" />
+                )}
+                {isReading ? "Currently Reading" : "Start Reading"}
+              </Button>
+            </>
+          )}
           
-          <Button 
-            className={`flex-1 ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
-            onClick={() => addBookToList(book, 'reading')}
-            disabled={pendingAction !== null}
-          >
-            {isReading ? (
-              <Check className="mr-2 h-4 w-4" />
-            ) : (
-              <Star className="mr-2 h-4 w-4" />
-            )}
-            {isReading ? "Currently Reading" : "Start Reading"}
-          </Button>
+          {showUnmarkButton && (
+            <Button 
+              className="flex-1 bg-bookverse-highlight"
+              onClick={handleMarkAsRead}
+              disabled={pendingAction !== null}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Unmark as Read
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -102,6 +120,8 @@ const BookCover: React.FC<{
   pendingAction: string | null;
   handleMarkAsRead: () => void;
 }> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
+  const isFinished = book.readingStatus?.status === 'finished';
+  
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
       <img 
@@ -112,11 +132,23 @@ const BookCover: React.FC<{
           e.currentTarget.src = "/placeholder.svg";
         }} 
       />
-      <BookReadButton 
-        isRead={isRead}
-        pendingAction={pendingAction}
-        handleMarkAsRead={handleMarkAsRead}
-      />
+      
+      {!isFinished && (
+        <BookReadButton 
+          isRead={isRead}
+          pendingAction={pendingAction}
+          handleMarkAsRead={handleMarkAsRead}
+        />
+      )}
+      
+      {isFinished && (
+        <div
+          className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
+          title="Read"
+        >
+          <Check className="h-4 w-4" />
+        </div>
+      )}
     </div>
   );
 };
