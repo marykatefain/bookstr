@@ -9,7 +9,7 @@ interface LibraryTabListProps {
 
 export const LibraryTabList: React.FC<LibraryTabListProps> = ({ activeTab, setActiveTab }) => {
   return (
-    <TabsList className="w-full bg-transparent border-b rounded-none justify-start space-x-8 overflow-x-auto">
+    <TabsList className="w-full bg-transparent border-b rounded-none justify-start space-x-4 flex-wrap">
       <TabsTrigger 
         value="posts" 
         className="relative px-0 py-2 h-auto rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
