@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Loader2, Check, X, Star } from "lucide-react";
 import { Book, BookActionType } from "@/lib/nostr/types";
@@ -28,15 +28,21 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   onUpdate
 }) => {
   const [isRating, setIsRating] = useState(false);
+  const [localRating, setLocalRating] = useState(0);
   const { toast } = useToast();
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
 
-  // Get user rating (convert from 0-1 scale to 1-5 scale)
-  const userRating = book?.readingStatus?.rating !== undefined 
-    ? Math.round(book.readingStatus.rating * 5) 
-    : 0;
+  // Initialize local rating from book if available
+  useEffect(() => {
+    if (book?.readingStatus?.rating !== undefined) {
+      // Convert from 0-1 scale to 1-5 scale
+      setLocalRating(Math.round(book.readingStatus.rating * 5));
+    } else {
+      setLocalRating(0);
+    }
+  }, [book?.readingStatus?.rating]);
 
   const handleTbrClick = () => {
     if (isTbr && onRemove) {
@@ -65,7 +71,11 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     
     try {
       setIsRating(true);
-      await rateBook(book, rating / 5); // Convert 1-5 to 0-1 scale
+      setLocalRating(rating); // Update local state immediately for better UX
+      
+      // Convert from 1-5 scale to 0-1 scale for storage
+      const normalizedRating = rating / 5;
+      await rateBook(book, normalizedRating);
       
       toast({
         title: "Rating submitted",
@@ -82,6 +92,10 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         description: "Could not submit rating",
         variant: "destructive"
       });
+      // Revert to previous rating on failure
+      if (book.readingStatus?.rating !== undefined) {
+        setLocalRating(Math.round(book.readingStatus.rating * 5));
+      }
     } finally {
       setIsRating(false);
     }
@@ -99,7 +113,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
               className={`h-4 w-4 cursor-pointer ${
                 isRating ? 'opacity-50' : ''
               } ${
-                star <= userRating
+                star <= localRating
                   ? "text-yellow-500 fill-yellow-500"
                   : "text-gray-300"
               }`}

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -18,7 +19,16 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const [showModal, setShowModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
   const [isRating, setIsRating] = useState(false);
+  const [localRating, setLocalRating] = useState<number>(0);
   const { toast } = useToast();
+
+  // Initialize localRating from book's readingStatus if available
+  useState(() => {
+    if (book.readingStatus?.rating !== undefined) {
+      // Convert from 0-1 scale to 1-5 scale
+      setLocalRating(Math.round(book.readingStatus.rating * 5));
+    }
+  });
 
   const handleAction = async (action: BookActionType) => {
     const isInList = book.readingStatus?.status === action || 
@@ -133,16 +143,29 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const handleRating = async (rating: number) => {
     try {
       setIsRating(true);
+      setLocalRating(rating); // Update local state immediately for better UX
+      
       if (!book.isbn) {
         throw new Error("ISBN is required");
       }
       
-      await rateBook(book, rating / 5); // Convert 1-5 to 0-1 scale
+      // Convert from 1-5 scale to 0-1 scale for storage
+      const normalizedRating = rating / 5;
+      await rateBook(book, normalizedRating);
       
       toast({
         title: "Success!",
         description: `You've rated "${book.title}" ${rating} stars.`,
       });
+      
+      // Update book object with new rating in local state
+      const updatedBook = {
+        ...book,
+        readingStatus: {
+          ...book.readingStatus,
+          rating: normalizedRating
+        }
+      };
       
       if (onUpdate) {
         onUpdate();
@@ -154,6 +177,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         description: `Failed to rate the book. Please try again.`,
         variant: "destructive",
       });
+      // Revert to previous rating on failure
+      setLocalRating(book.readingStatus?.rating ? Math.round(book.readingStatus.rating * 5) : 0);
     } finally {
       setIsRating(false);
     }
@@ -180,9 +205,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
   
-  const userRating = book.readingStatus?.rating !== undefined 
-    ? Math.round(book.readingStatus.rating * 5) 
-    : 0;
+  // Use the local rating state instead of reading directly from book
+  const userRating = localRating || 0;
 
   return (
     <>
