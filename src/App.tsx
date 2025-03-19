@@ -10,7 +10,6 @@ import Index from "./pages/Index";
 import Books from "./pages/Books";
 import BookDetail from "./pages/BookDetail";
 import Library from "./pages/Library";
-import SocialHub from "./pages/SocialHub";
 import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
 import UserProfile from "./pages/UserProfile";
@@ -38,7 +37,7 @@ function App() {
             <Route path="/book/:isbn" element={<BookDetail />} />
             <Route path="/library" element={<Library />} />
             <Route path="/profile" element={<Navigate to="/library" replace />} />
-            <Route path="/social" element={<SocialHub />} />
+            <Route path="/social" element={<Navigate to="/" replace />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/users" element={<UserSearch />} />
             <Route path="/user/:pubkey" element={<UserProfile />} />
