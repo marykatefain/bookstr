@@ -42,7 +42,7 @@ export function SocialSection() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
               <Users className="mr-2 h-5 w-5" />
-              Reading Community
+              Global Activity
             </h2>
             <Link to="/social" className="text-sm text-bookverse-accent hover:underline">
               View All
@@ -58,22 +58,22 @@ export function SocialSection() {
               <CompactSocialFeed maxItems={5} />
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold font-serif mb-4">Reading Together</h3>
+              <h3 className="text-xl font-bold font-serif mb-4">Reading Community</h3>
               <p className="text-muted-foreground mb-4">
-                Connect with friends and discover what they're reading on the decentralized Nostr network.
+                See what readers around the world are sharing on the decentralized Nostr network.
               </p>
               <div className="space-y-2">
                 <p className="flex items-start">
                   <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Follow your friends and favorite readers</span>
+                  <span>Discover trending books and reviews</span>
                 </p>
                 <p className="flex items-start">
                   <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Discover new books through recommendations</span>
+                  <span>Join conversations about your favorite books</span>
                 </p>
                 <p className="flex items-start">
                   <span className="mr-2 mt-1 text-bookverse-accent">✓</span>
-                  <span>Share your thoughts and ratings</span>
+                  <span>Share your own reading journey</span>
                 </p>
               </div>
             </div>

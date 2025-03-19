@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { fetchSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
+import { fetchGlobalSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { CompactActivityCard } from "./social/CompactActivityCard";
 import { Card } from "@/components/ui/card";
@@ -21,9 +21,9 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
-        // Use real data instead of mock data
-        const realFeed = await fetchSocialFeed(maxItems);
-        setActivities(realFeed.slice(0, maxItems));
+        // Use global feed instead of followers feed
+        const globalFeed = await fetchGlobalSocialFeed(maxItems);
+        setActivities(globalFeed.slice(0, maxItems));
         setLoading(false);
       } catch (error) {
         console.error("Error loading social feed:", error);
@@ -95,7 +95,7 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     return (
       <Card className="text-center p-3">
         <p className="text-muted-foreground text-sm">
-          Sign in to see updates from people you follow
+          Sign in to interact with the community
         </p>
       </Card>
     );
@@ -105,7 +105,7 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     return (
       <Card className="text-center p-3">
         <p className="text-muted-foreground text-sm">
-          No recent activity from people you follow
+          No recent activity in the global feed
         </p>
       </Card>
     );
