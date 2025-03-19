@@ -18,7 +18,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   onStartReading,
   readingStatus
 }) => {
-  const isTbr = readingStatus === 'want-to-read';
+  const isTbr = readingStatus === 'want-to-read' || readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
 
   return (
@@ -30,7 +30,7 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         onClick={onAddToTbr}
         disabled={!!pendingAction}
       >
-        {pendingAction === 'want-to-read' ? (
+        {pendingAction === 'want-to-read' || pendingAction === 'tbr' ? (
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
         ) : isTbr ? (
           <Check className="mr-1 h-3 w-3" />

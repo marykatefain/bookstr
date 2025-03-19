@@ -4,79 +4,95 @@ import { useToast } from "@/hooks/use-toast";
 import { Book, Post } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
+import { useQuery } from "@tanstack/react-query";
 
 export const useLibraryData = () => {
-  const [booksLoading, setBooksLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(true);
-  const [books, setBooks] = useState<{
-    tbr: Book[];
-    reading: Book[];
-    read: Book[];
-  }>({
-    tbr: [],
-    reading: [],
-    read: [],
-  });
-  const [posts, setPosts] = useState<Post[]>([]);
-  const { toast } = useToast();
   const [user, setUser] = useState(getCurrentUser());
+  const { toast } = useToast();
 
   useEffect(() => {
     setUser(getCurrentUser());
   }, []);
   
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!isLoggedIn()) {
-        setBooksLoading(false);
-        setPostsLoading(false);
-        return;
+  const { 
+    data: booksData = { tbr: [], reading: [], read: [] },
+    isLoading: booksLoading,
+    error: booksError,
+    refetch: refetchBooks
+  } = useQuery({
+    queryKey: ['userBooks', user?.pubkey],
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return { tbr: [], reading: [], read: [] };
       }
-
+      
       try {
-        setBooksLoading(true);
-        const userBooks = await fetchUserBooks(user?.pubkey);
-        setBooks(userBooks);
+        console.log("Fetching user books data for library");
+        const userBooks = await fetchUserBooks(user.pubkey);
+        return userBooks;
       } catch (error) {
         console.error("Error fetching user books:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your books",
-          variant: "destructive",
-        });
-      } finally {
-        setBooksLoading(false);
+        throw error;
       }
-
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
+  });
+  
+  const {
+    data: posts = [],
+    isLoading: postsLoading,
+    error: postsError
+  } = useQuery({
+    queryKey: ['userPosts', user?.pubkey],
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return [];
+      }
+      
       try {
-        setPostsLoading(true);
-        console.log("Fetching book posts for user:", user?.pubkey);
-        const userPosts = await fetchBookPosts(user?.pubkey, false);
+        console.log("Fetching book posts for user:", user.pubkey);
+        const userPosts = await fetchBookPosts(user.pubkey, false);
         console.log("Fetched posts:", userPosts);
-        setPosts(userPosts);
+        return userPosts;
       } catch (error) {
         console.error("Error fetching user posts:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your posts",
-          variant: "destructive",
-        });
-      } finally {
-        setPostsLoading(false);
+        throw error;
       }
-    };
-
-    if (user?.pubkey) {
-      loadUserData();
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true
+  });
+  
+  // Handle errors with toast notifications
+  useEffect(() => {
+    if (booksError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your books",
+        variant: "destructive",
+      });
     }
-  }, [toast, user]);
+    
+    if (postsError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your posts",
+        variant: "destructive",
+      });
+    }
+  }, [booksError, postsError, toast]);
 
   return {
     user,
-    books,
+    books: booksData,
     posts,
     booksLoading,
     postsLoading,
     isLoggedIn: isLoggedIn(),
+    refetchBooks
   };
 };

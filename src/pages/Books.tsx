@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +9,7 @@ import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { BookCard } from "@/components/BookCard";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
+import { useLibraryData } from "@/hooks/use-library-data";
 
 const categories = [
   "All",
@@ -29,6 +31,24 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
+  const { books: userBooks } = useLibraryData();
+
+  // Combine user's book lists into a mapping of ISBN to reading status for quick lookups
+  const userBooksMap = new Map<string, Book>();
+  
+  useEffect(() => {
+    // Build a lookup map of all the user's books by ISBN
+    const allUserBooks = [...userBooks.tbr, ...userBooks.reading, ...userBooks.read];
+    const newMap = new Map<string, Book>();
+    
+    allUserBooks.forEach(book => {
+      if (book.isbn) {
+        newMap.set(book.isbn, book);
+      }
+    });
+    
+    console.log(`Created user books map with ${newMap.size} entries`);
+  }, [userBooks]);
 
   useEffect(() => {
     console.log("Books component - trending books status:", {
@@ -38,13 +58,26 @@ const Books = () => {
     
     if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
       console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
-      setBooks(weeklyTrendingBooks);
+      
+      // Enrich books with user's reading status
+      const enrichedBooks = weeklyTrendingBooks.map(book => {
+        if (book.isbn && userBooksMap.has(book.isbn)) {
+          const userBook = userBooksMap.get(book.isbn);
+          return {
+            ...book,
+            readingStatus: userBook?.readingStatus
+          };
+        }
+        return book;
+      });
+      
+      setBooks(enrichedBooks);
       setIsLoading(false);
     } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
       console.log("No trending books loaded, attempting to refresh");
       refreshBooks();
     }
-  }, [weeklyTrendingBooks, loadingTrending, refreshBooks]);
+  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, userBooksMap]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -59,7 +92,20 @@ const Books = () => {
       if (!debouncedSearch && activeCategory === "All") {
         if (weeklyTrendingBooks.length > 0) {
           console.log("Using trending books as no search or category is active");
-          setBooks(weeklyTrendingBooks);
+          
+          // Enrich trending books with user's reading status
+          const enrichedBooks = weeklyTrendingBooks.map(book => {
+            if (book.isbn && userBooksMap.has(book.isbn)) {
+              const userBook = userBooksMap.get(book.isbn);
+              return {
+                ...book,
+                readingStatus: userBook?.readingStatus
+              };
+            }
+            return book;
+          });
+          
+          setBooks(enrichedBooks);
           setIsLoading(false);
         }
         return;
@@ -78,7 +124,20 @@ const Books = () => {
         }
         
         console.log(`Search returned ${results.length} results`);
-        setBooks(results);
+        
+        // Enrich search results with user's reading status
+        const enrichedResults = results.map(book => {
+          if (book.isbn && userBooksMap.has(book.isbn)) {
+            const userBook = userBooksMap.get(book.isbn);
+            return {
+              ...book,
+              readingStatus: userBook?.readingStatus
+            };
+          }
+          return book;
+        });
+        
+        setBooks(enrichedResults);
       } catch (error) {
         console.error("Error searching books:", error);
         toast({
@@ -92,7 +151,7 @@ const Books = () => {
     };
 
     performSearch();
-  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks]);
+  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, userBooksMap]);
 
   const handleCategoryChange = (category: string) => {
     console.log(`Changing category to: ${category}`);
@@ -100,6 +159,19 @@ const Books = () => {
     if (searchQuery) {
       setSearchQuery("");
       setDebouncedSearch("");
+    }
+  };
+
+  const handleBookUpdate = () => {
+    console.log("Book updated, refreshing search results");
+    if (debouncedSearch || activeCategory !== "All") {
+      // Re-trigger the search
+      const currentSearch = debouncedSearch;
+      setDebouncedSearch("");
+      setTimeout(() => setDebouncedSearch(currentSearch), 10);
+    } else {
+      // Re-fetch trending books
+      refreshBooks();
     }
   };
 
@@ -156,7 +228,7 @@ const Books = () => {
                     book={book} 
                     showDescription={false}
                     size="medium"
-                    onUpdate={() => console.log("Book updated")}
+                    onUpdate={handleBookUpdate}
                   />
                 ))
               ) : (
