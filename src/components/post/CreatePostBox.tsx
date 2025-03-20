@@ -49,11 +49,15 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim().length >= 2) {
-      handleSearch();
-    } else {
-      setSearchResults([]);
-    }
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        handleSearch();
+      } else {
+        setSearchResults([]);
+      }
+    }, 300); // 300ms debounce delay
+
+    return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
   const loadUserBooks = async () => {
@@ -77,8 +81,12 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
     if (searchQuery.trim().length < 2) return;
     
     setSearching(true);
+    setSearchResults([]); // Clear old results while searching
+    
     try {
+      console.log("Searching for books with query:", searchQuery);
       const results = await searchBooks(searchQuery, 10);
+      console.log("Search returned results:", results);
       setSearchResults(results);
     } catch (error) {
       console.error("Error searching books:", error);
