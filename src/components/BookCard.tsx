@@ -19,6 +19,7 @@ interface BookCardProps {
   showCategories?: boolean;
   onUpdate?: () => void;
   variant?: "horizontal" | "vertical";
+  className?: string;
 }
 
 export const BookCard: React.FC<BookCardProps> = ({
@@ -28,7 +29,8 @@ export const BookCard: React.FC<BookCardProps> = ({
   showRating = true,
   showCategories = true,
   onUpdate,
-  variant = "vertical"
+  variant = "vertical",
+  className = ""
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -47,9 +49,12 @@ export const BookCard: React.FC<BookCardProps> = ({
       ? "flex flex-row" 
       : "flex flex-col";
     
-    if (size === "small") return `${baseClasses} ${layoutClasses} max-w-[220px] w-full`;
-    if (size === "large") return `${baseClasses} ${layoutClasses} max-w-[280px] w-full`;
-    return `${baseClasses} ${layoutClasses} w-full`; // medium size - no max width, full responsive width
+    let sizeClasses = "";
+    if (size === "small") sizeClasses = "max-w-[220px] w-full";
+    else if (size === "large") sizeClasses = "max-w-[280px] w-full";
+    else sizeClasses = "w-full"; // medium size - no max width, full responsive width
+    
+    return `${baseClasses} ${layoutClasses} ${sizeClasses} ${className}`;
   };
 
   const getTitleClasses = () => {
