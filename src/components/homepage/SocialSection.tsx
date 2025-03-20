@@ -1,21 +1,29 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Users, Globe } from "lucide-react";
+import { Users, Globe, RefreshCw } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { Card } from "@/components/ui/card";
 import { SocialFeed } from "@/components/SocialFeed";
 import { Button } from "@/components/ui/button";
+import { getConnectionStatus } from "@/lib/nostr/relay";
 
 export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const autoRefreshTimerRef = useRef<number | null>(null);
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   
   // This function will be passed to the CreatePostBox to trigger feed refresh
   const refreshFeed = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Function to manually refresh the feed with loading indicator
+  const handleManualRefresh = () => {
+    setManualRefreshing(true);
+    refreshFeed();
   };
 
   // Auto-refresh logic for global feed
@@ -31,9 +39,14 @@ export function SocialSection() {
       console.log("Setting up auto-refresh for global feed");
       // Refresh every 30 seconds
       autoRefreshTimerRef.current = window.setInterval(() => {
-        console.log("Auto-refreshing global feed");
-        setIsBackgroundRefreshing(true);
-        refreshFeed();
+        // Only refresh if we have an active connection
+        if (getConnectionStatus() === 'connected') {
+          console.log("Auto-refreshing global feed");
+          setIsBackgroundRefreshing(true);
+          refreshFeed();
+        } else {
+          console.log("Skipping auto-refresh due to connection issues");
+        }
       }, 30000); // 30 seconds
     }
 
@@ -53,32 +66,46 @@ export function SocialSection() {
           <Users className="mr-2 h-5 w-5" />
           #Bookstr Community on Nostr
         </h2>
-        {isLoggedIn() && (
-          <div className="inline-flex h-9 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-            <button
-              onClick={() => setFeedType("followers")}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                feedType === "followers" 
-                  ? "bg-background text-foreground shadow-sm" 
-                  : ""
-              }`}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              <span>Following</span>
-            </button>
-            <button
-              onClick={() => setFeedType("global")}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                feedType === "global" 
-                  ? "bg-background text-foreground shadow-sm" 
-                  : ""
-              }`}
-            >
-              <Globe className="h-4 w-4 mr-2" />
-              <span>Global</span>
-            </button>
-          </div>
-        )}
+        
+        <div className="flex items-center gap-2">
+          {isLoggedIn() && (
+            <div className="inline-flex h-9 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+              <button
+                onClick={() => setFeedType("followers")}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                  feedType === "followers" 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : ""
+                }`}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                <span>Following</span>
+              </button>
+              <button
+                onClick={() => setFeedType("global")}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                  feedType === "global" 
+                    ? "bg-background text-foreground shadow-sm" 
+                    : ""
+                }`}
+              >
+                <Globe className="h-4 w-4 mr-2" />
+                <span>Global</span>
+              </button>
+            </div>
+          )}
+          
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={handleManualRefresh}
+            disabled={manualRefreshing || isBackgroundRefreshing}
+            className="flex-shrink-0"
+            title="Refresh feed"
+          >
+            <RefreshCw className={`h-4 w-4 ${manualRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
       
       <div className="mb-6">
@@ -107,7 +134,10 @@ export function SocialSection() {
           useMockData={false} 
           refreshTrigger={refreshTrigger} 
           isBackgroundRefresh={isBackgroundRefreshing}
-          onRefreshComplete={() => setIsBackgroundRefreshing(false)}
+          onRefreshComplete={() => {
+            setIsBackgroundRefreshing(false);
+            setManualRefreshing(false);
+          }}
         />
       </div>
     </div>

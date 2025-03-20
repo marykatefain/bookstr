@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { 
   fetchSocialFeed, 
@@ -7,6 +7,7 @@ import {
   fetchReplies,
   fetchReactions
 } from "@/lib/nostr";
+import { toast } from "@/hooks/use-toast";
 
 interface UseSocialFeedParams {
   type?: "followers" | "global";
@@ -38,40 +39,61 @@ export function useSocialFeed({
   const [backgroundLoading, setBackgroundLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const previousActivitiesRef = useRef<SocialActivity[]>([]);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
 
+  // Clear any retry timeout on unmount
   useEffect(() => {
-    console.log(`useSocialFeed: ${type} feed, useMockData: ${useMockData}`, { 
-      refreshTrigger, 
-      maxItems,
-      isBackgroundRefresh
-    });
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
-    if (providedActivities) {
-      console.log("useSocialFeed: Using provided activities", providedActivities.length);
-      setActivities(providedActivities);
-      setLoading(false);
-      return;
+  const loadFeed = useCallback(async (retry = false) => {
+    if (!retry) {
+      setLoading(true);
+      setError(null);
+      retryCountRef.current = 0;
     }
-
-    if (isBackgroundRefresh && activities.length > 0) {
-      loadFeedInBackground();
-    } else {
-      loadFeed();
-    }
-  }, [refreshTrigger, type, providedActivities, useMockData, maxItems]);
-
-  const loadFeed = async () => {
-    setLoading(true);
-    setError(null);
+    
     try {
       await fetchFeedData();
     } catch (error) {
       console.error("Error loading social feed:", error);
-      setError(error instanceof Error ? error : new Error("Unknown error loading feed"));
+      const errorMessage = error instanceof Error ? error.message : "Unknown error loading feed";
+      setError(error instanceof Error ? error : new Error(errorMessage));
+      
+      // Only show toast and retry if this isn't already a retry and it's not a background refresh
+      if (!retry && !isBackgroundRefresh && retryCountRef.current < MAX_RETRIES) {
+        retryCountRef.current += 1;
+        console.log(`Retrying feed load attempt ${retryCountRef.current}/${MAX_RETRIES}...`);
+        
+        // Retry with exponential backoff
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        
+        retryTimeoutRef.current = setTimeout(() => {
+          loadFeed(true);
+        }, 2000 * Math.pow(2, retryCountRef.current - 1)); // 2s, 4s, 8s
+      } else if (!isBackgroundRefresh && retryCountRef.current >= MAX_RETRIES) {
+        // Only show error toast after all retries failed and not in background mode
+        toast({
+          title: "Feed loading issue",
+          description: "We're having trouble loading the latest posts. Please try again later.",
+          variant: "destructive"
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!retry || retryCountRef.current >= MAX_RETRIES) {
+        setLoading(false);
+      }
     }
-  };
+  }, [isBackgroundRefresh]);
 
   const loadFeedInBackground = async () => {
     if (backgroundLoading) return;
@@ -83,6 +105,7 @@ export function useSocialFeed({
       await fetchFeedData(true);
     } catch (error) {
       console.error("Error during background refresh:", error);
+      // Don't show error messages for background failures
     } finally {
       setBackgroundLoading(false);
     }
@@ -143,6 +166,7 @@ export function useSocialFeed({
           };
         } catch (error) {
           console.error(`Error fetching data for activity ${activity.id}:`, error);
+          // Return activity without extra data rather than failing completely
           return activity;
         }
       })
@@ -173,11 +197,32 @@ export function useSocialFeed({
     }
   };
 
+  useEffect(() => {
+    console.log(`useSocialFeed: ${type} feed, useMockData: ${useMockData}`, { 
+      refreshTrigger, 
+      maxItems,
+      isBackgroundRefresh
+    });
+
+    if (providedActivities) {
+      console.log("useSocialFeed: Using provided activities", providedActivities.length);
+      setActivities(providedActivities);
+      setLoading(false);
+      return;
+    }
+
+    if (isBackgroundRefresh && activities.length > 0) {
+      loadFeedInBackground();
+    } else {
+      loadFeed();
+    }
+  }, [refreshTrigger, type, providedActivities, useMockData, maxItems, loadFeed, isBackgroundRefresh, activities.length]);
+
   return {
     activities,
     loading,
     backgroundLoading,
     error,
-    refreshFeed: loadFeed
+    refreshFeed: () => loadFeed(false)
   };
 }

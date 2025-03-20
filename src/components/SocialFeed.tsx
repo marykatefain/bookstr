@@ -7,7 +7,9 @@ import { FeedContent } from "./social/FeedContent";
 import { EmptyFeedState } from "./social/EmptyFeedState";
 import { FeedLoadingState } from "./social/FeedLoadingState";
 import { FeedLoginState } from "./social/FeedLoginState";
+import { FeedErrorState } from "./social/FeedErrorState";
 import { SocialActivity } from "@/lib/nostr/types";
+import { getConnectionStatus } from "@/lib/nostr/relay";
 
 interface SocialFeedProps {
   activities?: SocialActivity[];
@@ -60,9 +62,27 @@ export function SocialFeed({
     }
   };
 
+  // Show connection status or error
+  const connectionStatus = getConnectionStatus();
+  const isDisconnected = connectionStatus === 'disconnected';
+  
   // Show loading state only when initially loading and there are no activities yet
   if (loading && reactiveActivities.length === 0) {
     return <FeedLoadingState />;
+  }
+
+  // Show error state when there's an error
+  if (error && reactiveActivities.length === 0) {
+    return <FeedErrorState error={error} onRetry={refreshFeed} />;
+  }
+
+  // Show disconnected state
+  if (isDisconnected && reactiveActivities.length === 0 && !loading) {
+    return <FeedErrorState 
+      error={new Error("Not connected to any relays")} 
+      onRetry={refreshFeed} 
+      isConnectionIssue={true}
+    />;
   }
 
   // Login state for followers feed
