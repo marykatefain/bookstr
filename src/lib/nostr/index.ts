@@ -39,6 +39,7 @@ export {
   reactToContent,
   replyToContent,
   fetchReplies,
+  fetchReactions,
   followUser,
   addBookToList,
   updateBookInList,

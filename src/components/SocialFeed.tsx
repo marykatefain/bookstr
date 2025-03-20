@@ -6,7 +6,8 @@ import {
   fetchGlobalSocialFeed, 
   isLoggedIn,
   reactToContent,
-  fetchReplies
+  fetchReplies,
+  fetchReactions
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ActivityCard } from "./social/ActivityCard";
@@ -77,27 +78,32 @@ export function SocialFeed({
         
         console.log(`Received ${feed.length} activities from Nostr network`);
         
-        // Fetch replies for each activity
-        const activitiesWithReplies = await Promise.all(
+        // Fetch replies and reactions for each activity
+        const activitiesWithData = await Promise.all(
           feed.map(async (activity) => {
             try {
-              const replies = await fetchReplies(activity.id);
+              const [replies, reactions] = await Promise.all([
+                fetchReplies(activity.id),
+                fetchReactions(activity.id)
+              ]);
+              
               return {
                 ...activity,
-                replies
+                replies,
+                reactions: reactions
               };
             } catch (error) {
-              console.error(`Error fetching replies for activity ${activity.id}:`, error);
+              console.error(`Error fetching data for activity ${activity.id}:`, error);
               return activity;
             }
           })
         );
         
         // Apply maxItems limit if specified
-        if (maxItems && activitiesWithReplies.length > maxItems) {
-          feed = activitiesWithReplies.slice(0, maxItems);
+        if (maxItems && activitiesWithData.length > maxItems) {
+          feed = activitiesWithData.slice(0, maxItems);
         } else {
-          feed = activitiesWithReplies;
+          feed = activitiesWithData;
         }
         
         setLocalActivities(feed);
@@ -136,11 +142,14 @@ export function SocialFeed({
       setLocalActivities(prevActivities => 
         prevActivities.map(activity => {
           if (activity.id === activityId) {
+            const currentUserReacted = activity.reactions?.userReacted || false;
+            const currentCount = activity.reactions?.count || 0;
+            
             return {
               ...activity,
               reactions: {
-                count: (activity.reactions?.count || 0) + 1,
-                userReacted: true
+                count: currentUserReacted ? currentCount - 1 : currentCount + 1,
+                userReacted: !currentUserReacted
               }
             };
           }

@@ -4,7 +4,7 @@ import { SocialActivity, Reply } from "@/lib/nostr/types";
 import { ActivityCard } from "@/components/social/ActivityCard";
 import { FeedLoadingState } from "@/components/social/FeedLoadingState";
 import { PostCard } from "@/components/post/PostCard";
-import { fetchReplies } from "@/lib/nostr";
+import { fetchReplies, fetchReactions } from "@/lib/nostr";
 
 interface BookActivitySectionProps {
   bookActivity: SocialActivity[];
@@ -19,43 +19,48 @@ export const BookActivitySection: React.FC<BookActivitySectionProps> = ({
   handleReactToActivity,
   refreshTrigger
 }) => {
-  const [activitiesWithReplies, setActivitiesWithReplies] = useState<SocialActivity[]>([]);
-  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [activitiesWithData, setActivitiesWithData] = useState<SocialActivity[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
     if (bookActivity.length > 0) {
-      fetchRepliesForActivities();
+      fetchDataForActivities();
     } else {
-      setActivitiesWithReplies([]);
+      setActivitiesWithData([]);
     }
   }, [bookActivity, refreshTrigger]);
 
-  const fetchRepliesForActivities = async () => {
-    setLoadingReplies(true);
+  const fetchDataForActivities = async () => {
+    setLoadingData(true);
     try {
-      const activitiesWithReplies = await Promise.all(
+      const activitiesWithData = await Promise.all(
         bookActivity.map(async (activity) => {
           try {
-            const replies = await fetchReplies(activity.id);
+            const [replies, reactions] = await Promise.all([
+              fetchReplies(activity.id),
+              fetchReactions(activity.id)
+            ]);
+            
             return {
               ...activity,
-              replies
+              replies,
+              reactions
             };
           } catch (error) {
-            console.error(`Error fetching replies for activity ${activity.id}:`, error);
+            console.error(`Error fetching data for activity ${activity.id}:`, error);
             return activity;
           }
         })
       );
-      setActivitiesWithReplies(activitiesWithReplies);
+      setActivitiesWithData(activitiesWithData);
     } catch (error) {
-      console.error("Error fetching replies for activities:", error);
+      console.error("Error fetching data for activities:", error);
     } finally {
-      setLoadingReplies(false);
+      setLoadingData(false);
     }
   };
 
-  if (loadingActivity || (loadingReplies && activitiesWithReplies.length === 0)) {
+  if (loadingActivity || (loadingData && activitiesWithData.length === 0)) {
     return <FeedLoadingState />;
   }
   
@@ -69,7 +74,7 @@ export const BookActivitySection: React.FC<BookActivitySectionProps> = ({
   
   return (
     <div className="space-y-4">
-      {activitiesWithReplies.map(activity => {
+      {activitiesWithData.map(activity => {
         if (activity.type === 'post') {
           return (
             <PostCard 

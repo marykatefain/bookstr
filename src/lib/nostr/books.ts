@@ -345,6 +345,40 @@ async function fetchEventById(eventId: string) {
 }
 
 /**
+ * Fetch reactions for a specific event
+ */
+export async function fetchReactions(eventId: string): Promise<{ count: number; userReacted: boolean }> {
+  const relays = getUserRelays();
+  const pool = new SimplePool();
+  const currentUser = getCurrentUser();
+  
+  try {
+    // Get all reaction events for this event
+    const filter = {
+      kinds: [NOSTR_KINDS.REACTION],
+      '#e': [eventId]
+    };
+    
+    const reactionEvents = await pool.querySync(relays, filter);
+    
+    // Count the reactions
+    const count = reactionEvents.length;
+    
+    // Check if the current user has reacted
+    const userReacted = currentUser ? 
+      reactionEvents.some(event => event.pubkey === currentUser.pubkey) : 
+      false;
+    
+    return { count, userReacted };
+  } catch (error) {
+    console.error(`Error fetching reactions for event ${eventId}:`, error);
+    return { count: 0, userReacted: false };
+  } finally {
+    pool.close(relays);
+  }
+}
+
+/**
  * Fetch replies for a specific event
  */
 export async function fetchReplies(eventId: string): Promise<Reply[]> {

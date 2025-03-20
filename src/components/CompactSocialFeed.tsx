@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { fetchGlobalSocialFeed, reactToContent, isLoggedIn } from "@/lib/nostr";
+import { fetchGlobalSocialFeed, reactToContent, isLoggedIn, fetchReactions } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { CompactActivityCard } from "./social/CompactActivityCard";
 import { Card } from "@/components/ui/card";
@@ -23,7 +23,24 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
       try {
         // Use global feed instead of followers feed
         const globalFeed = await fetchGlobalSocialFeed(maxItems);
-        setActivities(globalFeed.slice(0, maxItems));
+        
+        // Fetch reactions for each activity
+        const activitiesWithReactions = await Promise.all(
+          globalFeed.map(async (activity) => {
+            try {
+              const reactions = await fetchReactions(activity.id);
+              return {
+                ...activity,
+                reactions
+              };
+            } catch (error) {
+              console.error(`Error fetching reactions for activity ${activity.id}:`, error);
+              return activity;
+            }
+          })
+        );
+        
+        setActivities(activitiesWithReactions.slice(0, maxItems));
         setLoading(false);
       } catch (error) {
         console.error("Error loading social feed:", error);
@@ -54,11 +71,14 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
       setActivities(prevActivities => 
         prevActivities.map(activity => {
           if (activity.id === activityId) {
+            const currentUserReacted = activity.reactions?.userReacted || false;
+            const currentCount = activity.reactions?.count || 0;
+            
             return {
               ...activity,
               reactions: {
-                count: (activity.reactions?.count || 0) + 1,
-                userReacted: true
+                count: currentUserReacted ? currentCount - 1 : currentCount + 1,
+                userReacted: !currentUserReacted
               }
             };
           }

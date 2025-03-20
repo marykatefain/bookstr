@@ -5,7 +5,7 @@ import { ReplyItem } from "./ReplyItem";
 import { ReplyForm } from "./ReplyForm";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react";
-import { fetchReplies, isLoggedIn } from "@/lib/nostr";
+import { fetchReplies, isLoggedIn, fetchReactions } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
 interface RepliesSectionProps {
@@ -24,13 +24,18 @@ export function RepliesSection({
   initialReplies = [],
   buttonLayout = "vertical",
   onReaction,
-  reactionCount,
-  userReacted
+  reactionCount: initialReactionCount,
+  userReacted: initialUserReacted
 }: RepliesSectionProps) {
   const [replies, setReplies] = useState<Reply[]>(initialReplies);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(initialReplies.length > 0);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [reactions, setReactions] = useState({
+    count: initialReactionCount || 0,
+    userReacted: initialUserReacted || false
+  });
+  const [loadingReactions, setLoadingReactions] = useState(false);
   const { toast } = useToast();
 
   const fetchReplyData = async () => {
@@ -52,11 +57,42 @@ export function RepliesSection({
     }
   };
 
+  const fetchReactionData = async () => {
+    if (!eventId) return;
+    
+    setLoadingReactions(true);
+    try {
+      const fetchedReactions = await fetchReactions(eventId);
+      setReactions({
+        count: fetchedReactions.count,
+        userReacted: fetchedReactions.userReacted
+      });
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+    } finally {
+      setLoadingReactions(false);
+    }
+  };
+
   useEffect(() => {
     if (showReplies && replies.length === 0) {
       fetchReplyData();
     }
+    
+    // Fetch reactions if they weren't provided
+    if (initialReactionCount === undefined) {
+      fetchReactionData();
+    }
   }, [showReplies, eventId]);
+
+  useEffect(() => {
+    if (initialReactionCount !== undefined) {
+      setReactions({
+        count: initialReactionCount,
+        userReacted: initialUserReacted || false
+      });
+    }
+  }, [initialReactionCount, initialUserReacted]);
 
   const handleReplyClick = () => {
     if (!isLoggedIn()) {
@@ -86,23 +122,27 @@ export function RepliesSection({
   const handleReaction = () => {
     if (onReaction) {
       onReaction(eventId);
+      // Update local state optimistically
+      setReactions(prev => ({
+        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
+        userReacted: !prev.userReacted
+      }));
     }
   };
 
   return (
     <div className="mt-2 w-full">
       <div className={`flex items-center ${buttonLayout === "horizontal" ? "gap-4" : "flex-col items-start gap-2"}`}>
-        {onReaction && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-            onClick={handleReaction}
-          >
-            <Heart className={`mr-1 h-4 w-4 ${userReacted ? 'fill-red-500 text-red-500' : ''}`} />
-            <span>{reactionCount ? reactionCount : 'Like'}</span>
-          </Button>
-        )}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className={`text-muted-foreground ${loadingReactions ? 'opacity-50' : ''}`}
+          onClick={handleReaction}
+          disabled={loadingReactions}
+        >
+          <Heart className={`mr-1 h-4 w-4 ${reactions.userReacted ? 'fill-red-500 text-red-500' : ''}`} />
+          <span>{loadingReactions ? 'Loading...' : reactions.count > 0 ? reactions.count : 'Like'}</span>
+        </Button>
         
         <Button 
           variant="ghost" 
