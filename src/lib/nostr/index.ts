@@ -21,7 +21,7 @@ export {
 } from "./relay";
 
 // Export profile functions
-export { fetchProfileData } from "./profile";
+export { fetchProfileData, fetchUserProfiles } from "./profile";
 
 // Export publishing functions
 export { publishToNostr, updateNostrEvent } from "./publish";

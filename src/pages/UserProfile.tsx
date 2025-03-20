@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -39,6 +38,7 @@ const TabCount: React.FC<TabCountProps> = ({ label, count }) => (
 );
 
 const UserProfile = () => {
+  const navigate = useNavigate();
   const { pubkey } = useParams<{ pubkey: string }>();
   const [profile, setProfile] = useState<NostrProfile | null>(null);
   const [following, setFollowing] = useState<boolean>(false);
@@ -56,6 +56,12 @@ const UserProfile = () => {
   const currentUser = getCurrentUser();
 
   useEffect(() => {
+    if (window.location.pathname.includes('/users/')) {
+      const newPath = window.location.pathname.replace('/users/', '/user/');
+      navigate(newPath, { replace: true });
+      return;
+    }
+    
     const fetchProfile = async () => {
       if (!pubkey) return;
       
@@ -89,11 +95,9 @@ const UserProfile = () => {
           setFollowing(follows.includes(actualPubkey));
         }
         
-        // Fetch posts with separate loading state - use fetchUserPosts instead of fetchBookPosts
         setPostsLoading(true);
         try {
           console.log("Fetching user posts for pubkey:", actualPubkey);
-          // Pass false as second parameter to use relay data instead of mock data
           const userPosts = await fetchUserPosts(actualPubkey, false);
           console.log("Fetched posts:", userPosts);
           setPosts(userPosts);
@@ -121,7 +125,7 @@ const UserProfile = () => {
     };
     
     fetchProfile();
-  }, [pubkey, toast, currentUser]);
+  }, [pubkey, toast, currentUser, navigate]);
 
   const handleFollow = async () => {
     if (!profile || !isLoggedIn()) {
@@ -208,28 +212,28 @@ const UserProfile = () => {
         <div className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
-              <AvatarImage src={profile.picture} />
+              <AvatarImage src={profile?.picture} />
               <AvatarFallback className="text-xl">
-                {(profile.name || profile.display_name || 'U')[0].toUpperCase()}
+                {(profile?.name || profile?.display_name || 'U')[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             
             <div className="text-center">
               <h1 className="text-2xl font-bold">
-                {profile.name || profile.display_name || formatPubkey(profile.pubkey)}
+                {profile?.name || profile?.display_name || formatPubkey(profile?.pubkey || '')}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {formatPubkey(profile.pubkey)}
+                {profile?.pubkey ? formatPubkey(profile.pubkey) : ''}
               </p>
             </div>
             
-            {profile.about && (
+            {profile?.about && (
               <p className="text-center max-w-lg text-muted-foreground">
                 {profile.about}
               </p>
             )}
             
-            {currentUser && currentUser.pubkey !== profile.pubkey && (
+            {currentUser && profile && currentUser.pubkey !== profile.pubkey && (
               <Button 
                 onClick={handleFollow} 
                 disabled={following || followLoading}

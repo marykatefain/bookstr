@@ -52,17 +52,27 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
       authors: [pubkey]
     };
     
+    console.log(`Fetching profile for ${pubkey} from relays:`, relays);
     const events = await pool.querySync(relays, filter);
+    console.log(`Received ${events.length} profile events for ${pubkey}`);
     
     // Use the most recent profile event
     const latestEvent = events.sort((a, b) => b.created_at - a.created_at)[0];
     
     if (!latestEvent) {
-      return null;
+      console.log(`No profile events found for ${pubkey}`);
+      // Return a minimal profile with just the pubkey
+      return {
+        npub: pubkey,
+        pubkey: pubkey,
+        name: "",
+        relays: []
+      };
     }
     
     try {
       const profileData = JSON.parse(latestEvent.content);
+      console.log(`Parsed profile data for ${pubkey}:`, profileData);
       
       return {
         npub: pubkey, // This will be converted to npub format in the UI
@@ -78,11 +88,21 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
       };
     } catch (error) {
       console.error("Error parsing profile data:", error);
-      return null;
+      return {
+        npub: pubkey,
+        pubkey: pubkey,
+        name: "",
+        relays: []
+      };
     }
   } catch (error) {
     console.error("Error fetching user profile:", error);
-    return null;
+    return {
+      npub: pubkey,
+      pubkey: pubkey,
+      name: "",
+      relays: []
+    };
   } finally {
     pool.close(relays);
   }

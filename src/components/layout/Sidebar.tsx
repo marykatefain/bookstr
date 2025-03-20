@@ -39,7 +39,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
 
   const handleProfileClick = () => {
     if (user && user.pubkey) {
-      navigate(`/users/${user.pubkey}`);
+      navigate(`/user/${user.pubkey}`);
     }
   };
 

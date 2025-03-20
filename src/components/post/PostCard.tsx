@@ -76,10 +76,12 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       <CardHeader className="pb-2 pt-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={postData.author?.picture} />
-              <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <Link to={`/user/${postData.pubkey}`}>
+              <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
+                <AvatarImage src={postData.author?.picture} />
+                <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </Link>
             <div>
               <Link 
                 to={`/user/${postData.pubkey}`} 
