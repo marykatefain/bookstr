@@ -19,7 +19,7 @@ export function ReplyForm({
   onReplySubmitted,
   onCancel 
 }: ReplyFormProps) {
-  const [replyText, setReplyText] = useState("");
+  const [replyText, setReplyText] = useState("#bookstr ");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -37,7 +37,7 @@ export function ReplyForm({
         description: "Your reply has been posted"
       });
       
-      setReplyText("");
+      setReplyText("#bookstr ");
       onReplySubmitted();
     } catch (error) {
       console.error("Error sending reply:", error);
