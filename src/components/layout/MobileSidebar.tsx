@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Book, 
   Home, 
@@ -29,6 +29,7 @@ export const MobileSidebar = ({
   handleLogout 
 }: MobileSidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
@@ -60,7 +61,11 @@ export const MobileSidebar = ({
           <div className="p-4">
             {user ? (
               <div className="space-y-3">
-                <div className="flex items-center space-x-3 p-3">
+                <Link 
+                  to={`/user/${user.pubkey}`} 
+                  className="flex items-center space-x-3 p-3 hover:bg-bookverse-cream rounded-md transition-colors"
+                  onClick={onClose}
+                >
                   <div className="h-8 w-8 rounded-full overflow-hidden">
                     <img
                       src={user.picture || "https://i.pravatar.cc/300"}
@@ -72,7 +77,7 @@ export const MobileSidebar = ({
                     <p className="text-sm font-medium truncate">{user.name || user.display_name || "Nostr User"}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
                   </div>
-                </div>
+                </Link>
                 <Button
                   variant="outline"
                   size="sm"
