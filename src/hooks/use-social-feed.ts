@@ -84,6 +84,12 @@ export function useSocialFeed({
     activities.length
   ]);
 
+  // Define the refreshFeed function that will be exposed in the return object
+  const refreshFeed = async () => {
+    console.log("Manual refresh triggered from useSocialFeed");
+    return fetchFeed();
+  };
+
   return {
     activities: providedActivities || activities,
     loading,
