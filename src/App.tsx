@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -39,11 +39,11 @@ function App() {
             <Route path="/book/:isbn" element={<BookDetail />} />
             <Route path="/library" element={<Library />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/social" element={<Navigate to="/" replace />} />
+            <Route path="/social" element={<Index />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/users" element={<UserSearch />} />
             <Route path="/users/:pubkey" element={<UserProfile />} />
-            <Route path="/user/:pubkey" element={<Navigate to="/users/:pubkey" replace />} />
+            <Route path="/user/:pubkey" element={<UserProfile />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

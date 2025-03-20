@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { UserProfileContent } from "@/components/user-profile/UserProfileContent
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { pubkey } = useParams<{ pubkey: string }>();
   const [profile, setProfile] = useState<NostrProfile | null>(null);
   const [following, setFollowing] = useState<boolean>(false);
@@ -40,10 +41,20 @@ const UserProfile = () => {
   const [postsLoading, setPostsLoading] = useState(true);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
+  const [redirected, setRedirected] = useState(false);
+
+  // Handle redirect from /users/ to /user/ only once
+  useEffect(() => {
+    if (location.pathname.includes('/users/') && !redirected) {
+      setRedirected(true);
+      const newPath = location.pathname.replace('/users/', '/user/');
+      navigate(newPath, { replace: true });
+    }
+  }, [location.pathname, navigate, redirected]);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!pubkey) return;
+      if (!pubkey || redirected) return;
       
       setLoading(true);
       try {
@@ -79,9 +90,7 @@ const UserProfile = () => {
         
         setPostsLoading(true);
         try {
-          console.log("Fetching user posts for pubkey:", actualPubkey);
           const userPosts = await fetchUserPosts(actualPubkey, false);
-          console.log("Fetched posts:", userPosts);
           setPosts(userPosts);
         } catch (error) {
           console.error("Error fetching user posts:", error);
@@ -106,14 +115,8 @@ const UserProfile = () => {
       }
     };
     
-    // Handle route change from /users/ to /user/
-    if (window.location.pathname.includes('/users/')) {
-      const newPath = window.location.pathname.replace('/users/', '/user/');
-      navigate(newPath, { replace: true });
-    } else {
-      fetchProfile();
-    }
-  }, [pubkey, toast, currentUser, navigate]);
+    fetchProfile();
+  }, [pubkey, toast, currentUser, navigate, redirected]);
 
   if (loading) {
     return (
