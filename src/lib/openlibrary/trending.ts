@@ -1,7 +1,6 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
-import { getCoverUrl, getAuthorName, fetchISBNFromEditionKey } from './utils';
+import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 
 // Cache for weekly trending books
 const weeklyTrendingCache: {
