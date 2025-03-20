@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { 
   CONNECTION_TIMEOUT, 
@@ -41,7 +40,7 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
   setConnectionAttemptInProgress(true);
   setLastConnectionAttempt(now);
   
-  connectionPromise = new Promise(async (resolve, reject) => {
+  const promise = new Promise<WebSocket[]>(async (resolve, reject) => {
     try {
       const openConnections = activeConnections.filter(
         conn => conn.readyState === WebSocket.OPEN
@@ -91,7 +90,8 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
     }
   });
   
-  return connectionPromise;
+  setConnectionPromise(promise);
+  return promise;
 }
 
 /**
