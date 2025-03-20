@@ -15,6 +15,8 @@ const MemoizedActivityCard = memo(ActivityCard);
 const MemoizedPostCard = memo(PostCard);
 
 export function FeedContent({ activities, onReaction, refreshTrigger }: FeedContentProps) {
+  // This component is kept for use in other parts of the application,
+  // but has been removed from the home page
   return (
     <div className="space-y-4">
       {activities.map((activity) => {
