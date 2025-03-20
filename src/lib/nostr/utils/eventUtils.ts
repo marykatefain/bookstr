@@ -34,6 +34,33 @@ export function extractISBNFromTags(event: Event): string | null {
 }
 
 /**
+ * Extract all ISBNs from an event's tags
+ * For events that reference multiple books
+ */
+export function extractAllISBNsFromTags(event: Event): string[] {
+  const isbns: string[] = [];
+  
+  // Look for all i tags that contain isbn
+  const iTags = event.tags.filter(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
+  for (const tag of iTags) {
+    if (tag[1]) {
+      isbns.push(tag[1].replace('isbn:', ''));
+    }
+  }
+  
+  // Also check d tags
+  const dTags = event.tags.filter(tag => tag[0] === 'd' && tag[1]?.startsWith('isbn:'));
+  for (const tag of dTags) {
+    if (tag[1]) {
+      isbns.push(tag[1].replace('isbn:', ''));
+    }
+  }
+  
+  // Deduplicate and return
+  return [...new Set(isbns)];
+}
+
+/**
  * Extract rating from tags
  */
 export function extractRatingFromTags(event: Event): number | undefined {

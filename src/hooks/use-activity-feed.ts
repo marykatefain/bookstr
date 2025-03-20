@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { getSharedPool } from "@/lib/nostr/utils/poolManager";
@@ -44,7 +45,7 @@ export function useActivityFeed({
         NOSTR_KINDS.BOOK_READING, // 10074
         NOSTR_KINDS.BOOK_READ     // 10073
       ],
-      limit: 150 // Fetch more to have data for pagination
+      limit: 250 // Increase limit to ensure we get enough events for multi-book events
     };
     
     try {
@@ -71,8 +72,17 @@ export function useActivityFeed({
         return;
       }
       
-      // Process events into activities
-      const processedActivities = await processFeedEvents(events, 100); // Added second parameter for limit
+      // Process events into activities - increased limit for multi-book events
+      const processedActivities = await processFeedEvents(events, 250);
+      console.log(`Processed activities length: ${processedActivities.length}`);
+      
+      if (processedActivities.length === 0) {
+        console.log("No activities were processed from events");
+        setAllActivities([]);
+        setActivities([]);
+        setTotalPages(1);
+        return;
+      }
       
       // Sort by created time descending (newest first)
       const sortedActivities = processedActivities.sort(

@@ -1,3 +1,4 @@
+
 import { type Filter, type Event } from "nostr-tools";
 import { NOSTR_KINDS } from "../../../types";
 import { getUserRelays } from "../../../relay";
@@ -25,7 +26,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       NOSTR_KINDS.BOOK_READING, // 10074
       NOSTR_KINDS.BOOK_READ     // 10073
     ],
-    limit: limit * 3 // Increase limit to ensure we get enough events
+    limit: limit * 5 // Increase limit to ensure we get enough events for multi-book events
   };
   
   // Generate cache key for this query
