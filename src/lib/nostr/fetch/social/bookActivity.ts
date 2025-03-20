@@ -1,10 +1,11 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
 import { extractRatingFromTags } from "../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
+import { getSharedPool } from "../../utils/poolManager";
 
 /**
  * Fetch book-related events for a specific ISBN
@@ -16,7 +17,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
   }
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     console.log(`Fetching activity for book ISBN: ${isbn}`);
@@ -127,7 +128,5 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
   } catch (error) {
     console.error("Error fetching book activity:", error);
     return [];
-  } finally {
-    pool.close(relays);
   }
 }

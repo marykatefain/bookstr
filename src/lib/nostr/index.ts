@@ -20,6 +20,13 @@ export {
   resetRelays
 } from "./relay";
 
+// Export pool management functions
+export {
+  getSharedPool,
+  refreshSharedPool,
+  closeSharedPool
+} from "./utils/poolManager";
+
 // Export profile functions
 export { fetchProfileData, fetchUserProfiles } from "./profile";
 

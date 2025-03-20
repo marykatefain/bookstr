@@ -1,7 +1,8 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter } from "nostr-tools";
 import { NostrProfile, FollowList, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
+import { getSharedPool } from "../utils/poolManager";
 
 /**
  * Get the list of users a person follows
@@ -9,7 +10,7 @@ import { getUserRelays } from "../relay";
 export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
   console.log(`Fetching follow list for pubkey: ${pubkey}`);
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     const filter: Filter = {
@@ -38,8 +39,6 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
   } catch (error) {
     console.error("Error fetching following list:", error);
     return { follows: [] };
-  } finally {
-    pool.close(relays);
   }
 }
 
@@ -64,7 +63,7 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
   }
 
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     const filter: Filter = {
@@ -123,7 +122,5 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
       name: "",
       relays: []
     };
-  } finally {
-    pool.close(relays);
   }
 }

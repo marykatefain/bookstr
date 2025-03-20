@@ -1,3 +1,4 @@
+
 import { Event } from "nostr-tools";
 import { NOSTR_KINDS } from "../types";
 
@@ -56,4 +57,11 @@ export function getReadingStatusFromEventKind(eventKind: number): 'tbr' | 'readi
   
   // Default to tbr if not recognized
   return 'tbr';
+}
+
+/**
+ * Get all unique pubkeys from a list of events
+ */
+export function extractUniquePubkeys(events: Event[]): string[] {
+  return [...new Set(events.map(event => event.pubkey))];
 }

@@ -22,8 +22,8 @@ export function BookReviewActivity({
   rating, 
   content 
 }: BookReviewActivityProps) {
-  // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = rating !== undefined ? Math.round(rating * 5) : undefined;
+  // Convert rating to a number between 1-5 if it exists
+  const displayRating = rating !== undefined ? Math.round(rating) : undefined;
   
   return (
     <div className="flex gap-3">

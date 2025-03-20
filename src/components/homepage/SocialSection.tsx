@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { SocialFeed } from "@/components/SocialFeed";
 import { Button } from "@/components/ui/button";
 import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
+import { refreshSharedPool } from "@/lib/nostr/utils/poolManager";
 
 // Debounce helper function
 const debounce = (fn: Function, ms = 300) => {
@@ -49,6 +50,9 @@ export function SocialSection() {
     lastManualRefreshRef.current = now;
     setManualRefreshing(true);
     
+    // Refresh the shared pool to force new connections
+    refreshSharedPool();
+    
     // Check connection status and reconnect if needed
     const connectionStatus = getConnectionStatus();
     if (connectionStatus !== 'connected') {
@@ -60,6 +64,11 @@ export function SocialSection() {
     }
     
     refreshFeed();
+    
+    // Ensure the refreshing state is removed after a timeout
+    setTimeout(() => {
+      setManualRefreshing(false);
+    }, 3000);
   };
 
   // Auto-refresh logic for global feed

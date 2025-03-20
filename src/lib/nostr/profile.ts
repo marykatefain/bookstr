@@ -1,8 +1,8 @@
 
 import { NostrProfile, NostrEventData } from "./types";
 import { connectToRelays } from "./relay";
-import { SimplePool } from "nostr-tools";
 import { getUserRelays } from "./relay";
+import { getSharedPool } from "./utils/poolManager";
 
 const parseProfileContent = (content: string): Partial<NostrProfile> => {
   try {
@@ -88,7 +88,7 @@ export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<Nost
   if (!pubkeys.length) return [];
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     const profileEvents = await pool.querySync(relays, {
@@ -116,7 +116,6 @@ export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<Nost
       }
     }
     
-    pool.close(relays);
     return profiles;
   } catch (error) {
     console.error("Error fetching profiles:", error);

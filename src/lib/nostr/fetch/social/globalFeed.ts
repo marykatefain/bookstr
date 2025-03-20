@@ -1,11 +1,12 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter, type Event } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
-import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
+import { extractISBNFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { cacheQueryResult, getCachedQueryResult, generateCacheKey } from "../../relay/connection";
+import { getSharedPool } from "../../utils/poolManager";
 
 const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
 
@@ -14,7 +15,7 @@ const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
  */
 export async function fetchGlobalSocialFeed(limit = 20): Promise<SocialActivity[]> {
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     console.log("Fetching global social feed");
@@ -45,7 +46,7 @@ export async function fetchGlobalSocialFeed(limit = 20): Promise<SocialActivity[
     }
     
     // Execute query with timeout
-    const fetchWithTimeout = async (filter: Filter) => {
+    const fetchWithTimeout = async (filter: Filter): Promise<Event[]> => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), MAX_REQUEST_TIME);
@@ -83,15 +84,13 @@ export async function fetchGlobalSocialFeed(limit = 20): Promise<SocialActivity[
   } catch (error) {
     console.error("Error fetching global social feed:", error);
     throw error; // Rethrow to allow proper error handling upstream
-  } finally {
-    pool.close(relays);
   }
 }
 
 /**
  * Process feed events into SocialActivity objects
  */
-async function processFeedEvents(events: any[], limit: number): Promise<SocialActivity[]> {
+async function processFeedEvents(events: Event[], limit: number): Promise<SocialActivity[]> {
   // Filter events to only include valid ones with either k=isbn or t=bookstr
   const filteredEvents = events.filter(event => {
     const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
@@ -109,7 +108,7 @@ async function processFeedEvents(events: any[], limit: number): Promise<SocialAc
   }
   
   // Get all unique pubkeys to fetch profiles in one batch
-  const uniquePubkeys = [...new Set(eventsToProcess.map(event => event.pubkey))];
+  const uniquePubkeys = extractUniquePubkeys(eventsToProcess);
   
   // Fetch profiles for these pubkeys with error handling
   let profiles = [];
