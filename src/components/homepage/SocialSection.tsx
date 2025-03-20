@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Users, Globe } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
@@ -10,11 +10,39 @@ import { Button } from "@/components/ui/button";
 export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
+  const autoRefreshTimerRef = useRef<number | null>(null);
+  
   // This function will be passed to the CreatePostBox to trigger feed refresh
   const refreshFeed = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  // Auto-refresh logic for global feed
+  useEffect(() => {
+    // Clear any existing timer when feed type changes or component unmounts
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+      autoRefreshTimerRef.current = null;
+    }
+
+    // Only set up auto-refresh for global feed
+    if (feedType === "global") {
+      console.log("Setting up auto-refresh for global feed");
+      // Refresh every 30 seconds
+      autoRefreshTimerRef.current = window.setInterval(() => {
+        console.log("Auto-refreshing global feed");
+        refreshFeed();
+      }, 30000); // 30 seconds
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (autoRefreshTimerRef.current) {
+        clearInterval(autoRefreshTimerRef.current);
+        autoRefreshTimerRef.current = null;
+      }
+    };
+  }, [feedType]);
 
   return (
     <div className="flex flex-col space-y-4">
