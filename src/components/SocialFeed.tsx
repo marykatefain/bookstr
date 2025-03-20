@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { isLoggedIn } from "@/lib/nostr";
 import { useSocialFeed } from "@/hooks/use-social-feed";
@@ -65,7 +64,6 @@ export function SocialFeed({
   const connectionStatus = getConnectionStatus();
   const isDisconnected = connectionStatus === 'disconnected';
   
-  // Only show full loading state when we have no data
   if (loading && reactiveActivities.length === 0) {
     return <FeedLoadingState />;
   }
@@ -86,7 +84,7 @@ export function SocialFeed({
     return <FeedLoginState feedType={type} />;
   }
 
-  if (reactiveActivities.length === 0) {
+  if (activities.length === 0) {
     return <EmptyFeedState type={type} onFindFriends={handleFindFriends} />;
   }
 
@@ -109,19 +107,8 @@ export function SocialFeed({
           </Button>
         </div>
       )}
-      
-      {/* Show indicator when refreshing but have existing data */}
-      {(loading || backgroundLoading) && reactiveActivities.length > 0 && (
-        <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800 text-center">
-          <span className="text-sm text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-            Refreshing feed...
-          </span>
-        </div>
-      )}
-      
       <FeedContent 
-        activities={reactiveActivities}
+        activities={activities}
         onReaction={handleReact} 
         refreshTrigger={refreshTrigger}
       />

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { useFeedFetcher } from "./use-feed-fetcher";
 
@@ -30,8 +31,6 @@ export function useSocialFeed({
   onRefreshComplete
 }: UseSocialFeedParams): UseSocialFeedResult {
   const [backgroundLoading, setBackgroundLoading] = useState(false);
-  const hasLoadedDataRef = useRef(false);
-  const activitiesRef = useRef<SocialActivity[]>([]);
   
   // Use the core feed fetcher
   const { 
@@ -47,14 +46,6 @@ export function useSocialFeed({
     onComplete: onRefreshComplete
   });
 
-  // Keep track of data we've already loaded
-  useEffect(() => {
-    if (activities.length > 0) {
-      hasLoadedDataRef.current = true;
-      activitiesRef.current = activities;
-    }
-  }, [activities]);
-
   // Function for background refresh
   const loadFeedInBackground = async () => {
     if (backgroundLoading || loading) return;
@@ -69,9 +60,7 @@ export function useSocialFeed({
     console.log(`useSocialFeed: ${type} feed, useMockData: ${useMockData}`, { 
       refreshTrigger, 
       maxItems,
-      isBackgroundRefresh,
-      hasLoadedData: hasLoadedDataRef.current,
-      activitiesLength: activitiesRef.current.length
+      isBackgroundRefresh
     });
 
     if (providedActivities) {
@@ -79,13 +68,10 @@ export function useSocialFeed({
       return;
     }
 
-    // Only fetch on initial load or explicit refresh
-    if (!hasLoadedDataRef.current || refreshTrigger > 0) {
-      if (isBackgroundRefresh && activitiesRef.current.length > 0) {
-        loadFeedInBackground();
-      } else {
-        fetchFeed();
-      }
+    if (isBackgroundRefresh && activities.length > 0) {
+      loadFeedInBackground();
+    } else {
+      fetchFeed();
     }
   }, [
     refreshTrigger, 
@@ -94,7 +80,8 @@ export function useSocialFeed({
     useMockData, 
     maxItems, 
     fetchFeed, 
-    isBackgroundRefresh
+    isBackgroundRefresh, 
+    activities.length
   ]);
 
   // Define the refreshFeed function that will be exposed in the return object
@@ -103,13 +90,9 @@ export function useSocialFeed({
     return fetchFeed();
   };
 
-  // Use cached data if we have it while loading new data
-  const finalActivities = providedActivities || 
-    (loading && hasLoadedDataRef.current ? activitiesRef.current : activities);
-
   return {
-    activities: finalActivities,
-    loading: loading && !hasLoadedDataRef.current, // Only show loading on first load
+    activities: providedActivities || activities,
+    loading,
     backgroundLoading,
     error,
     refreshFeed
