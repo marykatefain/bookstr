@@ -1,8 +1,10 @@
-import { SimplePool, type Filter, type Event } from "nostr-tools";
+
+import { type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 import { getReadingStatusFromEventKind, extractRatingFromTags } from "../utils/eventUtils";
+import { getSharedPool } from "../utils/poolManager";
 
 /**
  * Extract all ISBNs from the tags of an event
@@ -76,7 +78,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
   read: Book[]
 }> {
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     // Create filters for book event kinds and ratings
@@ -244,8 +246,6 @@ export async function fetchUserBooks(pubkey: string): Promise<{
   } catch (error) {
     console.error('Error fetching books from relays:', error);
     return { tbr: [], reading: [], read: [] };
-  } finally {
-    pool.close(relays);
   }
 }
 

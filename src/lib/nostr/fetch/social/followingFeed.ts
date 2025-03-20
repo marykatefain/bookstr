@@ -1,5 +1,5 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
 import { getCurrentUser } from "../../user";
@@ -7,6 +7,7 @@ import { fetchFollowingList } from "../profileFetch";
 import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
+import { getSharedPool } from "../../utils/poolManager";
 
 /**
  * Fetch social activity from people you follow
@@ -28,7 +29,7 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
   }
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     // Fetch book-related events from followed users
@@ -220,7 +221,5 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
   } catch (error) {
     console.error("Error fetching social feed:", error);
     return [];
-  } finally {
-    pool.close(relays);
   }
 }

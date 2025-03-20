@@ -1,9 +1,10 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter } from "nostr-tools";
 import { BookReview, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
 import { extractISBNFromTags, extractRatingFromTags } from "../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
+import { getSharedPool } from "../utils/poolManager";
 
 /**
  * Fetch reviews for a specific book
@@ -15,7 +16,7 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
   }
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     const filter: Filter = {
@@ -89,8 +90,6 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
   } catch (error) {
     console.error("Error fetching book reviews:", error);
     return [];
-  } finally {
-    pool.close(relays);
   }
 }
 
@@ -104,7 +103,7 @@ export async function fetchBookRatings(isbn: string): Promise<BookReview[]> {
   }
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     const filter: Filter = {
@@ -167,8 +166,6 @@ export async function fetchBookRatings(isbn: string): Promise<BookReview[]> {
   } catch (error) {
     console.error("Error fetching book ratings:", error);
     return [];
-  } finally {
-    pool.close(relays);
   }
 }
 
@@ -182,7 +179,7 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
   }
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     console.log("Fetching reviews for user:", pubkey);
@@ -285,7 +282,5 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
   } catch (error) {
     console.error("Error fetching user reviews:", error);
     return [];
-  } finally {
-    pool.close(relays);
   }
 }

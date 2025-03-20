@@ -1,8 +1,10 @@
+
 import { toast } from "@/hooks/use-toast";
-import { SimplePool, validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
+import { validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
 import { getCurrentUser, isLoggedIn } from "./user";
 import { getUserRelays, ensureConnections, getActiveConnections } from "./relay";
+import { getSharedPool } from "./utils/poolManager";
 
 /**
  * Interface for event update filter
@@ -123,8 +125,8 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
         throw new Error("Event validation failed: invalid signature");
       }
 
-      // Create a pool for publishing to multiple relays
-      const pool = new SimplePool();
+      // Get shared pool for publishing to multiple relays
+      const pool = getSharedPool();
       const relayUrls = getUserRelays();
       
       console.log("Publishing to relays:", relayUrls);
@@ -159,11 +161,6 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
         
         const eventId = await publishPromise;
         
-        // Only close the pool after the timeout, giving events time to propagate
-        setTimeout(() => {
-          pool.close(relayUrls);
-        }, 2000);
-        
         toast({
           title: "Published successfully",
           description: "Your action has been published to Nostr"
@@ -172,8 +169,6 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
         return eventId;
       } catch (error) {
         console.error("Failed to publish to relays:", error);
-        // Still need to clean up the pool
-        pool.close(relayUrls);
         throw error;
       }
     } catch (signError) {
@@ -222,7 +217,7 @@ export async function updateNostrEvent(
     await ensureConnections();
     
     // Create a filter to find the existing event
-    const pool = new SimplePool();
+    const pool = getSharedPool();
     const relayUrls = getUserRelays();
     
     console.log(`Looking for existing event with kind ${filter.kind}`);
@@ -253,13 +248,11 @@ export async function updateNostrEvent(
       }
     } catch (queryError) {
       console.error("Error querying events:", queryError);
-      pool.close(relayUrls);
       return null;
     }
     
     if (!existingEvent) {
       console.log(`No existing event found for kind ${filter.kind}`);
-      pool.close(relayUrls);
       return null;
     }
     
@@ -325,10 +318,6 @@ export async function updateNostrEvent(
     });
     
     const eventId = await publishPromise;
-    
-    setTimeout(() => {
-      pool.close(relayUrls);
-    }, 2000);
     
     toast({
       title: "Updated successfully",

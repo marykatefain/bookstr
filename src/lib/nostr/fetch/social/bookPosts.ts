@@ -1,9 +1,10 @@
 
-import { SimplePool, type Filter } from "nostr-tools";
+import { type Filter } from "nostr-tools";
 import { Post, NOSTR_KINDS } from "../../types";
 import { getUserRelays } from "../../relay";
 import { fetchUserProfiles } from "../../profile";
 import { getBooksByISBN } from "@/lib/openlibrary";
+import { getSharedPool } from "../../utils/poolManager";
 
 /**
  * Fetch posts that have book tags (kind 1 with 'i' tag)
@@ -12,7 +13,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
   const limit = 20; // Hard-coded limit to 20
   
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   
   try {
     console.log("Fetching book posts from relays:", relays);
@@ -146,7 +147,6 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     }
     
     console.log("Final processed posts:", posts.length);
-    pool.close(relays);
     return posts.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     console.error("Error fetching book posts:", error);
