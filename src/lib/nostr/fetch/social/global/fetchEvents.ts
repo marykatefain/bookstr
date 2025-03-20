@@ -12,7 +12,6 @@ const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
  */
 export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const relays = getUserRelays();
-  const pool = getSharedPool();
   
   // Create combined filter instead of separate queries
   // This reduces the number of separate requests
@@ -43,7 +42,9 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const events = await fetchWithTimeout(relays, combinedFilter);
   
   // Cache the result for future use
-  cacheQueryResult(cacheKey, events);
+  if (events && events.length > 0) {
+    cacheQueryResult(cacheKey, events);
+  }
   
   console.log(`Found ${events.length} events in global feed query`);
   
@@ -61,18 +62,30 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
 async function fetchWithTimeout(relays: string[], filter: Filter): Promise<Event[]> {
   try {
     const pool = getSharedPool();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MAX_REQUEST_TIME);
     
-    const events = await Promise.race([
-      pool.querySync(relays, filter),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`)), MAX_REQUEST_TIME);
-      })
-    ]);
+    // Create a promise that resolves with the query results or rejects after timeout
+    const queryPromise = new Promise<Event[]>((resolve, reject) => {
+      let timeoutId: NodeJS.Timeout;
+      
+      // Setup timeout
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`));
+      }, MAX_REQUEST_TIME);
+      
+      // Execute query
+      pool.querySync(relays, filter)
+        .then(events => {
+          clearTimeout(timeoutId);
+          resolve(events);
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          reject(error);
+        });
+    });
     
-    clearTimeout(timeoutId);
-    return events;
+    // Wait for either query to complete or timeout
+    return await queryPromise;
   } catch (error) {
     console.error(`Error fetching events:`, error);
     return []; // Return empty array on error to prevent complete failure
