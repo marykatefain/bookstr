@@ -90,7 +90,7 @@ export function RepliesSection({
   };
 
   return (
-    <div className="mt-2">
+    <div className="mt-2 w-full">
       <div className={`flex items-center ${buttonLayout === "horizontal" ? "gap-4" : "flex-col items-start gap-2"}`}>
         {onReaction && (
           <Button 
@@ -138,16 +138,18 @@ export function RepliesSection({
       </div>
 
       {showReplyForm && (
-        <ReplyForm 
-          eventId={eventId} 
-          authorPubkey={authorPubkey} 
-          onReplySubmitted={handleReplySubmitted}
-          onCancel={() => setShowReplyForm(false)}
-        />
+        <div className="w-full mt-2">
+          <ReplyForm 
+            eventId={eventId} 
+            authorPubkey={authorPubkey} 
+            onReplySubmitted={handleReplySubmitted}
+            onCancel={() => setShowReplyForm(false)}
+          />
+        </div>
       )}
 
       {showReplies && (
-        <div className="mt-3 space-y-1">
+        <div className="mt-3 space-y-1 w-full">
           {loadingReplies && replies.length === 0 ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

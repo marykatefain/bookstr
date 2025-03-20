@@ -52,12 +52,12 @@ export function ReplyForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 mt-2">
+    <form onSubmit={handleSubmit} className="space-y-2 w-full">
       <Textarea
         placeholder="Write your reply..."
         value={replyText}
         onChange={(e) => setReplyText(e.target.value)}
-        className="min-h-[80px] text-sm"
+        className="min-h-[80px] text-sm w-full"
         disabled={isSubmitting}
       />
       <div className="flex justify-end gap-2">
