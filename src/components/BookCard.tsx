@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -188,6 +189,9 @@ export const BookCard: React.FC<BookCardProps> = ({
     mappedReadingStatus = 'finished';
   }
 
+  // Get author display name, ensuring we have something to show
+  const authorDisplayName = localBook.author || "Unknown Author";
+
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
@@ -197,7 +201,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               <BookCover 
                 isbn={localBook.isbn}
                 title={localBook.title}
-                author={localBook.author}
+                author={authorDisplayName}
                 coverUrl={localBook.coverUrl}
                 isRead={isRead}
                 pendingAction={pendingAction}
@@ -215,7 +219,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
+              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />
@@ -244,7 +248,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <BookCover 
                   isbn={localBook.isbn}
                   title={localBook.title}
-                  author={localBook.author}
+                  author={authorDisplayName}
                   coverUrl={localBook.coverUrl}
                   isRead={isRead}
                   pendingAction={pendingAction}
@@ -263,7 +267,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
+              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />

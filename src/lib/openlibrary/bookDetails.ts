@@ -1,7 +1,7 @@
 
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
-import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
+import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './utils';
 
 // Simple in-memory cache for book details
 const bookCache: Record<string, { data: Book | null; timestamp: number }> = {};
@@ -69,11 +69,40 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       }
     }
     
+    // Fetch author details if available
+    let authorNames: string[] = [];
+    let authorName = "Unknown Author";
+    
+    if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
+      const authorPromises = data.authors.map(async (author: any) => {
+        if (author.key) {
+          const authorDetail = await fetchAuthorDetails(author.key);
+          return authorDetail;
+        }
+        return author.name || "Unknown Author";
+      });
+      
+      authorNames = await Promise.all(authorPromises);
+      authorName = authorNames[0] || "Unknown Author";
+    } else if (workData?.authors && Array.isArray(workData.authors)) {
+      const authorPromises = workData.authors.map(async (author: any) => {
+        if (author.author?.key) {
+          const authorDetail = await fetchAuthorDetails(author.author.key);
+          return authorDetail;
+        }
+        return "Unknown Author";
+      });
+      
+      authorNames = await Promise.all(authorPromises);
+      authorName = authorNames[0] || "Unknown Author";
+    }
+    
     // Create book object with available data
     const book: Book = {
       id: workData?.key || `isbn:${isbn}`,
       title: data.title || "Unknown Title",
-      author: data.authors?.[0]?.name || "Unknown Author",
+      author: authorName,
+      author_name: authorNames.length > 0 ? authorNames : undefined,
       isbn: isbn,
       coverUrl: getCoverUrl(isbn, data.covers?.[0]),
       description: typeof workData?.description === 'string' ? workData.description : workData?.description?.value || "",

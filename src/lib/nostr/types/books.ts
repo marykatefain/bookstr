@@ -16,6 +16,8 @@ export interface Book {
     dateAdded: number;
     rating?: number;
   };
+  // Add author_name field for compatibility with OpenLibrary data
+  author_name?: string[];
 }
 
 export interface BookReview {
