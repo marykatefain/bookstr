@@ -165,12 +165,13 @@ export function useBookstrGlobalFeed() {
         }, minDisplayTime);
       });
       
-      // Subscription for events as they arrive
-      const sub = pool.sub(relays, [filter]);
-      
-      sub.on('event', (event) => {
-        if (!collectedEvents.some(e => e.id === event.id)) {
-          collectedEvents.push(event);
+      // Subscription for events as they arrive - Fix the method call here
+      // Instead of pool.sub(), use pool.subscribe() with the correct parameters
+      const sub = pool.subscribe(relays, [filter], {
+        onevent: (event) => {
+          if (!collectedEvents.some(e => e.id === event.id)) {
+            collectedEvents.push(event);
+          }
         }
       });
       
