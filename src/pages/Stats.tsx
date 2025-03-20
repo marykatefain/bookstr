@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { mockBooks, isLoggedIn } from "@/lib/nostr";
 import { AreaChart, BarChart, LineChart, PieChart } from "recharts";
 import { BarChart as BarChartIcon, PieChart as PieChartIcon, BookOpen, Clock, CalendarDays } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// Mock reading data
 const mockReadingData = [
   { month: "Jan", books: 2, pages: 450 },
   { month: "Feb", books: 1, pages: 320 },
@@ -41,23 +40,41 @@ const mockTimeData = [
 ];
 
 const Stats = () => {
-  // Redirect if not logged in
   if (!isLoggedIn()) {
     return <Navigate to="/" />;
   }
 
   const [activeTab, setActiveTab] = useState("yearly");
   const [timeframe, setTimeframe] = useState("year");
+  const [showPrototypeModal, setShowPrototypeModal] = useState(true);
 
-  // Calculated stats
   const totalBooks = 26;
   const totalPages = 7160;
   const avgPagesPerDay = 19;
   const longestStreak = 24;
   const currentStreak = 3;
-  
+
   return (
     <Layout>
+      <Dialog open={showPrototypeModal} onOpenChange={setShowPrototypeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif text-bookverse-ink">Prototype Notice</DialogTitle>
+            <DialogDescription className="pt-2">
+              This Reading Stats page is currently a prototype. Real statistics based on your reading activity are coming soon! Feel free to explore this preview of what's to come.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => setShowPrototypeModal(false)}
+              className="bg-bookverse-accent hover:bg-bookverse-highlight"
+            >
+              Continue Exploring
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="container px-4 md:px-6 py-8">
         <div className="flex flex-col space-y-8">
           <div>
@@ -67,7 +84,6 @@ const Stats = () => {
             </p>
           </div>
 
-          {/* Stat summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-6">
@@ -126,7 +142,6 @@ const Stats = () => {
             </Card>
           </div>
 
-          {/* Reading history chart */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -196,9 +211,7 @@ const Stats = () => {
             </CardContent>
           </Card>
 
-          {/* Charts grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Genre distribution */}
             <Card>
               <CardHeader>
                 <CardTitle>Genre Distribution</CardTitle>
@@ -230,7 +243,6 @@ const Stats = () => {
               </CardContent>
             </Card>
 
-            {/* Reading time */}
             <Card>
               <CardHeader>
                 <CardTitle>Reading Time</CardTitle>
@@ -266,7 +278,6 @@ const Stats = () => {
   );
 };
 
-// These components need to be added at the bottom of the file for the charts
 function Legend() {
   return null;
 }
@@ -335,7 +346,6 @@ function Bar({ dataKey, name, fill }: { dataKey: string; name: string; fill: str
   return null;
 }
 
-// Colors for the pie chart
 const COLORS = ['#7F5E32', '#CF9E52', '#1C2C3B', '#A67C52', '#D4B483'];
 
 export default Stats;
