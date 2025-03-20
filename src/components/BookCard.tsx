@@ -197,6 +197,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               <BookCover 
                 isbn={localBook.isbn}
                 title={localBook.title}
+                author={localBook.author}
                 coverUrl={localBook.coverUrl}
                 isRead={isRead}
                 pendingAction={pendingAction}
@@ -214,6 +215,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
+              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />
@@ -242,6 +244,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <BookCover 
                   isbn={localBook.isbn}
                   title={localBook.title}
+                  author={localBook.author}
                   coverUrl={localBook.coverUrl}
                   isRead={isRead}
                   pendingAction={pendingAction}
@@ -260,6 +263,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
+              <p className="text-xs text-muted-foreground truncate">by {localBook.author}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />

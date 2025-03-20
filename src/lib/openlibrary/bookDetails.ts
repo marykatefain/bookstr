@@ -8,28 +8,6 @@ const bookCache: Record<string, { data: Book | null; timestamp: number }> = {};
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
 /**
- * Fetch author details from OpenLibrary
- */
-async function fetchAuthorDetails(authorKey: string): Promise<string> {
-  try {
-    console.log(`Fetching author details for key: ${authorKey}`);
-    const response = await fetch(`${BASE_URL}${authorKey}.json`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch author: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log(`Got author data:`, data);
-    
-    return data.name || "Unknown Author";
-  } catch (error) {
-    console.error("Error fetching author details:", error);
-    return "Unknown Author";
-  }
-}
-
-/**
  * Get details for a specific book by ISBN
  */
 export async function getBookByISBN(isbn: string): Promise<Book | null> {
@@ -91,74 +69,17 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       }
     }
     
-    // Extract author information
-    let authorName = "Unknown Author";
-    let authorNames: string[] = [];
-    let authorKeys: string[] = [];
-    
-    // Try to get author name from the book data first
-    if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
-      // If we have direct names
-      if (data.authors[0].name) {
-        authorName = data.authors[0].name;
-        authorNames = data.authors.map(a => a.name).filter(Boolean);
-      }
-      // If we have author keys, collect them for potential fetching
-      else if (typeof data.authors[0] === 'object') {
-        authorKeys = data.authors
-          .map(a => a.key || (a.author && a.author.key))
-          .filter(Boolean);
-      }
-    }
-    
-    // If we couldn't find the author name in the book data, try the work data
-    if (authorName === "Unknown Author" && workData && workData.authors) {
-      if (Array.isArray(workData.authors) && workData.authors.length > 0) {
-        // Try to get names directly
-        if (workData.authors[0].name) {
-          authorName = workData.authors[0].name;
-          authorNames = workData.authors.map(a => a.name).filter(Boolean);
-        }
-        // Collect keys for fetching if no names are available
-        else if (workData.authors[0].author) {
-          authorKeys = workData.authors
-            .map(a => a.author && a.author.key)
-            .filter(Boolean);
-        }
-        // If we just have keys directly
-        else if (workData.authors[0].key) {
-          authorKeys = workData.authors.map(a => a.key).filter(Boolean);
-        }
-      }
-    }
-    
-    // If we still don't have author names but have keys, fetch the author details
-    if (authorNames.length === 0 && authorKeys.length > 0) {
-      console.log(`Fetching author details for ${authorKeys.length} authors`);
-      const authorPromises = authorKeys.slice(0, 3).map(fetchAuthorDetails); // Limit to 3 authors
-      try {
-        const fetchedNames = await Promise.all(authorPromises);
-        authorNames = fetchedNames.filter(name => name !== "Unknown Author");
-        if (authorNames.length > 0) {
-          authorName = authorNames[0];
-        }
-      } catch (error) {
-        console.error("Error fetching author details:", error);
-      }
-    }
-    
     // Create book object with available data
     const book: Book = {
       id: workData?.key || `isbn:${isbn}`,
       title: data.title || "Unknown Title",
-      author: authorName,
+      author: data.authors?.[0]?.name || "Unknown Author",
       isbn: isbn,
       coverUrl: getCoverUrl(isbn, data.covers?.[0]),
       description: typeof workData?.description === 'string' ? workData.description : workData?.description?.value || "",
       pubDate: data.publish_date || workData?.first_publish_date || "",
       pageCount: data.number_of_pages || 0,
-      categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || [],
-      author_name: authorNames.length > 0 ? authorNames : undefined
+      categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
 
     console.log(`Successfully processed book data for ISBN ${isbn}`);

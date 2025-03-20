@@ -59,32 +59,13 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     
     // Fetch book details
     const books = await getBooksByISBN([isbn]);
-    let book: Book;
-    
-    if (books.length > 0) {
-      book = books[0];
-      // Ensure we don't have "Unknown Author" if we have a valid book
-      if (book.author === "Unknown Author") {
-        console.log("Book had Unknown Author, trying to find better author data");
-        // Try to find a better author name from events
-        for (const event of events) {
-          const authorTag = event.tags.find(tag => tag[0] === 'author');
-          if (authorTag && authorTag[1]) {
-            console.log(`Found author name in event tag: ${authorTag[1]}`);
-            book.author = authorTag[1];
-            break;
-          }
-        }
-      }
-    } else {
-      book = {
-        id: `isbn:${isbn}`,
-        title: "Unknown Book",
-        author: "Unknown Author",
-        isbn,
-        coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
-      };
-    }
+    const book = books.length > 0 ? books[0] : {
+      id: `isbn:${isbn}`,
+      title: "Unknown Book",
+      author: "Unknown Author",
+      isbn,
+      coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+    };
     
     // Convert events to social activities
     const activities: SocialActivity[] = [];

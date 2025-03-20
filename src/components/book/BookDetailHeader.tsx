@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
@@ -186,21 +185,10 @@ const BookInfoSection: React.FC<{
   avgRating: number;
   ratingsCount: number;
 }> = ({ book, avgRating, ratingsCount }) => {
-  // Get author name from OpenLibrary data if available
-  const authorName = book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0
-    ? book.author_name[0]
-    : book.author && book.author !== "Unknown Author" 
-      ? book.author
-      : null;
-
   return (
     <div className="md:w-2/3">
       <h1 className="text-3xl font-bold text-bookverse-ink">{book.title}</h1>
-      {authorName && (
-        <h2 className="text-xl text-muted-foreground mt-2">
-          {authorName}
-        </h2>
-      )}
+      <h2 className="text-xl text-muted-foreground mt-2">{book.author}</h2>
       
       <div className="flex flex-wrap gap-4 mt-4">
         {avgRating > 0 && (

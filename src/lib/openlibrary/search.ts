@@ -1,7 +1,7 @@
 
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL, OpenLibrarySearchResult } from './types';
-import { docToBook, fetchISBNFromEditionKey, extractAuthorName } from './utils';
+import { docToBook, fetchISBNFromEditionKey } from './utils';
 
 /**
  * Search books on OpenLibrary
@@ -34,12 +34,6 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     if (!data.docs || !Array.isArray(data.docs)) {
       console.error("Invalid docs in search response:", data);
       return [];
-    }
-    
-    // Log the first result to see what we're working with
-    if (data.docs.length > 0) {
-      console.log("Sample document:", data.docs[0]);
-      console.log("Author name field:", data.docs[0].author_name);
     }
     
     // Process ALL results, not just those with covers
