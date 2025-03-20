@@ -1,4 +1,3 @@
-
 import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool, Event } from "nostr-tools";
@@ -6,6 +5,7 @@ import { getCurrentUser } from "./user";
 import { getUserRelays } from "./relay";
 import { fetchFollowingList } from "./fetch";
 import { toast } from "@/hooks/use-toast";
+import { getSharedPool } from "./utils/poolManager";
 
 /**
  * Fetch all ISBNs from a specific list type
@@ -35,7 +35,7 @@ async function fetchExistingIsbnTags(listType: BookActionType): Promise<string[]
       return [];
   }
   
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   const relayUrls = getUserRelays();
   
   try {
@@ -63,8 +63,6 @@ async function fetchExistingIsbnTags(listType: BookActionType): Promise<string[]
   } catch (error) {
     console.error(`Error fetching existing ISBNs for ${listType} list:`, error);
     return [];
-  } finally {
-    pool.close(relayUrls);
   }
 }
 
@@ -230,9 +228,9 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
   }
   
   const event = {
-    kind: NOSTR_KINDS.REVIEW,  // Changed from BOOK_RATING to REVIEW (31985)
+    kind: NOSTR_KINDS.REVIEW,
     tags: [
-      ["d", `isbn:${book.isbn}`],  // Changed from ["i", `isbn:${book.isbn}`] to ["d", `isbn:${book.isbn}`]
+      ["d", `isbn:${book.isbn}`],
       ["k", "isbn"],
       ["rating", rating.toString()]
     ],
@@ -336,7 +334,7 @@ export async function fetchEventById(eventId: string): Promise<Event | null> {
     return null;
   }
   
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   const relayUrls = getUserRelays();
   
   try {
@@ -349,8 +347,6 @@ export async function fetchEventById(eventId: string): Promise<Event | null> {
   } catch (error) {
     console.error("Error fetching event by ID:", error);
     return null;
-  } finally {
-    pool.close(relayUrls);
   }
 }
 
@@ -359,7 +355,7 @@ export async function fetchEventById(eventId: string): Promise<Event | null> {
  */
 export async function fetchReactions(eventId: string): Promise<{ count: number; userReacted: boolean }> {
   const relays = getUserRelays();
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   const currentUser = getCurrentUser();
   
   try {
@@ -383,8 +379,6 @@ export async function fetchReactions(eventId: string): Promise<{ count: number; 
   } catch (error) {
     console.error(`Error fetching reactions for event ${eventId}:`, error);
     return { count: 0, userReacted: false };
-  } finally {
-    pool.close(relays);
   }
 }
 
@@ -397,7 +391,7 @@ export async function fetchReplies(eventId: string): Promise<Reply[]> {
     return [];
   }
   
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   const relayUrls = getUserRelays();
   
   try {
@@ -443,8 +437,6 @@ export async function fetchReplies(eventId: string): Promise<Reply[]> {
   } catch (error) {
     console.error("Error fetching replies:", error);
     return [];
-  } finally {
-    pool.close(relayUrls);
   }
 }
 
@@ -454,7 +446,7 @@ export async function fetchReplies(eventId: string): Promise<Reply[]> {
 async function fetchProfilesForPubkeys(pubkeys: string[]): Promise<Record<string, any>> {
   if (!pubkeys.length) return {};
   
-  const pool = new SimplePool();
+  const pool = getSharedPool();
   const relayUrls = getUserRelays();
   
   try {
@@ -482,8 +474,6 @@ async function fetchProfilesForPubkeys(pubkeys: string[]): Promise<Record<string
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return {};
-  } finally {
-    pool.close(relayUrls);
   }
 }
 

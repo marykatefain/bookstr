@@ -8,6 +8,7 @@ import { SimplePool, type Filter } from "nostr-tools";
 import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
 import { fetchBookPosts as fetchBookPostsByISBN } from "./fetch/socialFetch";
+import { getSharedPool } from "./utils/poolManager";
 
 interface CreatePostParams {
   content: string;
@@ -95,7 +96,7 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
   
   try {
     const relayUrls = getUserRelays();
-    const pool = new SimplePool();
+    const pool = getSharedPool();
     
     // Create two filters: one for k=isbn and one for t=bookstr
     const isbnFilter: Filter = {
@@ -167,7 +168,6 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
       }
     }
     
-    pool.close(relayUrls);
     return posts.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     console.error(`Error fetching posts for book ${isbn}:`, error);
