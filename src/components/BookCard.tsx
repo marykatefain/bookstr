@@ -188,12 +188,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     mappedReadingStatus = 'finished';
   }
 
-  const displayAuthor = book.author && book.author !== "Unknown Author" 
-    ? book.author 
-    : book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0
-      ? book.author_name[0]
-      : "Unknown Author";
-
   return (
     <Card className={getCardClasses()}>
       <CardContent className="p-0 flex flex-col h-full">
@@ -203,7 +197,6 @@ export const BookCard: React.FC<BookCardProps> = ({
               <BookCover 
                 isbn={localBook.isbn}
                 title={localBook.title}
-                author={displayAuthor}
                 coverUrl={localBook.coverUrl}
                 isRead={isRead}
                 pendingAction={pendingAction}
@@ -221,7 +214,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {displayAuthor}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />
@@ -250,7 +242,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <BookCover 
                   isbn={localBook.isbn}
                   title={localBook.title}
-                  author={displayAuthor}
                   coverUrl={localBook.coverUrl}
                   isRead={isRead}
                   pendingAction={pendingAction}
@@ -269,7 +260,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                   {localBook.title}
                 </Link>
               </h3>
-              <p className="text-xs text-muted-foreground truncate">by {displayAuthor}</p>
               
               {showRating && (
                 <BookRating rating={localBook.readingStatus?.rating} />

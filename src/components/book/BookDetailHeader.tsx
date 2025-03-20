@@ -26,13 +26,6 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
   handleMarkAsRead,
   addBookToList
 }) => {
-  // Ensure we have a valid author display
-  const displayAuthor = book.author && book.author !== "Unknown Author" 
-    ? book.author 
-    : book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0
-      ? book.author_name[0]
-      : "Unknown Author";
-
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <BookCoverSection
@@ -44,7 +37,7 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
       />
       
       <BookInfoSection
-        book={{...book, author: displayAuthor}}
+        book={book}
         avgRating={avgRating}
         ratingsCount={ratingsCount}
       />
@@ -196,13 +189,6 @@ const BookInfoSection: React.FC<{
   return (
     <div className="md:w-2/3">
       <h1 className="text-3xl font-bold text-bookverse-ink">{book.title}</h1>
-      <h2 className="text-xl text-muted-foreground mt-2">
-        {book.author && book.author !== "Unknown Author" 
-          ? book.author 
-          : book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0
-            ? book.author_name[0]
-            : "Unknown Author"}
-      </h2>
       
       <div className="flex flex-wrap gap-4 mt-4">
         {avgRating > 0 && (

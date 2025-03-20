@@ -60,11 +60,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                   {bookTitle}
                 </Link>
               )}
-              {review.bookAuthor && (
-                <span className="text-sm text-muted-foreground line-clamp-1">
-                  by {review.bookAuthor}
-                </span>
-              )}
             </div>
           </div>
         )}
