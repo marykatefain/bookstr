@@ -12,6 +12,7 @@ import {
   updateGlobalRefreshTimestamp
 } from "@/lib/nostr/utils/feedUtils";
 import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
+import { refreshSharedPool } from "@/lib/nostr/utils/poolManager";
 import { toast } from "@/hooks/use-toast";
 
 interface UseFeedFetcherOptions {
@@ -54,17 +55,16 @@ export function useFeedFetcher({
       return [];
     }
     
+    // Try to reconnect if not connected
     const connectionStatus = getConnectionStatus();
-    
-    // Try to reconnect if not connected - this is a critical change
     if (connectionStatus !== 'connected') {
       try {
+        refreshSharedPool();
         console.log(`Auto-reconnecting to relays (current status: ${connectionStatus})`);
         await connectToRelays(undefined, true);
-        // Continue with the fetch even after reconnecting
       } catch (reconnectError) {
         console.warn(`Reconnection attempt failed: ${reconnectError}`);
-        // Still attempt to fetch data in case the connection status is incorrect
+        // Continue with fetch attempt even if reconnection fails
       }
     }
     
@@ -76,7 +76,7 @@ export function useFeedFetcher({
       if (type === "followers") {
         feed = await fetchSocialFeed(maxItems || 20);
       } else {
-        // For global feed, check cooldown and update timestamp
+        // For global feed, update timestamp
         if (type === "global" && !isBackgroundFetch) {
           updateGlobalRefreshTimestamp();
         }
@@ -89,19 +89,16 @@ export function useFeedFetcher({
       throw error;
     }
     
-    // If no activities were returned, that's not necessarily an error
-    // It could be that there are no activities matching our criteria
+    // If no activities were returned, return empty array
     if (!feed || feed.length === 0) {
       console.log(`No activities found for ${type} feed`);
       return [];
     }
     
-    // For global feed, we already have reactions and replies data from the optimized fetch
-    // So only fetch additional data for follower feed
+    // For follower feed, enrich with reaction data
     let processedFeed = feed;
     
     if (type === "followers") {
-      // Batch fetch reactions and replies for efficiency
       try {
         processedFeed = await enrichActivitiesWithData(feed);
       } catch (error) {

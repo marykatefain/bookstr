@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Users, Globe, RefreshCw } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
@@ -43,15 +42,12 @@ export function SocialSection() {
   // Force connect on component mount to ensure we're always connected
   useEffect(() => {
     const ensureConnection = async () => {
-      const connectionStatus = getConnectionStatus();
-      if (connectionStatus !== 'connected') {
-        try {
-          console.log("Initial connection to relays on component mount");
-          refreshSharedPool();
-          await connectToRelays(undefined, true);
-        } catch (error) {
-          console.error("Failed to connect on component mount:", error);
-        }
+      try {
+        console.log("Initial connection to relays on component mount");
+        refreshSharedPool();
+        await connectToRelays(undefined, true);
+      } catch (error) {
+        console.error("Failed to connect on component mount:", error);
       }
     };
     
@@ -115,7 +111,7 @@ export function SocialSection() {
     // Only set up auto-refresh for global feed and use a longer interval
     if (feedType === "global") {
       console.log("Setting up auto-refresh for global feed");
-      // Refresh every 2 minutes instead of 30 seconds
+      // Refresh every 2 minutes
       autoRefreshTimerRef.current = window.setInterval(() => {
         // Only refresh if we have an active connection
         const connectionStatus = getConnectionStatus();
