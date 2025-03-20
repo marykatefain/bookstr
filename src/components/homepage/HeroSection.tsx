@@ -1,11 +1,18 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NostrLogin } from "@/components/NostrLogin";
 import { isLoggedIn } from "@/lib/nostr";
+import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
+import { BookCard } from "@/components/BookCard";
+
 export function HeroSection() {
-  return <section className="relative py-16 bg-gradient-to-b from-bookverse-paper to-bookverse-cream">
+  const { books, loading } = useWeeklyTrendingBooks(5);
+  
+  return (
+    <section className="relative py-16 bg-gradient-to-b from-bookverse-paper to-bookverse-cream">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="space-y-2">
@@ -13,9 +20,11 @@ export function HeroSection() {
             <p className="text-lg md:text-xl text-muted-foreground max-w-[700px] mx-auto">Discover, track, and share your reading journey on the decentralized Nostr network. No corporations. No ads. No data tracking. Just books.</p>
           </div>
           
-          {!isLoggedIn() && <div className="w-full max-w-md mt-4">
+          {!isLoggedIn() && (
+            <div className="w-full max-w-md mt-4">
               <NostrLogin />
-            </div>}
+            </div>
+          )}
           
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/books">
@@ -24,14 +33,38 @@ export function HeroSection() {
                 Discover Books
               </Button>
             </Link>
-            {isLoggedIn() && <Link to="/profile">
+            {isLoggedIn() && (
+              <Link to="/profile">
                 <Button size="lg" variant="outline">
                   <Book className="mr-2 h-5 w-5" />
                   Your Library
                 </Button>
-              </Link>}
+              </Link>
+            )}
           </div>
+          
+          {/* Weekly Trending Books - Only shown when logged out */}
+          {!isLoggedIn() && !loading && books.length > 0 && (
+            <div className="w-full max-w-5xl mt-8">
+              <h2 className="text-xl md:text-2xl font-bold font-serif text-bookverse-ink mb-4 text-left">
+                Weekly Trending Books
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {books.slice(0, 5).map((book) => (
+                  <Link to={`/book/${book.isbn || book.id}`} key={book.id}>
+                    <BookCard 
+                      book={book}
+                      size="small"
+                      showDescription={false}
+                      className="h-full hover:shadow-md transition-shadow"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </section>;
+    </section>
+  );
 }
