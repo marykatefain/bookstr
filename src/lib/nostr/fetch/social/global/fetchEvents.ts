@@ -9,6 +9,7 @@ const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
 
 /**
  * Fetch events for the global feed with caching and timeout
+ * Limited to book list update events only (kinds 10073, 10074, 10075)
  */
 export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const relays = getUserRelays();
@@ -19,18 +20,14 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     return [];
   }
   
-  // Create filter for query
+  // Create filter for query - SIMPLIFIED to only book list events
   const combinedFilter: Filter = {
     kinds: [
-      NOSTR_KINDS.BOOK_TBR,
-      NOSTR_KINDS.BOOK_READING, 
-      NOSTR_KINDS.BOOK_READ,
-      NOSTR_KINDS.BOOK_RATING,
-      NOSTR_KINDS.REVIEW,
-      NOSTR_KINDS.TEXT_NOTE
+      NOSTR_KINDS.BOOK_TBR,     // 10073
+      NOSTR_KINDS.BOOK_READING, // 10074
+      NOSTR_KINDS.BOOK_READ     // 10075
     ],
-    limit: limit * 2, // Increase limit as we'll filter later
-    "#t": ["bookstr"]
+    limit: limit
   };
   
   // Generate cache key for this query
@@ -45,7 +42,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   
   // Execute query with timeout
   try {
-    console.log(`Querying ${relays.length} relays for global feed events...`);
+    console.log(`Querying ${relays.length} relays for book list events (kinds 10073-10075)...`);
     
     // Get the pool for querying
     const pool = getSharedPool();
@@ -56,7 +53,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     
     // Execute the query without a catch block to allow errors to bubble up
     const events = await pool.querySync(relays, combinedFilter);
-    console.log(`Received ${events.length} raw events from relays`);
+    console.log(`Received ${events.length} book list events from relays`);
     
     // Cache the result for future use
     if (events && events.length > 0) {

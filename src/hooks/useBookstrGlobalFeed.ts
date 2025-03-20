@@ -67,49 +67,29 @@ export function useBookstrGlobalFeed() {
       const relays = getUserRelays();
       const pool = getSharedPool();
       
-      console.log('Fetching Bookstr global feed events...');
+      console.log('Fetching book list events (kinds 10073-10075) for global feed...');
       
-      // Create filter for all the requested event types
-      const filters = [
-        // Book list updates (TBR, reading, finished)
-        { kinds: [10073, 10074, 10075], limit: FETCH_LIMIT },
-        
-        // Book reviews
-        { kinds: [31985], '#k': ['isbn'], limit: FETCH_LIMIT },
-        
-        // Posts with #bookstr tag
-        { kinds: [1], '#t': ['bookstr'], limit: FETCH_LIMIT },
-        
-        // Posts with k=isbn tag
-        { kinds: [1], '#k': ['isbn'], limit: FETCH_LIMIT }
-      ];
+      // Create filter for just the book list events
+      const filter = { 
+        kinds: [
+          NOSTR_KINDS.BOOK_TBR,     // 10073
+          NOSTR_KINDS.BOOK_READING, // 10074
+          NOSTR_KINDS.BOOK_READ     // 10075
+        ], 
+        limit: FETCH_LIMIT 
+      };
       
-      // Fetch events with multiple filters in parallel
-      const eventsPromises = filters.map(filter => 
-        pool.querySync(relays, filter)
-          .catch(err => {
-            console.error('Error fetching events:', err);
-            return [];
-          })
-      );
+      // Fetch events with simplified filter
+      const events = await pool.querySync(relays, filter)
+        .catch(err => {
+          console.error('Error fetching events:', err);
+          return [];
+        });
       
-      const eventsArrays = await Promise.all(eventsPromises);
-      
-      // Combine all events
-      let allEvents = eventsArrays.flat();
-      
-      // Deduplicate events
-      const eventIds = new Set();
-      allEvents = allEvents.filter(event => {
-        if (eventIds.has(event.id)) return false;
-        eventIds.add(event.id);
-        return true;
-      });
-      
-      console.log(`Fetched ${allEvents.length} events`);
+      console.log(`Fetched ${events.length} book list events`);
       
       // Get unique authors
-      const authorPubkeys = [...new Set(allEvents.map(event => event.pubkey))];
+      const authorPubkeys = [...new Set(events.map(event => event.pubkey))];
       
       // Fetch author profiles
       const profilesArray = await fetchUserProfiles(authorPubkeys);
@@ -128,7 +108,7 @@ export function useBookstrGlobalFeed() {
       });
       
       // Transform events to activities
-      const result = await transformEventsToActivities(allEvents, profilesRecord);
+      const result = await transformEventsToActivities(events, profilesRecord);
       
       // Sort by recent first
       result.sort((a, b) => b.createdAt - a.createdAt);

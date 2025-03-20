@@ -8,7 +8,7 @@ import { fetchReactions, fetchReplies } from "@/lib/nostr";
 // Transform raw nostr events to SocialActivity objects
 export async function transformEventsToActivities(
   events: Event[], 
-  profiles: Record<string, { name?: string; picture?: string; nip05?: string; npub?: string }>
+  profiles: Record<string, { name?: string; picture?: string; npub?: string }>
 ): Promise<SocialActivity[]> {
   const activities: SocialActivity[] = [];
   
@@ -33,13 +33,13 @@ export async function transformEventsToActivities(
         npub: undefined
       };
       
-      // Create book object
+      // Create book object - ensuring id property is included
       const book: Book = {
-        id: event.id, // Added the id property using the event id
+        id: `nostr:${event.id}`, // Ensure we have an id
         isbn: isbn || 'unknown',
         title: title,
         coverUrl: coverUrl,
-        author: '', // Fixed: Changed 'authors' to 'author' to match the Book type
+        author: '' // Single author as string
       };
       
       // Determine type of activity based on event kind
@@ -101,32 +101,8 @@ export async function transformEventsToActivities(
     }
   }
   
-  // Batch fetch reactions and replies for top 10 activities (most resource intensive)
-  const topActivities = activities.slice(0, 10);
-  
-  await Promise.all(
-    topActivities.map(async (activity) => {
-      try {
-        const [replies, reactions] = await Promise.all([
-          fetchReplies(activity.id),
-          fetchReactions(activity.id)
-        ]);
-        
-        // Find the activity in our array and enrich it
-        const index = activities.findIndex(a => a.id === activity.id);
-        if (index !== -1) {
-          activities[index] = {
-            ...activities[index],
-            replies,
-            reactions
-          };
-        }
-      } catch (error) {
-        console.error(`Error fetching data for activity ${activity.id}:`, error);
-        // Continue with other activities
-      }
-    })
-  );
+  // For simplicity, let's skip batch fetching reactions and replies for now
+  // to reduce network requests
   
   return activities;
 }
