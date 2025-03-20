@@ -11,13 +11,12 @@ export const BookCategories: React.FC<BookCategoriesProps> = ({ categories }) =>
     return null;
   }
 
+  // Only display the first category
   return (
     <div className="flex flex-wrap gap-1 mt-1">
-      {categories.slice(0, 2).map((category, index) => (
-        <Badge key={`${category}-${index}`} variant="outline" className="text-xs">
-          {category}
-        </Badge>
-      ))}
+      <Badge key={`${categories[0]}-0`} variant="outline" className="text-xs">
+        {categories[0]}
+      </Badge>
     </div>
   );
 };
