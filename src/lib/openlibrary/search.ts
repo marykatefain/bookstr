@@ -53,9 +53,10 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
       })
     );
     
-    // Filter out incomplete books AFTER processing all results
+    // Filter books - we want to include as many results as possible
+    // Only require title and author as minimum requirements
     const validBooks = books.filter(book => 
-      book.title && book.author && book.isbn
+      book.title && book.author
     );
     
     console.log(`Processed ${validBooks.length} valid books from search results`);

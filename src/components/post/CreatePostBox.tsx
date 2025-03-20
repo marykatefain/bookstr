@@ -86,7 +86,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
     try {
       console.log("Searching for books with query:", searchQuery);
       const results = await searchBooks(searchQuery, 10);
-      console.log("Search returned results:", results);
+      console.log("Search returned results:", results.length, results);
       setSearchResults(results);
     } catch (error) {
       console.error("Error searching books:", error);
@@ -101,6 +101,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
   };
 
   const handleSelectBook = (book: Book) => {
+    console.log("Selected book:", book);
     setSelectedBook(book);
     setOpen(false);
   };
@@ -292,7 +293,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                 <span>{selectedBook ? "Change Book" : "Tag Book"}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-0" align="start">
+            <PopoverContent className="w-80 p-0" align="start">
               <Command>
                 <CommandInput 
                   placeholder="Search for a book..." 
@@ -307,7 +308,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                           <Skeleton className="h-10 w-full mb-2" />
                           <Skeleton className="h-10 w-full" />
                         </div>
-                      ) : (
+                      ) : userBooks.length > 0 ? (
                         userBooks.map((book) => (
                           <CommandItem
                             key={book.id}
@@ -327,6 +328,10 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                             </div>
                           </CommandItem>
                         ))
+                      ) : (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          No books in your library
+                        </div>
                       )}
                     </CommandGroup>
                   )}
@@ -336,16 +341,22 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                       {searching ? (
                         <div className="p-2">
                           <Skeleton className="h-10 w-full mb-2" />
+                          <Skeleton className="h-10 w-full mb-2" />
                           <Skeleton className="h-10 w-full" />
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <CommandEmpty>No books found. Try a different search term.</CommandEmpty>
+                        <CommandEmpty>
+                          <div className="py-6 text-center">
+                            <p>No books found.</p>
+                            <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                          </div>
+                        </CommandEmpty>
                       ) : (
                         searchResults.map((book) => (
                           <CommandItem
-                            key={book.id}
+                            key={book.id || `${book.title}-${book.author}`}
                             onSelect={() => handleSelectBook(book)}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 py-2"
                           >
                             <div className="w-8 h-12 flex-shrink-0">
                               <BookCover 
