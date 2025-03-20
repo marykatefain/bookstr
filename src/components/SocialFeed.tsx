@@ -7,6 +7,7 @@ import { FeedContent } from "./social/FeedContent";
 import { EmptyFeedState } from "./social/EmptyFeedState";
 import { FeedLoadingState } from "./social/FeedLoadingState";
 import { FeedLoginState } from "./social/FeedLoginState";
+import { SocialActivity } from "@/lib/nostr/types";
 
 interface SocialFeedProps {
   activities?: SocialActivity[];
