@@ -20,6 +20,7 @@ interface PostCardProps {
 
 export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   
   const isSocialActivity = 'type' in post && post.type === 'post';
@@ -71,6 +72,12 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     }
   };
 
+  // Handle image load error
+  const handleImageError = (url: string) => {
+    console.log(`Error loading image: ${url}`);
+    setImageErrors(prev => ({ ...prev, [url]: true }));
+  };
+
   // Function to detect URLs in text content
   const detectAndRenderMediaUrls = (content: string) => {
     // Simple URL regex - can be improved for more accurate detection
@@ -83,17 +90,15 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
       const isVideo = /\.(mp4|mov|webm)$/i.test(url);
       
-      if (isImage) {
+      if (isImage && !imageErrors[url]) {
         return (
           <div key={index} className="mt-3">
             <img 
               src={url} 
               alt="Media from post content" 
               className="rounded-md max-h-80 object-contain mx-auto" 
-              onError={(e) => {
-                console.log(`Error loading embedded media: ${url}`);
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
+              loading="lazy"
+              onError={() => handleImageError(url)}
             />
           </div>
         );
@@ -114,7 +119,7 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       }
       
       return null;
-    });
+    }).filter(Boolean);
   };
 
   return (
@@ -162,29 +167,29 @@ export function PostCard({ post, onReaction }: PostCardProps) {
             <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
             
             {/* Render specifically tagged media from post.mediaUrl if it exists */}
-            {postData.mediaUrl && (
+            {postData.mediaUrl && postData.mediaType === 'image' && !imageErrors[postData.mediaUrl] && (
               <div className="mt-3">
-                {postData.mediaType === 'image' ? (
-                  <img 
-                    src={postData.mediaUrl} 
-                    alt="Post media" 
-                    className="rounded-md max-h-80 mx-auto object-contain" 
-                    onError={(e) => {
-                      console.log(`Error loading media: ${postData.mediaUrl}`);
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : postData.mediaType === 'video' ? (
-                  <video 
-                    src={postData.mediaUrl} 
-                    controls 
-                    className="rounded-md w-full max-h-80" 
-                    onError={(e) => {
-                      console.log(`Error loading video: ${postData.mediaUrl}`);
-                      (e.target as HTMLVideoElement).style.display = 'none';
-                    }}
-                  />
-                ) : null}
+                <img 
+                  src={postData.mediaUrl} 
+                  alt="Post media" 
+                  className="rounded-md max-h-80 mx-auto object-contain" 
+                  loading="lazy"
+                  onError={() => handleImageError(postData.mediaUrl!)}
+                />
+              </div>
+            )}
+            
+            {postData.mediaUrl && postData.mediaType === 'video' && (
+              <div className="mt-3">
+                <video 
+                  src={postData.mediaUrl} 
+                  controls 
+                  className="rounded-md w-full max-h-80" 
+                  onError={(e) => {
+                    console.log(`Error loading video: ${postData.mediaUrl}`);
+                    (e.target as HTMLVideoElement).style.display = 'none';
+                  }}
+                />
               </div>
             )}
             

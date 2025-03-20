@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 
@@ -22,20 +22,21 @@ export function BookReviewActivity({
   rating, 
   content 
 }: BookReviewActivityProps) {
+  const [imageError, setImageError] = useState(false);
+  
   // Convert rating to a number between 1-5 if it exists
   const displayRating = rating !== undefined ? Math.round(rating) : undefined;
   
   return (
     <div className="flex gap-3">
-      {bookCover && (
+      {bookCover && !imageError && (
         <Link to={`/book/${bookIsbn}`} className="shrink-0">
           <img 
             src={bookCover} 
             alt={bookTitle} 
             className="h-16 w-12 object-cover rounded-sm"
-            onError={(e) => {
-              e.currentTarget.src = "/placeholder.svg";
-            }}
+            loading="lazy"
+            onError={() => setImageError(true)}
           />
         </Link>
       )}

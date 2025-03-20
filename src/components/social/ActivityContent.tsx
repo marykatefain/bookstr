@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { BookListActivity } from "./activities/BookListActivity";
@@ -11,7 +12,14 @@ interface ActivityContentProps {
 }
 
 export function ActivityContent({ activity }: ActivityContentProps) {
+  const [imageError, setImageError] = useState(false);
   const userName = activity.author?.name || formatPubkey(activity.pubkey);
+  
+  // Handle image loading errors
+  const handleImageError = () => {
+    console.log(`Error loading media in activity: ${activity.id}`);
+    setImageError(true);
+  };
   
   switch (activity.type) {
     case 'tbr':
@@ -52,15 +60,13 @@ export function ActivityContent({ activity }: ActivityContentProps) {
       return (
         <div className="space-y-2">
           <p>{activity.content}</p>
-          {activity.mediaUrl && activity.mediaType === 'image' && (
+          {activity.mediaUrl && activity.mediaType === 'image' && !imageError && (
             <img 
               src={activity.mediaUrl} 
               alt="Post media" 
               className="max-h-64 rounded-md mt-2 object-cover"
-              onError={(e) => {
-                console.log(`Error loading media: ${activity.mediaUrl}`);
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
+              loading="lazy"
+              onError={handleImageError}
             />
           )}
         </div>
