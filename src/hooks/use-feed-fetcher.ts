@@ -11,6 +11,7 @@ import {
   canRefreshGlobalFeed,
   updateGlobalRefreshTimestamp
 } from "@/lib/nostr/utils/feedUtils";
+import { getConnectionStatus } from "@/lib/nostr/relay";
 
 interface UseFeedFetcherOptions {
   type: "followers" | "global";
@@ -52,6 +53,12 @@ export function useFeedFetcher({
       return [];
     }
     
+    const connectionStatus = getConnectionStatus();
+    if (connectionStatus !== 'connected') {
+      console.warn(`Cannot fetch feed: Connection status is ${connectionStatus}`);
+      throw new Error(`Nostr connection not established (${connectionStatus})`);
+    }
+    
     console.log(`Fetching ${type} feed from Nostr network`);
     
     let feed: SocialActivity[] = [];
@@ -73,8 +80,10 @@ export function useFeedFetcher({
       throw error;
     }
     
-    // If no activities were returned, return an empty array
+    // If no activities were returned, that's not necessarily an error
+    // It could be that there are no activities matching our criteria
     if (!feed || feed.length === 0) {
+      console.log(`No activities found for ${type} feed`);
       return [];
     }
     
@@ -84,7 +93,13 @@ export function useFeedFetcher({
     
     if (type === "followers") {
       // Batch fetch reactions and replies for efficiency
-      processedFeed = await enrichActivitiesWithData(feed);
+      try {
+        processedFeed = await enrichActivitiesWithData(feed);
+      } catch (error) {
+        console.error("Error enriching activities with data:", error);
+        // Continue with original feed if enrichment fails
+        processedFeed = feed;
+      }
     }
     
     // Apply maxItems limit if specified
@@ -149,7 +164,8 @@ export function useFeedFetcher({
     } catch (error) {
       console.error("Error loading social feed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error loading feed";
-      setError(error instanceof Error ? error : new Error(errorMessage));
+      const newError = error instanceof Error ? error : new Error(errorMessage);
+      setError(newError);
       
       if (!isBackgroundRefresh) {
         // Schedule retries for non-background refreshes

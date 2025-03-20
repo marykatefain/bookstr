@@ -13,6 +13,12 @@ const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
 export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const relays = getUserRelays();
   
+  // Make sure we have relays to query
+  if (!relays || relays.length === 0) {
+    console.warn("No relays available for fetching global events");
+    return [];
+  }
+  
   // Create combined filter instead of separate queries
   // This reduces the number of separate requests
   const combinedFilter: Filter = {
@@ -39,21 +45,29 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   }
   
   // Execute query with timeout
-  const events = await fetchWithTimeout(relays, combinedFilter);
-  
-  // Cache the result for future use
-  if (events && events.length > 0) {
-    cacheQueryResult(cacheKey, events);
+  try {
+    console.log(`Querying ${relays.length} relays for global feed events...`);
+    const events = await fetchWithTimeout(relays, combinedFilter);
+    
+    // Cache the result for future use
+    if (events && events.length > 0) {
+      cacheQueryResult(cacheKey, events);
+      console.log(`Cached ${events.length} events for future use`);
+    }
+    
+    console.log(`Found ${events.length} events in global feed query`);
+    
+    // If query returned empty, possible connection issue
+    if (events.length === 0) {
+      console.warn("Query returned no events, possible connection issue");
+    }
+    
+    return events;
+  } catch (error) {
+    console.error("Error fetching global events:", error);
+    // Return empty array to allow graceful fallback
+    return [];
   }
-  
-  console.log(`Found ${events.length} events in global feed query`);
-  
-  // If query returned empty, possible connection issue
-  if (events.length === 0) {
-    console.warn("Query returned no events, possible connection issue");
-  }
-  
-  return events;
 }
 
 /**
@@ -62,25 +76,40 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
 async function fetchWithTimeout(relays: string[], filter: Filter): Promise<Event[]> {
   try {
     const pool = getSharedPool();
+    if (!pool) {
+      console.error("Failed to get shared pool for event fetching");
+      return [];
+    }
     
     // Create a promise that resolves with the query results or rejects after timeout
     const queryPromise = new Promise<Event[]>((resolve, reject) => {
       let timeoutId: NodeJS.Timeout;
+      let isDone = false;
       
       // Setup timeout
       timeoutId = setTimeout(() => {
-        reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`));
+        if (!isDone) {
+          isDone = true;
+          console.warn(`Query timed out after ${MAX_REQUEST_TIME}ms`);
+          reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`));
+        }
       }, MAX_REQUEST_TIME);
       
       // Execute query
       pool.querySync(relays, filter)
         .then(events => {
-          clearTimeout(timeoutId);
-          resolve(events);
+          if (!isDone) {
+            clearTimeout(timeoutId);
+            isDone = true;
+            resolve(events);
+          }
         })
         .catch(error => {
-          clearTimeout(timeoutId);
-          reject(error);
+          if (!isDone) {
+            clearTimeout(timeoutId);
+            isDone = true;
+            reject(error);
+          }
         });
     });
     
@@ -88,6 +117,6 @@ async function fetchWithTimeout(relays: string[], filter: Filter): Promise<Event
     return await queryPromise;
   } catch (error) {
     console.error(`Error fetching events:`, error);
-    return []; // Return empty array on error to prevent complete failure
+    throw error; // Re-throw to allow proper error handling upstream
   }
 }

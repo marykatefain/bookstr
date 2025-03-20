@@ -8,6 +8,7 @@ import { SocialFeed } from "@/components/SocialFeed";
 import { Button } from "@/components/ui/button";
 import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
 import { refreshSharedPool } from "@/lib/nostr/utils/poolManager";
+import { useToast } from "@/hooks/use-toast";
 
 // Debounce helper function
 const debounce = (fn: Function, ms = 300) => {
@@ -25,6 +26,7 @@ export function SocialSection() {
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const lastManualRefreshRef = useRef<number>(0);
+  const { toast } = useToast();
   
   // Debounced refresh function to prevent multiple rapid refreshes
   const debouncedRefresh = useRef(
@@ -50,16 +52,31 @@ export function SocialSection() {
     lastManualRefreshRef.current = now;
     setManualRefreshing(true);
     
-    // Refresh the shared pool to force new connections
-    refreshSharedPool();
-    
-    // Check connection status and reconnect if needed
+    // Check connection status first
     const connectionStatus = getConnectionStatus();
     if (connectionStatus !== 'connected') {
       try {
+        console.log("Not connected, attempting to connect to relays...");
+        toast({
+          title: "Connecting to Nostr",
+          description: "Establishing connection to relays..."
+        });
+        
+        // Refresh the shared pool to force new connections
+        refreshSharedPool();
         await connectToRelays(undefined, true); // Force reconnect
+        
+        toast({
+          title: "Connected",
+          description: "Successfully connected to Nostr relays"
+        });
       } catch (error) {
         console.error("Failed to reconnect:", error);
+        toast({
+          title: "Connection failed",
+          description: "Unable to connect to relays. Please try again later.",
+          variant: "destructive"
+        });
       }
     }
     
@@ -92,6 +109,10 @@ export function SocialSection() {
           refreshFeed();
         } else {
           console.log("Skipping auto-refresh due to connection issues:", connectionStatus);
+          // Try to reconnect when we detect a connection issue
+          connectToRelays(undefined, false).catch(err => 
+            console.error("Error reconnecting during auto-refresh:", err)
+          );
         }
       }, 120000); // 2 minutes
     }
