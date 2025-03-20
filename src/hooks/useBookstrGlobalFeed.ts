@@ -18,6 +18,7 @@ export function useBookstrGlobalFeed() {
   const [error, setError] = useState<Error | null>(null);
   const isInitialLoadRef = useRef(true);
   const lastFetchRef = useRef(Date.now());
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Check if cache is valid
   const getCachedEvents = useCallback(() => {
@@ -35,6 +36,38 @@ export function useBookstrGlobalFeed() {
       data,
       timestamp: Date.now()
     });
+  }, []);
+  
+  // Process events into activities - can be called with partial results
+  const processEvents = useCallback(async (events: any[]) => {
+    if (!events || events.length === 0) return [];
+    
+    try {
+      // Extract pubkeys for profile fetching
+      const pubkeys = [...new Set(events.map(event => event.pubkey))];
+      
+      // Fetch profiles in the background
+      const profiles = await fetchUserProfiles(pubkeys);
+      
+      // Convert to a record for the transformer
+      const profilesRecord: Record<string, { name?: string; picture?: string; npub?: string }> = {};
+      profiles.forEach(profile => {
+        if (profile && profile.pubkey) {
+          profilesRecord[profile.pubkey] = {
+            name: profile.name || profile.display_name,
+            picture: profile.picture,
+            npub: profile.npub
+          };
+        }
+      });
+      
+      // Transform events to activities
+      const processedActivities = await transformEventsToActivities(events, profilesRecord);
+      return processedActivities;
+    } catch (error) {
+      console.error('Error processing events:', error);
+      return [];
+    }
   }, []);
   
   // Main fetch function
@@ -57,6 +90,12 @@ export function useBookstrGlobalFeed() {
     
     lastFetchRef.current = now;
     
+    // Cancel any in-progress fetches
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     try {
       // Ensure we have relay connections
       const connectionStatus = getConnectionStatus();
@@ -67,6 +106,11 @@ export function useBookstrGlobalFeed() {
       const relays = getUserRelays();
       const pool = getSharedPool();
       
+      if (!pool) {
+        throw new Error('Failed to get pool for fetching events');
+      }
+      
+      setLoading(true);
       console.log('Fetching book list events (kinds 10073-10075) for global feed...');
       
       // Create filter for just the book list events
@@ -79,51 +123,78 @@ export function useBookstrGlobalFeed() {
         limit: FETCH_LIMIT 
       };
       
-      // Fetch events with simplified filter
-      const events = await pool.querySync(relays, filter)
-        .catch(err => {
-          console.error('Error fetching events:', err);
-          return [];
-        });
+      // Set up event collection
+      let collectedEvents: any[] = [];
+      let hasUpdates = false;
+      let firstBatchProcessed = false;
       
-      console.log(`Fetched ${events.length} book list events`);
+      // Process events incrementally as they arrive
+      const processIncrementally = async (events: any[]) => {
+        // If this is our first batch or we have a significant number of new events, process them
+        if (!firstBatchProcessed || events.length - collectedEvents.length >= 5) {
+          const processedActivities = await processEvents(events);
+          
+          // Sort by recent first and update state
+          processedActivities.sort((a, b) => b.createdAt - a.createdAt);
+          
+          setActivities(prev => {
+            // Only update if we have new data
+            if (processedActivities.length > 0) {
+              hasUpdates = true;
+              return processedActivities;
+            }
+            return prev;
+          });
+          
+          firstBatchProcessed = true;
+          collectedEvents = events;
+        }
+      };
       
-      // Get unique authors
-      const authorPubkeys = [...new Set(events.map(event => event.pubkey))];
+      // Start the incremental processing with a minimum delay for UI
+      const minDisplayTime = 800; // ms
+      const startTime = Date.now();
       
-      // Fetch author profiles
-      const profilesArray = await fetchUserProfiles(authorPubkeys);
-      console.log(`Fetched ${profilesArray.length} profiles`);
+      // Set up a timeout to collect events that have arrived so far after a short delay
+      const initialProcessing = new Promise<void>(resolve => {
+        setTimeout(async () => {
+          if (collectedEvents.length > 0) {
+            await processIncrementally(collectedEvents);
+          }
+          resolve();
+        }, minDisplayTime);
+      });
       
-      // Convert the profiles array to a Record/object with pubkey as key
-      const profilesRecord: Record<string, { name?: string; picture?: string; npub?: string }> = {};
-      profilesArray.forEach(profile => {
-        if (profile && profile.pubkey) {
-          profilesRecord[profile.pubkey] = {
-            name: profile.name || profile.display_name,
-            picture: profile.picture,
-            npub: profile.npub
-          };
+      // Subscription for events as they arrive
+      const sub = pool.sub(relays, [filter]);
+      
+      sub.on('event', (event) => {
+        if (!collectedEvents.some(e => e.id === event.id)) {
+          collectedEvents.push(event);
         }
       });
       
-      // Transform events to activities
-      const result = await transformEventsToActivities(events, profilesRecord);
+      // Wait for initial processing to complete
+      await initialProcessing;
       
-      // Sort by recent first
-      result.sort((a, b) => b.createdAt - a.createdAt);
+      // Wait a bit longer for more events to arrive
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Limit to requested amount
-      const limitedResult = result.slice(0, FETCH_LIMIT);
+      // Final processing of all events we've received
+      if (collectedEvents.length > 0) {
+        await processIncrementally(collectedEvents);
+        
+        // Cache the final result
+        if (hasUpdates) {
+          setCachedEvents(activities);
+        }
+      }
       
-      // Save to cache
-      setCachedEvents(limitedResult);
+      // Clean up subscription
+      sub.unsub();
       
-      // Update state
-      setActivities(limitedResult);
       setError(null);
-      
-      return limitedResult;
+      return activities;
     } catch (e) {
       console.error('Error fetching global feed:', e);
       setError(e instanceof Error ? e : new Error('Failed to fetch feed'));
@@ -131,8 +202,9 @@ export function useBookstrGlobalFeed() {
     } finally {
       setLoading(false);
       isInitialLoadRef.current = false;
+      abortControllerRef.current = null;
     }
-  }, [activities, getCachedEvents, setCachedEvents]);
+  }, [activities, getCachedEvents, setCachedEvents, processEvents]);
   
   // Initial fetch
   useEffect(() => {

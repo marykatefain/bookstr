@@ -51,14 +51,39 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       return [];
     }
     
-    // Execute the query without a catch block to allow errors to bubble up
-    const events = await pool.querySync(relays, combinedFilter);
+    // Set up a timeout to collect events that have arrived so far
+    let collectedEvents: Event[] = [];
+    
+    // Start the query
+    const eventsPromise = pool.querySync(relays, combinedFilter);
+    
+    // Cache and return events as they arrive
+    const timeoutPromise = new Promise<Event[]>((resolve) => {
+      setTimeout(() => {
+        // Cache whatever we've collected so far
+        if (collectedEvents.length > 0) {
+          cacheQueryResult(cacheKey, collectedEvents);
+          console.log(`Cached ${collectedEvents.length} partial events for future use`);
+        }
+        resolve(collectedEvents);
+      }, MAX_REQUEST_TIME);
+    });
+    
+    // Race between the full query and the timeout
+    const events = await Promise.race([
+      eventsPromise.then(events => {
+        collectedEvents = events; // Update collected events
+        return events;
+      }),
+      timeoutPromise
+    ]);
+    
     console.log(`Received ${events.length} book list events from relays`);
     
-    // Cache the result for future use
-    if (events && events.length > 0) {
+    // Cache the result for future use (if not already cached by timeout)
+    if (events && events.length > 0 && events !== collectedEvents) {
       cacheQueryResult(cacheKey, events);
-      console.log(`Cached ${events.length} events for future use`);
+      console.log(`Cached ${events.length} complete events for future use`);
     }
     
     return events || [];

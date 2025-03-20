@@ -12,6 +12,13 @@ export async function transformEventsToActivities(
 ): Promise<SocialActivity[]> {
   const activities: SocialActivity[] = [];
   
+  if (!events || events.length === 0) {
+    console.log("No events to transform to activities");
+    return activities;
+  }
+  
+  console.log(`Transforming ${events.length} events to activities with ${Object.keys(profiles).length} profiles`);
+  
   // Process each event
   for (const event of events) {
     try {
@@ -38,7 +45,7 @@ export async function transformEventsToActivities(
         id: `nostr:${event.id}`, // Ensure we have an id
         isbn: isbn || 'unknown',
         title: title,
-        coverUrl: coverUrl,
+        coverUrl: coverUrl || `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`,
         author: '' // Single author as string
       };
       
@@ -91,7 +98,11 @@ export async function transformEventsToActivities(
         author,
         mediaUrl,
         mediaType,
-        isSpoiler
+        isSpoiler,
+        reactions: {
+          count: 0,
+          userReacted: false
+        }
       };
       
       activities.push(activity);
@@ -101,8 +112,8 @@ export async function transformEventsToActivities(
     }
   }
   
-  // For simplicity, let's skip batch fetching reactions and replies for now
-  // to reduce network requests
+  // Sort by recent first
+  activities.sort((a, b) => b.createdAt - a.createdAt);
   
   return activities;
 }

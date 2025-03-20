@@ -24,15 +24,18 @@ export function BookstrGlobalFeed() {
   
   // Memoize the content to prevent re-renders
   const memoizedContent = useMemo(() => {
+    // Show loading state only if we have no activities at all
     if (loading && reactiveActivities.length === 0) {
       return <FeedLoadingState />;
     }
     
+    // If we have an error but also some activities, show the activities first
     if (error && reactiveActivities.length === 0) {
       return <FeedErrorState error={error} onRetry={refreshFeed} />;
     }
     
-    if (reactiveActivities.length === 0) {
+    // Show empty state only if we have definitively no activities (not loading)
+    if (reactiveActivities.length === 0 && !loading) {
       return (
         <div className="text-center p-6 bg-muted rounded-lg">
           <p className="text-muted-foreground">No posts found. Check back later or follow more people.</p>
@@ -40,6 +43,7 @@ export function BookstrGlobalFeed() {
       );
     }
     
+    // Always show activities if we have any, even during loading
     return (
       <FeedContent 
         activities={reactiveActivities} 
@@ -62,6 +66,16 @@ export function BookstrGlobalFeed() {
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
+      
+      {/* Show loading indicator above content when refreshing but we already have content */}
+      {loading && reactiveActivities.length > 0 && (
+        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800 text-center">
+          <span className="text-sm text-blue-800 dark:text-blue-400 flex items-center justify-center">
+            <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+            Loading more activities...
+          </span>
+        </div>
+      )}
       
       {memoizedContent}
     </div>
