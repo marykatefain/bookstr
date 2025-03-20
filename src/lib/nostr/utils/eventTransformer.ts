@@ -35,6 +35,7 @@ export async function transformEventsToActivities(
       
       // Create book object
       const book: Book = {
+        id: event.id, // Added the id property using the event id
         isbn: isbn || 'unknown',
         title: title,
         coverUrl: coverUrl,

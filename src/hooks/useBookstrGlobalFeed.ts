@@ -116,13 +116,12 @@ export function useBookstrGlobalFeed() {
       console.log(`Fetched ${profilesArray.length} profiles`);
       
       // Convert the profiles array to a Record/object with pubkey as key
-      const profilesRecord: Record<string, { name?: string; picture?: string; nip05?: string; npub?: string }> = {};
+      const profilesRecord: Record<string, { name?: string; picture?: string; npub?: string }> = {};
       profilesArray.forEach(profile => {
         if (profile && profile.pubkey) {
           profilesRecord[profile.pubkey] = {
             name: profile.name || profile.display_name,
             picture: profile.picture,
-            nip05: profile.nip05,
             npub: profile.npub
           };
         }
