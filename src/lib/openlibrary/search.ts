@@ -30,6 +30,12 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     const data: OpenLibrarySearchResult = await response.json();
     console.log(`OpenLibrary search returned ${data.docs.length} results for "${query}"`);
     
+    // Make sure we have docs to process
+    if (!data.docs || !Array.isArray(data.docs)) {
+      console.error("Invalid docs in search response:", data);
+      return [];
+    }
+    
     // Process ALL results, not just those with covers
     const books = await Promise.all(
       data.docs.map(async (doc) => {

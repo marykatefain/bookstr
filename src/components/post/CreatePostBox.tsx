@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Book, Post } from "@/lib/nostr/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -87,7 +86,13 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
       console.log("Searching for books with query:", searchQuery);
       const results = await searchBooks(searchQuery, 10);
       console.log("Search returned results:", results.length, results);
-      setSearchResults(results);
+      
+      if (results && Array.isArray(results)) {
+        setSearchResults(results);
+      } else {
+        console.error("Invalid search results format:", results);
+        setSearchResults([]);
+      }
     } catch (error) {
       console.error("Error searching books:", error);
       toast({
@@ -95,6 +100,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
         description: "Could not search for books",
         variant: "destructive"
       });
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -293,14 +299,14 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                 <span>{selectedBook ? "Change Book" : "Tag Book"}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start">
+            <PopoverContent className="w-80 p-0" align="start" side="top">
               <Command>
                 <CommandInput 
                   placeholder="Search for a book..." 
                   value={searchQuery}
                   onValueChange={setSearchQuery}
                 />
-                <CommandList>
+                <CommandList className="max-h-[300px] overflow-y-auto">
                   {searchQuery.trim().length < 2 && userBooks.length > 0 && (
                     <CommandGroup heading="Your Books">
                       {loadingUserBooks ? (
@@ -345,18 +351,17 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                           <Skeleton className="h-10 w-full" />
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <CommandEmpty>
-                          <div className="py-6 text-center">
-                            <p>No books found.</p>
-                            <p className="text-sm text-muted-foreground">Try a different search term.</p>
-                          </div>
-                        </CommandEmpty>
+                        <div className="py-6 text-center">
+                          <p>No books found.</p>
+                          <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                        </div>
                       ) : (
-                        searchResults.map((book) => (
+                        searchResults.map((book, index) => (
                           <CommandItem
-                            key={book.id || `${book.title}-${book.author}`}
+                            key={book.id || `${book.title}-${book.author}-${index}`}
                             onSelect={() => handleSelectBook(book)}
                             className="flex items-center gap-2 py-2"
+                            value={`${book.title} ${book.author}`}
                           >
                             <div className="w-8 h-12 flex-shrink-0">
                               <BookCover 
