@@ -71,6 +71,52 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     }
   };
 
+  // Function to detect URLs in text content
+  const detectAndRenderMediaUrls = (content: string) => {
+    // Simple URL regex - can be improved for more accurate detection
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|mov|webm))/gi;
+    const urlMatches = content.match(urlRegex);
+    
+    if (!urlMatches) return null;
+    
+    return urlMatches.map((url, index) => {
+      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+      const isVideo = /\.(mp4|mov|webm)$/i.test(url);
+      
+      if (isImage) {
+        return (
+          <div key={index} className="mt-3">
+            <img 
+              src={url} 
+              alt="Media from post content" 
+              className="rounded-md max-h-80 object-contain mx-auto" 
+              onError={(e) => {
+                console.log(`Error loading embedded media: ${url}`);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        );
+      } else if (isVideo) {
+        return (
+          <div key={index} className="mt-3">
+            <video 
+              src={url} 
+              controls 
+              className="rounded-md w-full max-h-80" 
+              onError={(e) => {
+                console.log(`Error loading embedded video: ${url}`);
+                (e.target as HTMLVideoElement).style.display = 'none';
+              }}
+            />
+          </div>
+        );
+      }
+      
+      return null;
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2 pt-4">
@@ -115,6 +161,7 @@ export function PostCard({ post, onReaction }: PostCardProps) {
           <div className="space-y-3">
             <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
             
+            {/* Render specifically tagged media from post.mediaUrl if it exists */}
             {postData.mediaUrl && (
               <div className="mt-3">
                 {postData.mediaType === 'image' ? (
@@ -122,16 +169,27 @@ export function PostCard({ post, onReaction }: PostCardProps) {
                     src={postData.mediaUrl} 
                     alt="Post media" 
                     className="rounded-md max-h-80 mx-auto object-contain" 
+                    onError={(e) => {
+                      console.log(`Error loading media: ${postData.mediaUrl}`);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 ) : postData.mediaType === 'video' ? (
                   <video 
                     src={postData.mediaUrl} 
                     controls 
                     className="rounded-md w-full max-h-80" 
+                    onError={(e) => {
+                      console.log(`Error loading video: ${postData.mediaUrl}`);
+                      (e.target as HTMLVideoElement).style.display = 'none';
+                    }}
                   />
                 ) : null}
               </div>
             )}
+            
+            {/* Detect and render media URLs from content text */}
+            {detectAndRenderMediaUrls(postData.content)}
             
             {postData.taggedBook && (
               <Link to={`/book/${postData.taggedBook.isbn}`} className="block">
