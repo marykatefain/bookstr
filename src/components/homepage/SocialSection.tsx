@@ -11,6 +11,7 @@ export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const autoRefreshTimerRef = useRef<number | null>(null);
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   
   // This function will be passed to the CreatePostBox to trigger feed refresh
   const refreshFeed = () => {
@@ -31,6 +32,7 @@ export function SocialSection() {
       // Refresh every 30 seconds
       autoRefreshTimerRef.current = window.setInterval(() => {
         console.log("Auto-refreshing global feed");
+        setIsBackgroundRefreshing(true);
         refreshFeed();
       }, 30000); // 30 seconds
     }
@@ -100,7 +102,13 @@ export function SocialSection() {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        <SocialFeed type={feedType} useMockData={false} refreshTrigger={refreshTrigger} />
+        <SocialFeed 
+          type={feedType} 
+          useMockData={false} 
+          refreshTrigger={refreshTrigger} 
+          isBackgroundRefresh={isBackgroundRefreshing}
+          onRefreshComplete={() => setIsBackgroundRefreshing(false)}
+        />
       </div>
     </div>
   );

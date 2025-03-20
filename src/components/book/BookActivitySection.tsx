@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { SocialActivity, Reply } from "@/lib/nostr/types";
 import { ActivityCard } from "@/components/social/ActivityCard";
 import { FeedLoadingState } from "@/components/social/FeedLoadingState";
@@ -21,10 +20,16 @@ export const BookActivitySection: React.FC<BookActivitySectionProps> = ({
 }) => {
   const [activitiesWithData, setActivitiesWithData] = useState<SocialActivity[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const previousActivitiesRef = useRef<SocialActivity[]>([]);
 
   useEffect(() => {
     if (bookActivity.length > 0) {
-      fetchDataForActivities();
+      if (activitiesWithData.length > 0) {
+        previousActivitiesRef.current = [...activitiesWithData];
+        fetchDataForActivitiesInBackground();
+      } else {
+        fetchDataForActivities();
+      }
     } else {
       setActivitiesWithData([]);
     }
@@ -32,6 +37,24 @@ export const BookActivitySection: React.FC<BookActivitySectionProps> = ({
 
   const fetchDataForActivities = async () => {
     setLoadingData(true);
+    try {
+      await fetchActivityData();
+    } catch (error) {
+      console.error("Error fetching data for activities:", error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const fetchDataForActivitiesInBackground = async () => {
+    try {
+      await fetchActivityData(true);
+    } catch (error) {
+      console.error("Error during background refresh:", error);
+    }
+  };
+
+  const fetchActivityData = async (isBackground = false) => {
     try {
       const activitiesWithData = await Promise.all(
         bookActivity.map(async (activity) => {
@@ -52,11 +75,18 @@ export const BookActivitySection: React.FC<BookActivitySectionProps> = ({
           }
         })
       );
-      setActivitiesWithData(activitiesWithData);
+      
+      if (isBackground) {
+        const hasChanges = JSON.stringify(activitiesWithData) !== JSON.stringify(previousActivitiesRef.current);
+        if (hasChanges) {
+          setActivitiesWithData(activitiesWithData);
+        }
+      } else {
+        setActivitiesWithData(activitiesWithData);
+      }
     } catch (error) {
-      console.error("Error fetching data for activities:", error);
-    } finally {
-      setLoadingData(false);
+      console.error("Error fetching activity data:", error);
+      throw error;
     }
   };
 

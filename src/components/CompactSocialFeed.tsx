@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { fetchGlobalSocialFeed, reactToContent, isLoggedIn, fetchReactions } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
@@ -14,51 +14,112 @@ interface CompactSocialFeedProps {
 export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
   const [activities, setActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const previousActivitiesRef = useRef<SocialActivity[]>([]);
+  const refreshTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    console.log("CompactSocialFeed: Loading with maxItems", maxItems);
-    const loadSocialFeed = async () => {
-      setLoading(true);
-      try {
-        // Use global feed instead of followers feed
-        console.log("CompactSocialFeed: Fetching global feed");
-        const globalFeed = await fetchGlobalSocialFeed(maxItems * 2); // Fetch more than needed in case some fail
-        console.log("CompactSocialFeed: Received", globalFeed.length, "activities");
-        
-        if (globalFeed.length === 0) {
-          setActivities([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch reactions for each activity
-        const activitiesWithReactions = await Promise.all(
-          globalFeed.map(async (activity) => {
-            try {
-              const reactions = await fetchReactions(activity.id);
-              return {
-                ...activity,
-                reactions
-              };
-            } catch (error) {
-              console.error(`Error fetching reactions for activity ${activity.id}:`, error);
-              return activity;
-            }
-          })
-        );
-        
-        setActivities(activitiesWithReactions.slice(0, maxItems));
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading social feed:", error);
-        setLoading(false);
+    loadSocialFeed();
+    
+    // Set up auto-refresh every 60 seconds
+    refreshTimerRef.current = window.setInterval(() => {
+      if (activities.length > 0) {
+        previousActivitiesRef.current = [...activities];
+        loadSocialFeedInBackground();
+      } else {
+        loadSocialFeed();
+      }
+    }, 60000); // 60 seconds
+    
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
       }
     };
-
-    loadSocialFeed();
   }, [maxItems]);
+
+  const loadSocialFeed = async () => {
+    setLoading(true);
+    try {
+      await fetchFeedData();
+    } catch (error) {
+      console.error("Error loading social feed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSocialFeedInBackground = async () => {
+    if (backgroundLoading) return;
+    
+    setBackgroundLoading(true);
+    try {
+      await fetchFeedData(true);
+    } catch (error) {
+      console.error("Error during background refresh:", error);
+    } finally {
+      setBackgroundLoading(false);
+    }
+  };
+
+  const fetchFeedData = async (isBackground = false) => {
+    console.log(`CompactSocialFeed: ${isBackground ? "Background fetching" : "Fetching"} global feed`);
+    
+    try {
+      // Use global feed instead of followers feed
+      const globalFeed = await fetchGlobalSocialFeed(maxItems * 2); // Fetch more than needed in case some fail
+      console.log("CompactSocialFeed: Received", globalFeed.length, "activities");
+      
+      if (globalFeed.length === 0) {
+        if (!isBackground) {
+          setActivities([]);
+        }
+        return;
+      }
+      
+      // Fetch reactions for each activity
+      const activitiesWithReactions = await Promise.all(
+        globalFeed.map(async (activity) => {
+          try {
+            const reactions = await fetchReactions(activity.id);
+            return {
+              ...activity,
+              reactions
+            };
+          } catch (error) {
+            console.error(`Error fetching reactions for activity ${activity.id}:`, error);
+            return activity;
+          }
+        })
+      );
+      
+      const processedFeed = activitiesWithReactions.slice(0, maxItems);
+      
+      if (isBackground) {
+        // Compare with previous feed to detect changes
+        const newItemsExist = processedFeed.some(
+          newActivity => !previousActivitiesRef.current.some(
+            oldActivity => oldActivity.id === newActivity.id
+          )
+        );
+        
+        if (newItemsExist) {
+          console.log("New items detected in compact feed background refresh");
+          setActivities(processedFeed);
+        } else {
+          console.log("No new items in compact feed background refresh");
+        }
+      } else {
+        setActivities(processedFeed);
+      }
+    } catch (error) {
+      console.error("Error fetching feed data:", error);
+      throw error;
+    }
+  };
 
   const handleReact = async (activityId: string) => {
     if (!isLoggedIn()) {
@@ -104,7 +165,7 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
     }
   };
 
-  if (loading) {
+  if (loading && activities.length === 0) {
     return (
       <div className="space-y-2">
         {[...Array(3)].map((_, i) => (

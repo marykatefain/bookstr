@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { 
   fetchSocialFeed, 
@@ -22,6 +22,8 @@ interface SocialFeedProps {
   useMockData?: boolean;
   maxItems?: number;
   refreshTrigger?: number;
+  isBackgroundRefresh?: boolean;
+  onRefreshComplete?: () => void;
 }
 
 export function SocialFeed({ 
@@ -29,23 +31,32 @@ export function SocialFeed({
   type = "followers", 
   useMockData = false, 
   maxItems,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  isBackgroundRefresh = false,
+  onRefreshComplete
 }: SocialFeedProps) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
   const { toast } = useToast();
+  const previousActivitiesRef = useRef<SocialActivity[]>([]);
 
   // Log information about the feed type
   useEffect(() => {
     console.log(`SocialFeed component: ${type} feed, useMockData: ${useMockData}`, { 
       refreshTrigger, 
-      maxItems
+      maxItems,
+      isBackgroundRefresh
     });
-  }, [type, useMockData, refreshTrigger, maxItems]);
+  }, [type, useMockData, refreshTrigger, maxItems, isBackgroundRefresh]);
 
   useEffect(() => {
     if (!activities) {
-      loadSocialFeed();
+      if (isBackgroundRefresh && localActivities.length > 0) {
+        loadSocialFeedInBackground();
+      } else {
+        loadSocialFeed();
+      }
     }
   }, [refreshTrigger, type]);
 
@@ -57,89 +68,138 @@ export function SocialFeed({
       return;
     }
 
-    loadSocialFeed();
+    if (isBackgroundRefresh && localActivities.length > 0) {
+      loadSocialFeedInBackground();
+    } else {
+      loadSocialFeed();
+    }
   }, [activities, type, useMockData, maxItems]);
 
   const loadSocialFeed = async () => {
     setLoading(true);
     try {
-      if (useMockData) {
-        // We'll use mock data from fetchBookPosts
-        console.log("Using mock data for social feed");
-        
-        // Create mock social activities that look like posts
+      await fetchFeedData();
+    } catch (error) {
+      handleFeedError(error);
+    } finally {
+      setLoading(false);
+      if (onRefreshComplete) onRefreshComplete();
+    }
+  };
+
+  const loadSocialFeedInBackground = async () => {
+    if (backgroundLoading) return;
+    
+    setBackgroundLoading(true);
+    try {
+      // Save current activities to ref for comparison
+      previousActivitiesRef.current = [...localActivities];
+      await fetchFeedData(true);
+    } catch (error) {
+      // Don't show error toast for background refreshes
+      console.error("Error during background refresh:", error);
+    } finally {
+      setBackgroundLoading(false);
+      if (onRefreshComplete) onRefreshComplete();
+    }
+  };
+
+  const fetchFeedData = async (isBackground = false) => {
+    if (useMockData) {
+      // We'll use mock data from fetchBookPosts
+      console.log("Using mock data for social feed");
+      
+      // Create mock social activities that look like posts
+      if (!isBackground) {
         setTimeout(() => {
           setLocalActivities([]);
-          setLoading(false);
         }, 800);
-      } else {
-        // This is the default branch: fetch real activities from the network
-        console.log(`Fetching ${type} feed from Nostr network`);
-        
-        let feed: SocialActivity[] = [];
-        
-        try {
-          if (type === "followers") {
-            feed = await fetchSocialFeed(maxItems || 20);
-          } else {
-            // Global feed uses the fetchGlobalSocialFeed function
-            feed = await fetchGlobalSocialFeed(maxItems || 30);
-          }
-          
-          console.log(`Received ${feed.length} activities from Nostr network for ${type} feed`);
-        } catch (error) {
-          console.error(`Error fetching ${type} feed:`, error);
-        }
-        
-        // If no activities were returned, set an empty array
-        if (!feed || feed.length === 0) {
-          setLocalActivities([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch replies and reactions for each activity
-        const activitiesWithData = await Promise.all(
-          feed.map(async (activity) => {
-            try {
-              const [replies, reactions] = await Promise.all([
-                fetchReplies(activity.id),
-                fetchReactions(activity.id)
-              ]);
-              
-              return {
-                ...activity,
-                replies,
-                reactions: reactions
-              };
-            } catch (error) {
-              console.error(`Error fetching data for activity ${activity.id}:`, error);
-              return activity;
-            }
-          })
-        );
-        
-        // Apply maxItems limit if specified
-        if (maxItems && activitiesWithData.length > maxItems) {
-          feed = activitiesWithData.slice(0, maxItems);
-        } else {
-          feed = activitiesWithData;
-        }
-        
-        setLocalActivities(feed);
-        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error loading social feed:", error);
-      setLoading(false);
-      
-      // Show a toast for the error
-      toast({
-        title: "Error loading feed",
-        description: "Could not load activities from the Nostr network. Check your connection.",
-        variant: "destructive"
-      });
+      return;
     }
+    
+    // This is the default branch: fetch real activities from the network
+    console.log(`Fetching ${type} feed from Nostr network`);
+    
+    let feed: SocialActivity[] = [];
+    
+    try {
+      if (type === "followers") {
+        feed = await fetchSocialFeed(maxItems || 20);
+      } else {
+        // Global feed uses the fetchGlobalSocialFeed function
+        feed = await fetchGlobalSocialFeed(maxItems || 30);
+      }
+      
+      console.log(`Received ${feed.length} activities from Nostr network for ${type} feed`);
+    } catch (error) {
+      console.error(`Error fetching ${type} feed:`, error);
+      throw error;
+    }
+    
+    // If no activities were returned, set an empty array
+    if (!feed || feed.length === 0) {
+      if (!isBackground) {
+        setLocalActivities([]);
+      }
+      return;
+    }
+    
+    // Fetch replies and reactions for each activity
+    const activitiesWithData = await Promise.all(
+      feed.map(async (activity) => {
+        try {
+          const [replies, reactions] = await Promise.all([
+            fetchReplies(activity.id),
+            fetchReactions(activity.id)
+          ]);
+          
+          return {
+            ...activity,
+            replies,
+            reactions: reactions
+          };
+        } catch (error) {
+          console.error(`Error fetching data for activity ${activity.id}:`, error);
+          return activity;
+        }
+      })
+    );
+    
+    // Apply maxItems limit if specified
+    let processedFeed = activitiesWithData;
+    if (maxItems && processedFeed.length > maxItems) {
+      processedFeed = processedFeed.slice(0, maxItems);
+    }
+    
+    if (isBackground) {
+      // Compare with previous feed to see if there are new items
+      const newItemsExist = processedFeed.some(
+        newActivity => !previousActivitiesRef.current.some(
+          oldActivity => oldActivity.id === newActivity.id
+        )
+      );
+      
+      if (newItemsExist) {
+        console.log("New feed items detected during background refresh");
+        setLocalActivities(processedFeed);
+      } else {
+        console.log("No new items in background refresh");
+      }
+    } else {
+      setLocalActivities(processedFeed);
+    }
+  };
+
+  const handleFeedError = (error: any) => {
+    console.error("Error loading social feed:", error);
+    
+    // Show a toast for the error
+    toast({
+      title: "Error loading feed",
+      description: "Could not load activities from the Nostr network. Check your connection.",
+      variant: "destructive"
+    });
   };
 
   const handleReact = async (activityId: string) => {
@@ -194,7 +254,7 @@ export function SocialFeed({
     }
   };
 
-  if (loading) {
+  if (loading && localActivities.length === 0) {
     return <FeedLoadingState />;
   }
 
