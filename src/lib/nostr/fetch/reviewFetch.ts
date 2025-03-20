@@ -215,13 +215,14 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
     if (isbns.length > 0) {
       const books = await getBooksByISBN([...new Set(isbns)]);
       
-      // Add book titles to reviews
+      // Add book titles and authors to reviews
       reviews.forEach(review => {
         if (review.bookIsbn) {
           const book = books.find(b => b.isbn === review.bookIsbn);
           if (book) {
             review.bookTitle = book.title;
             review.bookCover = book.coverUrl;
+            review.bookAuthor = book.author;
           }
         }
       });

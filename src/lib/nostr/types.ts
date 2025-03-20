@@ -1,4 +1,3 @@
-
 export interface NostrEventData {
   id?: string;
   pubkey?: string;
@@ -53,6 +52,7 @@ export interface BookReview {
   bookIsbn?: string;
   bookTitle?: string;
   bookCover?: string;
+  bookAuthor?: string;
   replies?: Reply[];
 }
 
