@@ -1,4 +1,3 @@
-
 import React from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
@@ -44,6 +43,7 @@ export function ActivityContent({ activity }: ActivityContentProps) {
           userPubkey={activity.pubkey}
           bookTitle={activity.book.title}
           bookIsbn={activity.book.isbn}
+          bookCover={activity.book.coverUrl}
           rating={activity.rating}
           content={activity.content}
         />

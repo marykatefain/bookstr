@@ -185,17 +185,60 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
   const pool = new SimplePool();
   
   try {
+    console.log("Fetching reviews for user:", pubkey);
     const filter: Filter = {
       kinds: [NOSTR_KINDS.REVIEW],
       authors: [pubkey]
     };
     
     const events = await pool.querySync(relays, filter);
+    console.log(`Found ${events.length} review events for user ${pubkey}`);
+    
     const reviews: BookReview[] = [];
     
     for (const event of events) {
+      // Extract ISBN from the "d" tag with format "isbn:XXXXXXXXXX"
+      const dTags = event.tags.filter(tag => tag[0] === 'd');
+      let isbn: string | null = null;
+      
+      for (const tag of dTags) {
+        if (tag[1] && tag[1].startsWith('isbn:')) {
+          isbn = tag[1].replace('isbn:', '');
+          break;
+        }
+      }
+      
+      // If no ISBN found in d tags, try looking in i tags
+      if (!isbn) {
+        const iTags = event.tags.filter(tag => tag[0] === 'i');
+        for (const tag of iTags) {
+          if (tag[1] && tag[1].startsWith('isbn:')) {
+            isbn = tag[1].replace('isbn:', '');
+            break;
+          }
+        }
+      }
+      
+      if (!isbn) {
+        console.warn(`No ISBN found for review ${event.id}, checking for alt tags`);
+        // Final fallback: check for any tag that might contain ISBN
+        for (const tag of event.tags) {
+          if (tag[1] && typeof tag[1] === 'string' && tag[1].includes('isbn')) {
+            const match = tag[1].match(/isbn:?(\d+)/i);
+            if (match && match[1]) {
+              isbn = match[1];
+              console.log(`Found ISBN in non-standard tag: ${isbn}`);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Extract rating
       const rating = extractRatingFromTags(event);
-      const isbn = extractISBNFromTags(event);
+      
+      // Log review info for debugging
+      console.log(`Review ${event.id}: ISBN=${isbn}, Rating=${rating}`);
       
       reviews.push({
         id: event.id,
@@ -210,22 +253,32 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
     // Fetch books for the reviews
     const isbns = reviews
       .map(review => review.bookIsbn)
-      .filter((isbn): isbn is string => isbn !== null);
+      .filter((isbn): isbn is string => isbn !== null && isbn !== undefined);
+    
+    console.log(`Found ${isbns.length} unique ISBNs in user reviews`);
     
     if (isbns.length > 0) {
-      const books = await getBooksByISBN([...new Set(isbns)]);
-      
-      // Add book titles and authors to reviews
-      reviews.forEach(review => {
-        if (review.bookIsbn) {
-          const book = books.find(b => b.isbn === review.bookIsbn);
-          if (book) {
-            review.bookTitle = book.title;
-            review.bookCover = book.coverUrl;
-            review.bookAuthor = book.author;
+      try {
+        const books = await getBooksByISBN([...new Set(isbns)]);
+        console.log(`Retrieved ${books.length} books from OpenLibrary`);
+        
+        // Add book titles and authors to reviews
+        reviews.forEach(review => {
+          if (review.bookIsbn) {
+            const book = books.find(b => b.isbn === review.bookIsbn);
+            if (book) {
+              review.bookTitle = book.title;
+              review.bookCover = book.coverUrl;
+              review.bookAuthor = book.author;
+              console.log(`Matched book data for ISBN ${review.bookIsbn}: ${book.title}`);
+            } else {
+              console.warn(`No book data found for ISBN ${review.bookIsbn}`);
+            }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.error("Error fetching books for reviews:", error);
+      }
     }
     
     return reviews.sort((a, b) => b.createdAt - a.createdAt);
