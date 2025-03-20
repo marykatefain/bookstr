@@ -32,7 +32,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
     { path: "/library", label: "Library", icon: Library },
-    { path: "/activity", label: "Activity Feed", icon: Activity }, // Changed from ActivityStream to Activity
+    { path: "/activity", label: "Activity", icon: Activity }, // Changed label from "Activity Feed" to "Activity"
     { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
