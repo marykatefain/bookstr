@@ -11,7 +11,8 @@ import {
   canRefreshGlobalFeed,
   updateGlobalRefreshTimestamp
 } from "@/lib/nostr/utils/feedUtils";
-import { getConnectionStatus } from "@/lib/nostr/relay";
+import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
+import { toast } from "@/hooks/use-toast";
 
 interface UseFeedFetcherOptions {
   type: "followers" | "global";
@@ -54,9 +55,17 @@ export function useFeedFetcher({
     }
     
     const connectionStatus = getConnectionStatus();
+    
+    // Try to reconnect if not connected - this is a critical change
     if (connectionStatus !== 'connected') {
-      console.warn(`Cannot fetch feed: Connection status is ${connectionStatus}`);
-      throw new Error(`Nostr connection not established (${connectionStatus})`);
+      try {
+        console.log(`Auto-reconnecting to relays (current status: ${connectionStatus})`);
+        await connectToRelays(undefined, true);
+        // Continue with the fetch even after reconnecting
+      } catch (reconnectError) {
+        console.warn(`Reconnection attempt failed: ${reconnectError}`);
+        // Still attempt to fetch data in case the connection status is incorrect
+      }
     }
     
     console.log(`Fetching ${type} feed from Nostr network`);

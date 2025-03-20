@@ -40,6 +40,24 @@ export function SocialSection() {
     debouncedRefresh();
   };
 
+  // Force connect on component mount to ensure we're always connected
+  useEffect(() => {
+    const ensureConnection = async () => {
+      const connectionStatus = getConnectionStatus();
+      if (connectionStatus !== 'connected') {
+        try {
+          console.log("Initial connection to relays on component mount");
+          refreshSharedPool();
+          await connectToRelays(undefined, true);
+        } catch (error) {
+          console.error("Failed to connect on component mount:", error);
+        }
+      }
+    };
+    
+    ensureConnection();
+  }, []);
+
   // Function to manually refresh the feed with loading indicator
   const handleManualRefresh = async () => {
     // Prevent multiple rapid refreshes
@@ -52,34 +70,32 @@ export function SocialSection() {
     lastManualRefreshRef.current = now;
     setManualRefreshing(true);
     
-    // Check connection status first
-    const connectionStatus = getConnectionStatus();
-    if (connectionStatus !== 'connected') {
-      try {
-        console.log("Not connected, attempting to connect to relays...");
-        toast({
-          title: "Connecting to Nostr",
-          description: "Establishing connection to relays..."
-        });
-        
-        // Refresh the shared pool to force new connections
-        refreshSharedPool();
-        await connectToRelays(undefined, true); // Force reconnect
-        
-        toast({
-          title: "Connected",
-          description: "Successfully connected to Nostr relays"
-        });
-      } catch (error) {
-        console.error("Failed to reconnect:", error);
-        toast({
-          title: "Connection failed",
-          description: "Unable to connect to relays. Please try again later.",
-          variant: "destructive"
-        });
-      }
+    // Always try to reconnect on manual refresh - this is critical for reliability
+    try {
+      console.log("Reconnecting to relays during manual refresh...");
+      toast({
+        title: "Connecting to Nostr",
+        description: "Establishing connection to relays..."
+      });
+      
+      // Refresh the shared pool to force new connections
+      refreshSharedPool();
+      await connectToRelays(undefined, true); // Force reconnect
+      
+      toast({
+        title: "Connected",
+        description: "Successfully connected to Nostr relays"
+      });
+    } catch (error) {
+      console.error("Failed to reconnect:", error);
+      toast({
+        title: "Connection failed",
+        description: "Unable to connect to relays. Please try again later.",
+        variant: "destructive"
+      });
     }
     
+    // Refresh the feed regardless of connection status
     refreshFeed();
     
     // Ensure the refreshing state is removed after a timeout

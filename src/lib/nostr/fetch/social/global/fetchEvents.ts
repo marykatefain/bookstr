@@ -72,51 +72,33 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
 
 /**
  * Fetch events with a timeout to prevent hanging requests
+ * Improved error handling to properly propagate timeout errors
  */
 async function fetchWithTimeout(relays: string[], filter: Filter): Promise<Event[]> {
+  const pool = getSharedPool();
+  if (!pool) {
+    console.error("Failed to get shared pool for event fetching");
+    return [];
+  }
+  
+  // Always return a result even if there's an error, but log errors properly
   try {
-    const pool = getSharedPool();
-    if (!pool) {
-      console.error("Failed to get shared pool for event fetching");
-      return [];
-    }
-    
     // Create a promise that resolves with the query results or rejects after timeout
-    const queryPromise = new Promise<Event[]>((resolve, reject) => {
-      let timeoutId: NodeJS.Timeout;
-      let isDone = false;
-      
-      // Setup timeout
-      timeoutId = setTimeout(() => {
-        if (!isDone) {
-          isDone = true;
-          console.warn(`Query timed out after ${MAX_REQUEST_TIME}ms`);
-          reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`));
-        }
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Query timed out after ${MAX_REQUEST_TIME}ms`));
       }, MAX_REQUEST_TIME);
-      
-      // Execute query
-      pool.querySync(relays, filter)
-        .then(events => {
-          if (!isDone) {
-            clearTimeout(timeoutId);
-            isDone = true;
-            resolve(events);
-          }
-        })
-        .catch(error => {
-          if (!isDone) {
-            clearTimeout(timeoutId);
-            isDone = true;
-            reject(error);
-          }
-        });
     });
     
-    // Wait for either query to complete or timeout
-    return await queryPromise;
+    // Execute query
+    const queryPromise = pool.querySync(relays, filter);
+    
+    // Use Promise.race to either get results or timeout
+    const events = await Promise.race([queryPromise, timeoutPromise]);
+    return events || [];
   } catch (error) {
     console.error(`Error fetching events:`, error);
-    throw error; // Re-throw to allow proper error handling upstream
+    // Don't rethrow, just return empty array to prevent feed from breaking entirely
+    return [];
   }
 }
