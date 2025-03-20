@@ -1,4 +1,6 @@
 
+import { Reply } from './common';
+
 export interface Book {
   id: string;
   title: string;

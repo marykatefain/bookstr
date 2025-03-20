@@ -1,18 +1,6 @@
 
 import { Book } from './books';
-
-export interface Reply {
-  id: string;
-  pubkey: string;
-  content: string;
-  createdAt: number;
-  author?: {
-    name?: string;
-    picture?: string;
-    npub?: string;
-  };
-  parentId: string;
-}
+import { Reply } from './common';
 
 export interface Post {
   id: string;

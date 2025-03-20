@@ -10,3 +10,16 @@ export interface NostrEventData {
 }
 
 export type BookActionType = 'tbr' | 'reading' | 'finished';
+
+export interface Reply {
+  id: string;
+  pubkey: string;
+  content: string;
+  createdAt: number;
+  author?: {
+    name?: string;
+    picture?: string;
+    npub?: string;
+  };
+  parentId: string;
+}
