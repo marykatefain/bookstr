@@ -84,7 +84,7 @@ export function SocialFeed({
     return <FeedLoginState feedType={type} />;
   }
 
-  if (reactiveActivities.length === 0) {
+  if (activities.length === 0) {
     return <EmptyFeedState type={type} onFindFriends={handleFindFriends} />;
   }
 
@@ -108,7 +108,7 @@ export function SocialFeed({
         </div>
       )}
       <FeedContent 
-        activities={reactiveActivities} 
+        activities={activities}
         onReaction={handleReact} 
         refreshTrigger={refreshTrigger}
       />
