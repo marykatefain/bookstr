@@ -35,6 +35,14 @@ export function SocialFeed({
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Log information about the feed type
+  useEffect(() => {
+    console.log(`SocialFeed component: ${type} feed, useMockData: ${useMockData}`, { 
+      refreshTrigger, 
+      maxItems
+    });
+  }, [type, useMockData, refreshTrigger, maxItems]);
+
   useEffect(() => {
     if (!activities) {
       loadSocialFeed();
@@ -43,6 +51,7 @@ export function SocialFeed({
 
   useEffect(() => {
     if (activities) {
+      console.log("SocialFeed: Using provided activities", activities.length);
       setLocalActivities(activities);
       setLoading(false);
       return;
@@ -69,14 +78,25 @@ export function SocialFeed({
         
         let feed: SocialActivity[] = [];
         
-        if (type === "followers") {
-          feed = await fetchSocialFeed(maxItems || 20);
-        } else {
-          // Global feed uses the fetchGlobalSocialFeed function
-          feed = await fetchGlobalSocialFeed(maxItems || 30);
+        try {
+          if (type === "followers") {
+            feed = await fetchSocialFeed(maxItems || 20);
+          } else {
+            // Global feed uses the fetchGlobalSocialFeed function
+            feed = await fetchGlobalSocialFeed(maxItems || 30);
+          }
+          
+          console.log(`Received ${feed.length} activities from Nostr network for ${type} feed`);
+        } catch (error) {
+          console.error(`Error fetching ${type} feed:`, error);
         }
         
-        console.log(`Received ${feed.length} activities from Nostr network`);
+        // If no activities were returned, set an empty array
+        if (!feed || feed.length === 0) {
+          setLocalActivities([]);
+          setLoading(false);
+          return;
+        }
         
         // Fetch replies and reactions for each activity
         const activitiesWithData = await Promise.all(

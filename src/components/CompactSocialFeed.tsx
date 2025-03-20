@@ -18,11 +18,20 @@ export function CompactSocialFeed({ maxItems = 5 }: CompactSocialFeedProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("CompactSocialFeed: Loading with maxItems", maxItems);
     const loadSocialFeed = async () => {
       setLoading(true);
       try {
         // Use global feed instead of followers feed
-        const globalFeed = await fetchGlobalSocialFeed(maxItems);
+        console.log("CompactSocialFeed: Fetching global feed");
+        const globalFeed = await fetchGlobalSocialFeed(maxItems * 2); // Fetch more than needed in case some fail
+        console.log("CompactSocialFeed: Received", globalFeed.length, "activities");
+        
+        if (globalFeed.length === 0) {
+          setActivities([]);
+          setLoading(false);
+          return;
+        }
         
         // Fetch reactions for each activity
         const activitiesWithReactions = await Promise.all(
