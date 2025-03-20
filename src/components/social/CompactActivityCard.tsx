@@ -47,10 +47,12 @@ export function CompactActivityCard({ activity, onReaction }: CompactActivityCar
     <Card className="mb-2">
       <CardContent className="p-3">
         <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={activity.author?.picture} />
-            <AvatarFallback>{activity.author?.name?.[0] || '?'}</AvatarFallback>
-          </Avatar>
+          <Link to={`/user/${activity.pubkey}`}>
+            <Avatar className="h-6 w-6 cursor-pointer hover:opacity-80">
+              <AvatarImage src={activity.author?.picture} />
+              <AvatarFallback>{activity.author?.name?.[0] || '?'}</AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex flex-1 items-center text-sm">
             <Link 
               to={`/user/${activity.pubkey}`} 

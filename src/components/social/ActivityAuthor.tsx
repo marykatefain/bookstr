@@ -14,13 +14,15 @@ interface ActivityAuthorProps {
 export function ActivityAuthor({ pubkey, name, picture, createdAt }: ActivityAuthorProps) {
   return (
     <div className="flex items-center gap-3">
-      <Avatar className="h-8 w-8">
-        <AvatarImage src={picture} />
-        <AvatarFallback>{name?.[0] || '?'}</AvatarFallback>
-      </Avatar>
+      <Link to={`/user/${pubkey}`}>
+        <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
+          <AvatarImage src={picture} />
+          <AvatarFallback>{name?.[0] || '?'}</AvatarFallback>
+        </Avatar>
+      </Link>
       <div className="flex flex-col">
         <Link 
-          to={`/users/${pubkey}`} 
+          to={`/user/${pubkey}`} 
           className="font-medium text-sm hover:underline"
         >
           {name || formatPubkey(pubkey)}
