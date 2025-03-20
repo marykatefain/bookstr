@@ -7,9 +7,16 @@ import { NostrLogin } from "@/components/NostrLogin";
 import { isLoggedIn } from "@/lib/nostr";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 import { BookCard } from "@/components/BookCard";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext
+} from "@/components/ui/carousel";
 
 export function HeroSection() {
-  const { books, loading, refreshBooks } = useWeeklyTrendingBooks(5);
+  const { books, loading, refreshBooks } = useWeeklyTrendingBooks(10); // Changed to fetch 10 books
   
   useEffect(() => {
     // Force refresh books when component mounts to ensure data is loaded
@@ -58,30 +65,38 @@ export function HeroSection() {
           
           {/* Weekly Trending Books - Only shown when logged out */}
           {!isLoggedIn() && (
-            <div className="w-full max-w-5xl mt-8">
+            <div className="w-full max-w-6xl mt-8">
               <h2 className="text-xl md:text-2xl font-bold font-serif text-bookverse-ink mb-4 flex items-center">
                 <TrendingUp className="mr-2 h-5 w-5 text-bookverse-accent" />
                 Weekly Trending Books
               </h2>
               
               {loading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="aspect-[2/3] bg-gray-200 animate-pulse rounded-md"></div>
+                <div className="flex overflow-x-auto py-4 space-x-4">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="min-w-[150px] h-[225px] bg-gray-200 animate-pulse rounded-md flex-shrink-0"></div>
                   ))}
                 </div>
               ) : books.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                  {books.slice(0, 5).map((book) => (
-                    <Link to={`/book/${book.isbn || book.id}`} key={book.id}>
-                      <BookCard 
-                        book={book}
-                        size="small"
-                        showDescription={false}
-                        className="h-full hover:shadow-md transition-shadow"
-                      />
-                    </Link>
-                  ))}
+                <div className="relative">
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {books.map((book) => (
+                        <CarouselItem key={book.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/5">
+                          <Link to={`/book/${book.isbn || book.id}`} className="block h-full">
+                            <div className="p-1 h-full">
+                              <BookCoverOnly 
+                                book={book}
+                                className="h-full rounded-md overflow-hidden hover:shadow-md transition-shadow"
+                              />
+                            </div>
+                          </Link>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-1 lg:left-2" />
+                    <CarouselNext className="right-1 lg:right-2" />
+                  </Carousel>
                 </div>
               ) : (
                 <div className="text-center py-6 bg-gray-100 rounded-lg">
@@ -93,5 +108,29 @@ export function HeroSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+// A simplified version of BookCard that only shows the cover and title
+// This removes all action buttons as requested
+function BookCoverOnly({ book, className = "" }) {
+  return (
+    <div className={`flex flex-col h-full ${className}`}>
+      <div className="relative flex-grow">
+        <img
+          src={book.coverUrl || "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg"}
+          alt={book.title}
+          className="object-cover w-full h-full rounded-md"
+          onError={(e) => {
+            e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+          }}
+        />
+      </div>
+      <div className="p-2 text-center">
+        <h3 className="text-sm font-medium truncate" title={book.title}>
+          {book.title}
+        </h3>
+      </div>
+    </div>
   );
 }

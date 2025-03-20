@@ -5,7 +5,7 @@ import { getWeeklyTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
-export function useWeeklyTrendingBooks(limit: number = 20) {
+export function useWeeklyTrendingBooks(limit: number = 10) {
   const { toast } = useToast();
 
   const { 
