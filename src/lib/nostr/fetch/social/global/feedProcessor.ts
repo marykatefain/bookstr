@@ -1,4 +1,3 @@
-
 import { type Event } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
 import { extractISBNFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../../utils/eventUtils";
@@ -16,21 +15,15 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
     return [];
   }
   
-  // Modified filtering logic to be more inclusive
-  // Accept events with ISBN tags or bookstr tags or any of the relevant kinds
+  // Filter to only include reading status events
   const filteredEvents = events.filter(event => {
-    const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
-    const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
-    const isRelevantKind = [
-      NOSTR_KINDS.BOOK_TBR,
-      NOSTR_KINDS.BOOK_READING,
-      NOSTR_KINDS.BOOK_READ,
-      NOSTR_KINDS.BOOK_RATING,
-      NOSTR_KINDS.REVIEW,
-      NOSTR_KINDS.TEXT_NOTE
+    const isReadingStatusKind = [
+      NOSTR_KINDS.BOOK_TBR,     // 10075
+      NOSTR_KINDS.BOOK_READING, // 10074
+      NOSTR_KINDS.BOOK_READ     // 10073
     ].includes(event.kind);
     
-    return isRelevantKind || hasIsbnTag || hasBookstrTag;
+    return isReadingStatusKind;
   });
   
   console.log(`Filtered down to ${filteredEvents.length} valid events`);

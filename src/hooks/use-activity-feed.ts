@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { getSharedPool } from "@/lib/nostr/utils/poolManager";
@@ -38,17 +37,14 @@ export function useActivityFeed({
     
     const pool = getSharedPool();
     
-    // Create filter for query - specifically for book activities
+    // Only request reading status kinds
     const filter = {
       kinds: [
-        NOSTR_KINDS.BOOK_TBR,
-        NOSTR_KINDS.BOOK_READING, 
-        NOSTR_KINDS.BOOK_READ,
-        NOSTR_KINDS.BOOK_RATING,
-        NOSTR_KINDS.REVIEW,
-        NOSTR_KINDS.TEXT_NOTE
+        NOSTR_KINDS.BOOK_TBR,     // 10075
+        NOSTR_KINDS.BOOK_READING, // 10074
+        NOSTR_KINDS.BOOK_READ     // 10073
       ],
-      limit: 150 // Fetch more to have data for pagination and account for filtering
+      limit: 150 // Fetch more to have data for pagination
     };
     
     try {

@@ -1,4 +1,3 @@
-
 import { type Filter, type Event } from "nostr-tools";
 import { NOSTR_KINDS } from "../../../types";
 import { getUserRelays } from "../../../relay";
@@ -19,17 +18,14 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     return [];
   }
   
-  // Create filter for query - expanded to include all relevant events
+  // Create filter for query - only reading status events
   const combinedFilter: Filter = {
     kinds: [
-      NOSTR_KINDS.BOOK_TBR,
-      NOSTR_KINDS.BOOK_READING, 
-      NOSTR_KINDS.BOOK_READ,
-      NOSTR_KINDS.BOOK_RATING,
-      NOSTR_KINDS.REVIEW,
-      NOSTR_KINDS.TEXT_NOTE
+      NOSTR_KINDS.BOOK_TBR,     // 10075
+      NOSTR_KINDS.BOOK_READING, // 10074
+      NOSTR_KINDS.BOOK_READ     // 10073
     ],
-    limit: limit * 3, // Increase limit significantly to account for filtering
+    limit: limit * 3 // Increase limit to ensure we get enough events
   };
   
   // Generate cache key for this query
