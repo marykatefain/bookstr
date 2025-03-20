@@ -54,7 +54,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       return [];
     }
     
-    // Execute the query without a catch block to allow errors to bubble up
+    // Execute the query using querySync instead of list
     const events = await pool.querySync(relays, combinedFilter);
     console.log(`Received ${events.length} raw events from relays`);
     

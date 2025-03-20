@@ -6,7 +6,7 @@ export default function Activity() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/social", { replace: true });
+    navigate("/activity", { replace: true });
   }, [navigate]);
 
   return null;
