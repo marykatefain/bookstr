@@ -37,12 +37,6 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
     };
     
     initializeNostr();
-    
-    // Cleanup connection on unmount
-    return () => {
-      // We don't want to close connections on component unmount anymore
-      // because we need to maintain them for other operations
-    };
   }, []);
 
   const handleLogin = async () => {

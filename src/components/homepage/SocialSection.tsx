@@ -40,12 +40,13 @@ export function SocialSection() {
       // Refresh every 30 seconds
       autoRefreshTimerRef.current = window.setInterval(() => {
         // Only refresh if we have an active connection
-        if (getConnectionStatus() === 'connected') {
+        const connectionStatus = getConnectionStatus();
+        if (connectionStatus === 'connected') {
           console.log("Auto-refreshing global feed");
           setIsBackgroundRefreshing(true);
           refreshFeed();
         } else {
-          console.log("Skipping auto-refresh due to connection issues");
+          console.log("Skipping auto-refresh due to connection issues:", connectionStatus);
         }
       }, 30000); // 30 seconds
     }
