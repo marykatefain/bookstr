@@ -7,6 +7,7 @@ import { NostrLogin } from "@/components/NostrLogin";
 import { isLoggedIn } from "@/lib/nostr";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 import { BookCard } from "@/components/BookCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Carousel, 
   CarouselContent, 
@@ -72,10 +73,23 @@ export function HeroSection() {
               </h2>
               
               {loading ? (
-                <div className="flex overflow-x-auto py-4 space-x-4">
-                  {[...Array(10)].map((_, i) => (
-                    <div key={i} className="min-w-[150px] h-[225px] bg-gray-200 animate-pulse rounded-md flex-shrink-0"></div>
-                  ))}
+                <div className="relative">
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {[...Array(10)].map((_, i) => (
+                        <CarouselItem key={i} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/5">
+                          <div className="p-1 h-full">
+                            <div className="flex flex-col h-full rounded-md overflow-hidden">
+                              <Skeleton className="aspect-[2/3] w-full h-full" />
+                              <Skeleton className="h-6 w-full mt-2" />
+                            </div>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-1 lg:left-2" />
+                    <CarouselNext className="right-1 lg:right-2" />
+                  </Carousel>
                 </div>
               ) : books.length > 0 ? (
                 <div className="relative">
