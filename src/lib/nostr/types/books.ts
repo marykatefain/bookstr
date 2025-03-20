@@ -11,6 +11,7 @@ export interface Book {
   pubDate?: string;
   pageCount?: number;
   categories?: string[];
+  author_name?: string[]; // Add author_name array from OpenLibrary
   readingStatus?: {
     status: 'tbr' | 'reading' | 'finished';
     dateAdded: number;
@@ -33,5 +34,4 @@ export interface BookReview {
   bookTitle?: string;
   bookCover?: string;
   bookAuthor?: string;
-  replies?: Reply[];
 }

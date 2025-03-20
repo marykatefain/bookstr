@@ -69,11 +69,37 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       }
     }
     
+    // Extract author name
+    let authorName = "Unknown Author";
+    
+    // Try to get author name from the book data first
+    if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
+      // If we have a direct name
+      if (data.authors[0].name) {
+        authorName = data.authors[0].name;
+      }
+      // Or if we have an author object with a name
+      else if (typeof data.authors[0] === 'object' && data.authors[0].author && data.authors[0].author.name) {
+        authorName = data.authors[0].author.name;
+      }
+    }
+    
+    // If we couldn't find the author name in the book data, try the work data
+    if (authorName === "Unknown Author" && workData && workData.authors) {
+      if (Array.isArray(workData.authors) && workData.authors.length > 0) {
+        if (workData.authors[0].name) {
+          authorName = workData.authors[0].name;
+        } else if (workData.authors[0].author && workData.authors[0].author.name) {
+          authorName = workData.authors[0].author.name;
+        }
+      }
+    }
+    
     // Create book object with available data
     const book: Book = {
       id: workData?.key || `isbn:${isbn}`,
       title: data.title || "Unknown Title",
-      author: data.authors?.[0]?.name || "Unknown Author",
+      author: authorName,
       isbn: isbn,
       coverUrl: getCoverUrl(isbn, data.covers?.[0]),
       description: typeof workData?.description === 'string' ? workData.description : workData?.description?.value || "",

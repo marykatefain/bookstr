@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
@@ -25,6 +26,13 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
   handleMarkAsRead,
   addBookToList
 }) => {
+  // Ensure we have a valid author display
+  const displayAuthor = book.author && book.author !== "Unknown Author" 
+    ? book.author 
+    : book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0
+      ? book.author_name[0]
+      : "Unknown Author";
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <BookCoverSection
@@ -36,7 +44,7 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
       />
       
       <BookInfoSection
-        book={book}
+        book={{...book, author: displayAuthor}}
         avgRating={avgRating}
         ratingsCount={ratingsCount}
       />

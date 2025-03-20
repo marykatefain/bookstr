@@ -117,6 +117,15 @@ function createSocialActivities(
           isbn,
           coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
         };
+        
+        // If we still have "Unknown Author" for a book, check event tags for author information
+        if (book.author === "Unknown Author") {
+          const authorTag = event.tags.find(tag => tag[0] === 'author');
+          if (authorTag && authorTag[1]) {
+            console.log(`Found author name in event tag: ${authorTag[1]}`);
+            book.author = authorTag[1];
+          }
+        }
       } else {
         // For posts without ISBN but with bookstr tag, create a generic book object
         book = {
