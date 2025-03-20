@@ -54,12 +54,7 @@ export function HeroSection() {
                 </Link>
               </>
             ) : (
-              <Link to="/books">
-                <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                  <Book className="mr-2 h-5 w-5" />
-                  Discover Books
-                </Button>
-              </Link>
+              <></>
             )}
           </div>
           
