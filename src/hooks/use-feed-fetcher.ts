@@ -1,19 +1,9 @@
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { 
-  fetchSocialFeed, 
-  fetchGlobalSocialFeed 
-} from "@/lib/nostr";
 import { useFeedRetry } from "./use-feed-retry";
-import { 
-  enrichActivitiesWithData,
-  canRefreshGlobalFeed,
-  updateGlobalRefreshTimestamp
-} from "@/lib/nostr/utils/feedUtils";
-import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
-import { refreshSharedPool } from "@/lib/nostr/utils/poolManager";
-import { toast } from "@/hooks/use-toast";
+import { useFeedCore } from "./feed/use-feed-core";
+import { useFeedData } from "./feed/use-feed-data";
 
 interface UseFeedFetcherOptions {
   type: "followers" | "global";
@@ -37,85 +27,35 @@ export function useFeedFetcher({
   isBackgroundRefresh = false,
   onComplete
 }: UseFeedFetcherOptions): UseFeedFetcherResult {
-  const [activities, setActivities] = useState<SocialActivity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const previousActivitiesRef = useRef<SocialActivity[]>([]);
-  const isRefreshingRef = useRef(false);
   
+  // Use our core hook for state management
+  const {
+    activities,
+    loading,
+    error,
+    isRefreshingRef,
+    ensureConnection,
+    setLoadingState,
+    handleFetchSuccess,
+    handleFetchError
+  } = useFeedCore({ 
+    onComplete,
+    isBackgroundRefresh 
+  });
+  
+  // Use our data fetching hook
+  const { fetchFeedData, canRefresh } = useFeedData({
+    type,
+    maxItems,
+    useMockData
+  });
+  
+  // Use the retry hook
   const { scheduleRetry, resetRetryCount } = useFeedRetry({
     isBackgroundRefresh,
     onRetryComplete: onComplete
   });
-
-  // Core fetch implementation
-  const fetchFeedData = useCallback(async (isBackgroundFetch = false): Promise<SocialActivity[]> => {
-    if (useMockData) {
-      console.log("Using mock data for social feed");
-      return [];
-    }
-    
-    // Try to reconnect if not connected
-    const connectionStatus = getConnectionStatus();
-    if (connectionStatus !== 'connected') {
-      try {
-        refreshSharedPool();
-        console.log(`Auto-reconnecting to relays (current status: ${connectionStatus})`);
-        await connectToRelays(undefined, true);
-      } catch (reconnectError) {
-        console.warn(`Reconnection attempt failed: ${reconnectError}`);
-        // Continue with fetch attempt even if reconnection fails
-      }
-    }
-    
-    console.log(`Fetching ${type} feed from Nostr network with connection status: ${getConnectionStatus()}`);
-    
-    let feed: SocialActivity[] = [];
-    
-    try {
-      if (type === "followers") {
-        feed = await fetchSocialFeed(maxItems || 20);
-      } else {
-        // For global feed, update timestamp
-        if (type === "global" && !isBackgroundFetch) {
-          updateGlobalRefreshTimestamp();
-        }
-        console.log(`Calling fetchGlobalSocialFeed with limit ${maxItems || 30}`);
-        feed = await fetchGlobalSocialFeed(maxItems || 30);
-      }
-      
-      console.log(`Received ${feed.length} activities from Nostr network for ${type} feed`);
-    } catch (error) {
-      console.error(`Error fetching ${type} feed:`, error);
-      throw error;
-    }
-    
-    // If no activities were returned, return empty array
-    if (!feed || feed.length === 0) {
-      console.log(`No activities found for ${type} feed`);
-      return [];
-    }
-    
-    // For follower feed, enrich with reaction data
-    let processedFeed = feed;
-    
-    if (type === "followers") {
-      try {
-        processedFeed = await enrichActivitiesWithData(feed);
-      } catch (error) {
-        console.error("Error enriching activities with data:", error);
-        // Continue with original feed if enrichment fails
-        processedFeed = feed;
-      }
-    }
-    
-    // Apply maxItems limit if specified
-    if (maxItems && processedFeed.length > maxItems) {
-      processedFeed = processedFeed.slice(0, maxItems);
-    }
-    
-    return processedFeed;
-  }, [type, maxItems, useMockData]);
 
   // Main fetch function with error handling
   const fetchFeed = useCallback(async () => {
@@ -126,7 +66,7 @@ export function useFeedFetcher({
     }
     
     // For global feed, implement a cooldown to prevent too frequent refreshes
-    if (type === "global" && !canRefreshGlobalFeed()) {
+    if (!canRefresh()) {
       console.log(`Skipping global feed refresh due to cooldown`);
       return;
     }
@@ -134,10 +74,12 @@ export function useFeedFetcher({
     isRefreshingRef.current = true;
     
     if (!isBackgroundRefresh) {
-      setLoading(true);
-      setError(null);
+      setLoadingState(true);
       resetRetryCount();
     }
+    
+    // Ensure we have a connection to relays
+    await ensureConnection();
     
     try {
       // Save current activities to ref for comparison in background refresh
@@ -159,44 +101,40 @@ export function useFeedFetcher({
         
         if (newItemsExist) {
           console.log("New feed items detected during background refresh");
-          setActivities(fetchedActivities);
+          handleFetchSuccess(fetchedActivities);
         } else {
           console.log("No new items in background refresh");
         }
       } else {
-        setActivities(fetchedActivities);
-      }
-      
-      if (onComplete) {
-        onComplete();
+        handleFetchSuccess(fetchedActivities);
       }
     } catch (error) {
-      console.error("Error loading social feed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error loading feed";
-      const newError = error instanceof Error ? error : new Error(errorMessage);
-      setError(newError);
+      const newError = handleFetchError(error);
       
       if (!isBackgroundRefresh) {
         // Schedule retries for non-background refreshes
         scheduleRetry(() => fetchFeedData(false).then(fetchedActivities => {
-          setActivities(fetchedActivities);
+          handleFetchSuccess(fetchedActivities);
           return Promise.resolve();
         }));
       }
     } finally {
       if (!isBackgroundRefresh) {
-        setLoading(false);
+        setLoadingState(false);
       }
       isRefreshingRef.current = false;
     }
   }, [
     activities, 
-    fetchFeedData, 
     isBackgroundRefresh, 
-    onComplete, 
+    fetchFeedData,
+    canRefresh,
     resetRetryCount, 
-    scheduleRetry, 
-    type
+    scheduleRetry,
+    ensureConnection,
+    handleFetchSuccess,
+    handleFetchError,
+    setLoadingState
   ]);
 
   return {
