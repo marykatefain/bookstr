@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Book, Post } from "@/lib/nostr/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -48,8 +49,10 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
   }, []);
 
   useEffect(() => {
-    if (searchQuery) {
+    if (searchQuery.trim().length >= 2) {
       handleSearch();
+    } else {
+      setSearchResults([]);
     }
   }, [searchQuery]);
 
@@ -289,7 +292,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                   onValueChange={setSearchQuery}
                 />
                 <CommandList>
-                  {!searchQuery.trim() && userBooks.length > 0 && (
+                  {searchQuery.trim().length < 2 && userBooks.length > 0 && (
                     <CommandGroup heading="Your Books">
                       {loadingUserBooks ? (
                         <div className="p-2">
@@ -320,7 +323,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                     </CommandGroup>
                   )}
                   
-                  {searchQuery.trim() && (
+                  {searchQuery.trim().length >= 2 && (
                     <CommandGroup heading="Search Results">
                       {searching ? (
                         <div className="p-2">
@@ -328,7 +331,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                           <Skeleton className="h-10 w-full" />
                         </div>
                       ) : searchResults.length === 0 ? (
-                        <CommandEmpty>No books found</CommandEmpty>
+                        <CommandEmpty>No books found. Try a different search term.</CommandEmpty>
                       ) : (
                         searchResults.map((book) => (
                           <CommandItem
