@@ -6,29 +6,31 @@ import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../../profile";
 
 /**
- * Process feed events into SocialActivity objects - simplified for book list events only
+ * Process feed events into SocialActivity objects
  */
 export async function processFeedEvents(events: Event[], limit: number): Promise<SocialActivity[]> {
-  console.log(`Processing ${events.length} book list events into social activities`);
+  console.log(`Processing ${events.length} events into social activities`);
   
   if (!events || events.length === 0) {
     console.log("No events to process for global feed");
     return [];
   }
   
-  // Filter to make sure we only have book list events 
+  // Filter events to only include valid ones with either k=isbn or t=bookstr
   const filteredEvents = events.filter(event => {
-    return [NOSTR_KINDS.BOOK_TBR, NOSTR_KINDS.BOOK_READING, NOSTR_KINDS.BOOK_READ].includes(event.kind);
+    const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
+    const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
+    return hasIsbnTag || hasBookstrTag;
   });
   
-  console.log(`Filtered down to ${filteredEvents.length} valid book list events`);
+  console.log(`Filtered down to ${filteredEvents.length} valid events`);
   
   // Limit the number of events to process
   const eventsToProcess = filteredEvents.slice(0, limit);
   
   // If no events found, return empty array
   if (eventsToProcess.length === 0) {
-    console.log("No valid book list events found for global feed");
+    console.log("No valid events found for global feed");
     return [];
   }
   
@@ -109,17 +111,17 @@ function createSocialActivities(
       
       if (isbn) {
         book = bookMap.get(isbn) || {
-          id: `isbn:${isbn}`, // Ensure we have an id
+          id: `isbn:${isbn}`,
           title: "Unknown Book",
           author: "Unknown Author",
           isbn,
           coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
         };
       } else {
-        // Fallback book object
+        // For posts without ISBN but with bookstr tag, create a generic book object
         book = {
-          id: `event:${event.id}`, // Ensure we have an id
-          title: "Unknown Book",
+          id: "generic",
+          title: "Book Discussion",
           author: "",
           isbn: "",
           coverUrl: ""
@@ -127,9 +129,15 @@ function createSocialActivities(
       }
       
       // Determine activity type based on event kind
-      let activityType: 'tbr' | 'reading' | 'finished';
+      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
       
       switch (event.kind) {
+        case NOSTR_KINDS.REVIEW:
+          activityType = 'review';
+          break;
+        case NOSTR_KINDS.BOOK_RATING:
+          activityType = 'rating';
+          break;
         case NOSTR_KINDS.BOOK_TBR:
           activityType = 'tbr';
           break;
@@ -139,9 +147,16 @@ function createSocialActivities(
         case NOSTR_KINDS.BOOK_READ:
           activityType = 'finished';
           break;
+        case NOSTR_KINDS.TEXT_NOTE:
+          activityType = 'post';
+          break;
         default:
           continue; // Skip unknown event kinds
       }
+      
+      // Find media tags for posts
+      const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
       
       // Create social activity object
       const activity: SocialActivity = {
@@ -156,8 +171,10 @@ function createSocialActivities(
         reactions: {
           count: 0,
           userReacted: false
-        }
-        // We don't include media fields as book list events typically don't have them
+        },
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
+        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
       };
       
       socialFeed.push(activity);

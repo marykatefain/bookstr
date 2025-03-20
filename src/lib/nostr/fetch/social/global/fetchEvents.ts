@@ -9,7 +9,6 @@ const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
 
 /**
  * Fetch events for the global feed with caching and timeout
- * Limited to book list update events only (kinds 10073, 10074, 10075)
  */
 export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const relays = getUserRelays();
@@ -20,14 +19,18 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     return [];
   }
   
-  // Create filter for query - SIMPLIFIED to only book list events
+  // Create filter for query
   const combinedFilter: Filter = {
     kinds: [
-      NOSTR_KINDS.BOOK_TBR,     // 10073
-      NOSTR_KINDS.BOOK_READING, // 10074
-      NOSTR_KINDS.BOOK_READ     // 10075
+      NOSTR_KINDS.BOOK_TBR,
+      NOSTR_KINDS.BOOK_READING, 
+      NOSTR_KINDS.BOOK_READ,
+      NOSTR_KINDS.BOOK_RATING,
+      NOSTR_KINDS.REVIEW,
+      NOSTR_KINDS.TEXT_NOTE
     ],
-    limit: limit
+    limit: limit * 2, // Increase limit as we'll filter later
+    "#t": ["bookstr"]
   };
   
   // Generate cache key for this query
@@ -42,7 +45,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   
   // Execute query with timeout
   try {
-    console.log(`Querying ${relays.length} relays for book list events (kinds 10073-10075)...`);
+    console.log(`Querying ${relays.length} relays for global feed events...`);
     
     // Get the pool for querying
     const pool = getSharedPool();
@@ -51,48 +54,14 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       return [];
     }
     
-    // Set up a timeout to collect events that have arrived so far
-    let collectedEvents: Event[] = [];
+    // Execute the query without a catch block to allow errors to bubble up
+    const events = await pool.querySync(relays, combinedFilter);
+    console.log(`Received ${events.length} raw events from relays`);
     
-    // Use the list method to query events - this is the correct method for SimplePool
-    const eventsPromise = new Promise<Event[]>((resolve) => {
-      pool.list(relays, [combinedFilter])
-        .then(events => {
-          resolve(events);
-        })
-        .catch(err => {
-          console.error("Error listing events:", err);
-          resolve([]);
-        });
-    });
-    
-    // Set up a timeout promise
-    const timeoutPromise = new Promise<Event[]>((resolve) => {
-      setTimeout(() => {
-        // Cache whatever we've collected so far
-        if (collectedEvents.length > 0) {
-          cacheQueryResult(cacheKey, collectedEvents);
-          console.log(`Cached ${collectedEvents.length} partial events for future use`);
-        }
-        resolve(collectedEvents);
-      }, MAX_REQUEST_TIME);
-    });
-    
-    // Race between the full query and the timeout
-    const events = await Promise.race([
-      eventsPromise.then(events => {
-        collectedEvents = events; // Update collected events
-        return events;
-      }),
-      timeoutPromise
-    ]);
-    
-    console.log(`Received ${events.length} book list events from relays`);
-    
-    // Cache the result for future use (if not already cached by timeout)
-    if (events && events.length > 0 && events !== collectedEvents) {
+    // Cache the result for future use
+    if (events && events.length > 0) {
       cacheQueryResult(cacheKey, events);
-      console.log(`Cached ${events.length} complete events for future use`);
+      console.log(`Cached ${events.length} events for future use`);
     }
     
     return events || [];

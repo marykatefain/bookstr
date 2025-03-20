@@ -4,12 +4,11 @@ import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { GuestFeedCard } from "./social/GuestFeedCard";
 import { Users } from "lucide-react";
-import { BookstrGlobalFeed } from "./BookstrGlobalFeed";
 
 export function SocialSection() {
   // Simple refresh function for the CreatePostBox
   const refreshFeed = () => {
-    console.log("Post created successfully, feed will refresh on next polling cycle");
+    console.log("Post created successfully, but feed display is disabled");
   };
 
   return (
@@ -29,8 +28,7 @@ export function SocialSection() {
         )}
       </div>
       
-      {/* New Bookstr Global Feed */}
-      <BookstrGlobalFeed />
+      {/* Feed has been removed as requested */}
     </div>
   );
 }

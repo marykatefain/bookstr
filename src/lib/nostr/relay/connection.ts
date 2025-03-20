@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { 
   CONNECTION_TIMEOUT, 
@@ -17,12 +18,7 @@ import {
 
 // Cache to store recent query results to avoid duplicate requests
 const queryCache = new Map<string, {data: any, timestamp: number}>();
-const CACHE_TTL = 120000; // 2 minutes cache time-to-live
-
-// Rate limiting tracking
-const relayAttempts = new Map<string, {attempts: number, lastAttempt: number}>();
-const MAX_ATTEMPTS_PER_MINUTE = 5;
-const RATE_LIMIT_RESET = 60000; // 1 minute
+const CACHE_TTL = 30000; // 30 seconds cache time-to-live
 
 /**
  * Connect to relays with cooldown and timeout management
@@ -71,13 +67,10 @@ export async function connectToRelays(relays: string[] = userRelays, forceReconn
         closeActiveConnections();
       }
       
-      // Implement relay selection strategy - prioritize relays without rate limit issues
-      const prioritizedRelays = prioritizeHealthyRelays(relays);
-      
       // Limit the number of simultaneous connection attempts
       // Connect to a maximum of 3 relays to reduce connection overhead
-      const maxRelaysToConnect = Math.min(3, prioritizedRelays.length);
-      const relaysToConnect = prioritizedRelays.slice(0, maxRelaysToConnect);
+      const maxRelaysToConnect = Math.min(3, relays.length);
+      const relaysToConnect = relays.slice(0, maxRelaysToConnect);
       console.log(`Limiting connection attempts to ${maxRelaysToConnect} relays`);
       
       const connections: WebSocket[] = [];
@@ -94,8 +87,6 @@ export async function connectToRelays(relays: string[] = userRelays, forceReconn
           connections.push(result.value);
         } else if (result.status === 'rejected') {
           console.error(`Connection to ${relaysToConnect[index]} failed:`, result.reason);
-          // Track failed attempt for this relay
-          trackRelayAttempt(relaysToConnect[index], false);
         }
       });
       
@@ -122,83 +113,9 @@ export async function connectToRelays(relays: string[] = userRelays, forceReconn
 }
 
 /**
- * Prioritize healthy relays that aren't experiencing rate limits
- */
-function prioritizeHealthyRelays(relays: string[]): string[] {
-  const now = Date.now();
-  
-  // Sort relays based on their recent success/failure and rate limiting
-  return [...relays].sort((a, b) => {
-    const aAttempts = relayAttempts.get(a);
-    const bAttempts = relayAttempts.get(b);
-    
-    // If we have no data, prioritize this relay
-    if (!aAttempts) return -1;
-    if (!bAttempts) return 1;
-    
-    // Check if relay is in rate limit cooldown
-    const aInRateLimit = isRelayRateLimited(a);
-    const bInRateLimit = isRelayRateLimited(b);
-    
-    if (aInRateLimit && !bInRateLimit) return 1;
-    if (!aInRateLimit && bInRateLimit) return -1;
-    
-    // Otherwise sort by fewest recent attempts
-    return aAttempts.attempts - bAttempts.attempts;
-  });
-}
-
-/**
- * Track connection attempts for rate limiting
- */
-function trackRelayAttempt(relayUrl: string, success: boolean): void {
-  const now = Date.now();
-  const relayData = relayAttempts.get(relayUrl) || { attempts: 0, lastAttempt: 0 };
-  
-  // Reset counter if it's been a while
-  if (now - relayData.lastAttempt > RATE_LIMIT_RESET) {
-    relayData.attempts = 0;
-  }
-  
-  // Increment attempt counter
-  relayData.attempts++;
-  relayData.lastAttempt = now;
-  
-  relayAttempts.set(relayUrl, relayData);
-  
-  // If rate limited, log it
-  if (relayData.attempts > MAX_ATTEMPTS_PER_MINUTE) {
-    console.warn(`Relay ${relayUrl} appears to be rate limiting (${relayData.attempts} attempts)`);
-  }
-}
-
-/**
- * Check if a relay is likely rate limiting us
- */
-function isRelayRateLimited(relayUrl: string): boolean {
-  const now = Date.now();
-  const relayData = relayAttempts.get(relayUrl);
-  
-  if (!relayData) return false;
-  
-  // If it's been a while, relay is no longer rate limited
-  if (now - relayData.lastAttempt > RATE_LIMIT_RESET) {
-    return false;
-  }
-  
-  return relayData.attempts > MAX_ATTEMPTS_PER_MINUTE;
-}
-
-/**
  * Connect to a single relay with timeout handling
  */
 async function connectToRelay(relayUrl: string): Promise<WebSocket | null> {
-  // Check if we're likely being rate limited by this relay
-  if (isRelayRateLimited(relayUrl)) {
-    console.log(`Skipping connection to ${relayUrl} due to probable rate limiting`);
-    return Promise.reject(new Error(`Rate limiting detected for ${relayUrl}`));
-  }
-  
   return new Promise((resolve, reject) => {
     try {
       console.log(`Connecting to relay: ${relayUrl}`);
@@ -215,38 +132,21 @@ async function connectToRelay(relayUrl: string): Promise<WebSocket | null> {
       socket.onopen = () => {
         console.log(`Successfully connected to ${relayUrl}`);
         clearTimeout(timeout);
-        // Track successful connection
-        trackRelayAttempt(relayUrl, true);
         resolve(socket);
       };
       
       socket.onerror = (event) => {
         console.error(`Error connecting to ${relayUrl}:`, event);
         clearTimeout(timeout);
-        // Track failed connection
-        trackRelayAttempt(relayUrl, false);
         reject(new Error(`Connection error for ${relayUrl}`));
       };
       
       socket.onclose = (event) => {
         console.log(`Connection closed for ${relayUrl}: code=${event.code}, reason=${event.reason}`);
-        
-        // Check if this was a rate limit closure
-        if (event.code === 1008 && event.reason?.toLowerCase().includes('rate limit')) {
-          console.warn(`Rate limit detected for ${relayUrl}: ${event.reason}`);
-          // Mark this relay as rate limited with a high attempt count
-          relayAttempts.set(relayUrl, {
-            attempts: MAX_ATTEMPTS_PER_MINUTE + 5,
-            lastAttempt: Date.now()
-          });
-        }
-        
         setActiveConnections(activeConnections.filter(conn => conn !== socket));
       };
     } catch (error) {
       console.error(`Exception when connecting to ${relayUrl}:`, error);
-      // Track failed connection
-      trackRelayAttempt(relayUrl, false);
       reject(error);
     }
   });

@@ -1,24 +1,8 @@
 
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw } from "lucide-react";
 
-interface FeedLoadingStateProps {
-  partialLoad?: boolean;
-}
-
-export function FeedLoadingState({ partialLoad = false }: FeedLoadingStateProps) {
-  if (partialLoad) {
-    return (
-      <div className="p-4 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading more activities...</p>
-        </div>
-      </div>
-    );
-  }
-
+export function FeedLoadingState() {
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-lg border p-4">
