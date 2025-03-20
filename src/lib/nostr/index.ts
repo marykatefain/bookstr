@@ -27,7 +27,7 @@ export { fetchProfileData, fetchUserProfiles } from "./profile";
 export { publishToNostr, updateNostrEvent } from "./publish";
 
 // Export posts functions
-export { createBookPost, fetchPosts, fetchBookPosts, fetchUserPosts } from "./posts";
+export { createBookPost, fetchPosts, fetchUserPosts } from "./posts";
 
 // Export book-specific functions
 export {
