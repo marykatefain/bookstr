@@ -40,6 +40,7 @@ export {
   replyToContent,
   fetchReplies,
   fetchReactions,
+  fetchEventById,
   followUser,
   addBookToList,
   updateBookInList,

@@ -5,8 +5,9 @@ import { ReplyItem } from "./ReplyItem";
 import { ReplyForm } from "./ReplyForm";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react";
-import { fetchReplies, isLoggedIn, fetchReactions } from "@/lib/nostr";
+import { fetchReplies, isLoggedIn, fetchReactions, fetchEventById } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
+import { NOSTR_KINDS } from "@/lib/nostr/types";
 
 interface RepliesSectionProps {
   eventId: string;
@@ -16,6 +17,7 @@ interface RepliesSectionProps {
   onReaction?: (eventId: string) => void;
   reactionCount?: number;
   userReacted?: boolean;
+  eventKind?: number;
 }
 
 export function RepliesSection({ 
@@ -25,7 +27,8 @@ export function RepliesSection({
   buttonLayout = "vertical",
   onReaction,
   reactionCount: initialReactionCount,
-  userReacted: initialUserReacted
+  userReacted: initialUserReacted,
+  eventKind
 }: RepliesSectionProps) {
   const [replies, setReplies] = useState<Reply[]>(initialReplies);
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -36,6 +39,7 @@ export function RepliesSection({
     userReacted: initialUserReacted || false
   });
   const [loadingReactions, setLoadingReactions] = useState(false);
+  const [detectedEventKind, setDetectedEventKind] = useState<number | undefined>(eventKind);
   const { toast } = useToast();
 
   const fetchReplyData = async () => {
@@ -74,6 +78,19 @@ export function RepliesSection({
     }
   };
 
+  const fetchEventKind = async () => {
+    if (!eventId || detectedEventKind) return;
+    
+    try {
+      const event = await fetchEventById(eventId);
+      if (event) {
+        setDetectedEventKind(event.kind);
+      }
+    } catch (error) {
+      console.error("Error fetching event kind:", error);
+    }
+  };
+
   useEffect(() => {
     if (showReplies && replies.length === 0) {
       fetchReplyData();
@@ -82,6 +99,11 @@ export function RepliesSection({
     // Fetch reactions if they weren't provided
     if (initialReactionCount === undefined) {
       fetchReactionData();
+    }
+    
+    // Try to determine the event kind if not provided
+    if (!eventKind) {
+      fetchEventKind();
     }
   }, [showReplies, eventId]);
 
@@ -93,6 +115,13 @@ export function RepliesSection({
       });
     }
   }, [initialReactionCount, initialUserReacted]);
+
+  // Update detected event kind if eventKind prop changes
+  useEffect(() => {
+    if (eventKind) {
+      setDetectedEventKind(eventKind);
+    }
+  }, [eventKind]);
 
   const handleReplyClick = () => {
     if (!isLoggedIn()) {
@@ -184,6 +213,7 @@ export function RepliesSection({
             authorPubkey={authorPubkey} 
             onReplySubmitted={handleReplySubmitted}
             onCancel={() => setShowReplyForm(false)}
+            eventKind={detectedEventKind}
           />
         </div>
       )}

@@ -1,27 +1,44 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isLoggedIn, replyToContent } from "@/lib/nostr";
+import { NOSTR_KINDS } from "@/lib/nostr/types";
 
 interface ReplyFormProps {
   eventId: string;
   authorPubkey: string;
   onReplySubmitted: () => void;
   onCancel?: () => void;
+  eventKind?: number;
 }
 
 export function ReplyForm({ 
   eventId, 
   authorPubkey, 
   onReplySubmitted,
-  onCancel 
+  onCancel,
+  eventKind
 }: ReplyFormProps) {
-  const [replyText, setReplyText] = useState("#bookstr ");
+  // Set the initial text based on event kind
+  // Only add #bookstr for kind 1 (text note) replies
+  const getInitialText = () => {
+    if (eventKind === NOSTR_KINDS.TEXT_NOTE) {
+      return "#bookstr ";
+    }
+    return "";
+  };
+  
+  const [replyText, setReplyText] = useState(getInitialText());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Update reply text if eventKind changes
+  useEffect(() => {
+    setReplyText(getInitialText());
+  }, [eventKind]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +54,7 @@ export function ReplyForm({
         description: "Your reply has been posted"
       });
       
-      setReplyText("#bookstr ");
+      setReplyText(getInitialText());
       onReplySubmitted();
     } catch (error) {
       console.error("Error sending reply:", error);

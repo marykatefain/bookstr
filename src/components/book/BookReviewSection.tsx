@@ -9,6 +9,7 @@ import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
+import { NOSTR_KINDS } from "@/lib/nostr/types";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -31,7 +32,6 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   handleRateBook,
   handleReactToReview
 }) => {
-  // Convert userRating from 0-1 scale to 1-5 scale for display
   const displayRating = userRating > 0 ? Math.round(userRating * 5) : 0;
   
   return (
@@ -60,7 +60,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
-              onClick={() => handleRateBook(rating / 5)} // Convert from 1-5 scale to 0-1 scale when sending to server
+              onClick={() => handleRateBook(rating / 5)}
               disabled={submitting}
               className={`rounded-full p-1 ${displayRating === rating ? 'bg-yellow-100' : ''}`}
             >
@@ -163,6 +163,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
             initialReplies={review.replies}
             buttonLayout="horizontal"
             onReaction={handleReactToReview}
+            eventKind={NOSTR_KINDS.REVIEW}
           />
         </CardFooter>
       </Card>

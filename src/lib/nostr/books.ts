@@ -1,6 +1,7 @@
+
 import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
-import { SimplePool } from "nostr-tools";
+import { SimplePool, Event } from "nostr-tools";
 import { getCurrentUser } from "./user";
 import { getUserRelays } from "./relay";
 
@@ -325,7 +326,12 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
 /**
  * Fetch an event by its ID
  */
-async function fetchEventById(eventId: string) {
+export async function fetchEventById(eventId: string): Promise<Event | null> {
+  if (!eventId) {
+    console.error("Cannot fetch event: missing eventId");
+    return null;
+  }
+  
   const pool = new SimplePool();
   const relayUrls = getUserRelays();
   
