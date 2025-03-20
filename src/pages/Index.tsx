@@ -5,23 +5,12 @@ import { HeroSection } from "@/components/homepage/HeroSection";
 import { SocialSection } from "@/components/homepage/SocialSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
 import { StatsSidebar } from "@/components/homepage/StatsSidebar";
-import { TrendingSidebar } from "@/components/homepage/TrendingSidebar";
 import { isLoggedIn } from "@/lib/nostr";
-import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 
 const Index = () => {
-  const { books, loading, refreshBooks } = useWeeklyTrendingBooks(10);
-  
-  // Determine which sidebar to show based on login status
-  const rightSidebar = isLoggedIn() ? (
-    <StatsSidebar />
-  ) : (
-    <TrendingSidebar 
-      books={books} 
-      loading={loading} 
-      refreshBooks={refreshBooks} 
-    />
-  );
+  // Only show the StatsSidebar for logged-in users
+  // For logged-out users, no sidebar is shown since trending books are in the hero
+  const rightSidebar = isLoggedIn() ? <StatsSidebar /> : null;
 
   return (
     <Layout rightSidebar={rightSidebar}>

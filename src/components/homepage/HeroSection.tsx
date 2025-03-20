@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Book } from "lucide-react";
+import { Book, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NostrLogin } from "@/components/NostrLogin";
 import { isLoggedIn } from "@/lib/nostr";
@@ -27,26 +27,29 @@ export function HeroSection() {
           )}
           
           <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/books">
-              <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                <Book className="mr-2 h-5 w-5" />
-                Discover Books
-              </Button>
-            </Link>
-            {isLoggedIn() && (
-              <Link to="/profile">
-                <Button size="lg" variant="outline">
-                  <Book className="mr-2 h-5 w-5" />
-                  Your Library
-                </Button>
-              </Link>
-            )}
+            {isLoggedIn() ? (
+              <>
+                <Link to="/books">
+                  <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
+                    <Book className="mr-2 h-5 w-5" />
+                    Discover Books
+                  </Button>
+                </Link>
+                <Link to="/profile">
+                  <Button size="lg" variant="outline">
+                    <Book className="mr-2 h-5 w-5" />
+                    Your Library
+                  </Button>
+                </Link>
+              </>
+            ) : null}
           </div>
           
           {/* Weekly Trending Books - Only shown when logged out */}
           {!isLoggedIn() && !loading && books.length > 0 && (
             <div className="w-full max-w-5xl mt-8">
-              <h2 className="text-xl md:text-2xl font-bold font-serif text-bookverse-ink mb-4 text-left">
+              <h2 className="text-xl md:text-2xl font-bold font-serif text-bookverse-ink mb-4 flex items-center">
+                <TrendingUp className="mr-2 h-5 w-5 text-bookverse-accent" />
                 Weekly Trending Books
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
