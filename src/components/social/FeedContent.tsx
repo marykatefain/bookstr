@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { ActivityCard } from "./ActivityCard";
 import { PostCard } from "../post/PostCard";
@@ -10,7 +10,12 @@ interface FeedContentProps {
   refreshTrigger?: number;
 }
 
-export function FeedContent({ activities, onReaction, refreshTrigger }: FeedContentProps) {
+// Memoize the component to prevent unnecessary re-renders
+export const FeedContent = memo(function FeedContent({ 
+  activities, 
+  onReaction, 
+  refreshTrigger 
+}: FeedContentProps) {
   return (
     <div className="space-y-4">
       {activities.map((activity) => {
@@ -36,4 +41,4 @@ export function FeedContent({ activities, onReaction, refreshTrigger }: FeedCont
       })}
     </div>
   );
-}
+});
