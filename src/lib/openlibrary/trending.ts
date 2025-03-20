@@ -77,7 +77,8 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
             description: work.description?.value || "",
             pubDate: work.first_publish_year?.toString() || "",
             pageCount: 0,
-            categories: ["Trending"]
+            categories: ["Trending"],
+            author_name: work.authors?.map((a: any) => a.name) || []
           };
         })
     );
@@ -173,7 +174,8 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
           description: work.description?.value || "",
           pubDate: work.first_publish_year?.toString() || "",
           pageCount: 0,
-          categories: ["Trending"]
+          categories: ["Trending"],
+          author_name: work.authors?.map((a: any) => a.name) || []
         };
       });
       
