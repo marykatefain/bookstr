@@ -4,7 +4,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { LibraryTabList } from "./tabs/LibraryTabList";
 import { PostsTabContent } from "./tabs/PostsTabContent";
 import { BooksTabContent } from "./tabs/BooksTabContent";
-import { Book, Post } from "@/lib/nostr/types";
+import { ReviewsTabContent } from "./tabs/ReviewsTabContent";
+import { Book, Post, BookReview } from "@/lib/nostr/types";
 
 interface LibraryTabsProps {
   activeTab: string;
@@ -15,8 +16,10 @@ interface LibraryTabsProps {
     read: Book[];
   };
   posts: Post[];
+  reviews: BookReview[];
   booksLoading: boolean;
   postsLoading: boolean;
+  reviewsLoading: boolean;
   refetchBooks: () => void;
 }
 
@@ -25,8 +28,10 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
   setActiveTab,
   books,
   posts,
+  reviews,
   booksLoading,
   postsLoading,
+  reviewsLoading,
   refetchBooks
 }) => {
   return (
@@ -66,6 +71,13 @@ export const LibraryTabs: React.FC<LibraryTabsProps> = ({
           isLoading={booksLoading} 
           filterType="read"
           onUpdate={refetchBooks}
+        />
+      </TabsContent>
+      
+      <TabsContent value="reviews">
+        <ReviewsTabContent 
+          reviews={reviews} 
+          isLoading={reviewsLoading} 
         />
       </TabsContent>
       

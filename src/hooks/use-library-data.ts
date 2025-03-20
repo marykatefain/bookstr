@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Book, Post } from "@/lib/nostr/types";
-import { fetchUserBooks, getCurrentUser, isLoggedIn } from "@/lib/nostr";
+import { Book, Post, BookReview } from "@/lib/nostr/types";
+import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
 
@@ -68,7 +67,32 @@ export const useLibraryData = () => {
     refetchOnWindowFocus: true
   });
   
-  // Handle errors with toast notifications
+  const {
+    data: reviews = [],
+    isLoading: reviewsLoading,
+    error: reviewsError
+  } = useQuery({
+    queryKey: ['userReviews', user?.pubkey],
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return [];
+      }
+      
+      try {
+        console.log("Fetching reviews for user:", user.pubkey);
+        const userReviews = await fetchUserReviews(user.pubkey);
+        console.log("Fetched reviews:", userReviews);
+        return userReviews;
+      } catch (error) {
+        console.error("Error fetching user reviews:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true
+  });
+  
   useEffect(() => {
     if (booksError) {
       toast({
@@ -85,32 +109,34 @@ export const useLibraryData = () => {
         variant: "destructive",
       });
     }
-  }, [booksError, postsError, toast]);
+    
+    if (reviewsError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your reviews",
+        variant: "destructive",
+      });
+    }
+  }, [booksError, postsError, reviewsError, toast]);
 
-  // Helper function to get a book's reading status by ISBN
   const getBookReadingStatus = (isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
     if (!isbn || !booksData) return null;
     
-    // Check TBR list
     const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
     if (tbrBook) return 'tbr';
     
-    // Check reading list
     const readingBook = booksData.reading.find(book => book.isbn === isbn);
     if (readingBook) return 'reading';
     
-    // Check read list
     const readBook = booksData.read.find(book => book.isbn === isbn);
     if (readBook) return 'finished';
     
     return null;
   };
 
-  // Helper function to get a book with all its metadata by ISBN
   const getBookByISBN = (isbn: string | undefined): Book | null => {
     if (!isbn || !booksData) return null;
     
-    // Check each list for the book
     const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
     if (tbrBook) return tbrBook;
     
@@ -127,8 +153,10 @@ export const useLibraryData = () => {
     user,
     books: booksData,
     posts,
+    reviews,
     booksLoading,
     postsLoading,
+    reviewsLoading,
     isLoggedIn: isLoggedIn(),
     refetchBooks,
     getBookReadingStatus,
