@@ -127,16 +127,22 @@ export function closeActiveConnections(): void {
 }
 
 export function getUserRelays(): string[] {
+  loadRelaysFromStorage();
   return userRelays;
 }
 
 export function addRelay(relayUrl: string, currentUser: NostrProfile | null): boolean {
   if (userRelays.includes(relayUrl)) {
+    toast({
+      title: "Relay already added",
+      description: `${relayUrl} is already in your relays list`,
+    });
     return false;
   }
   
   try {
     const ws = new WebSocket(relayUrl);
+    
     ws.onopen = () => {
       userRelays.push(relayUrl);
       localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
@@ -146,6 +152,12 @@ export function addRelay(relayUrl: string, currentUser: NostrProfile | null): bo
         currentUser.relays = [...userRelays];
         localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
       }
+      
+      closeActiveConnections();
+      
+      connectToRelays().catch(err => 
+        console.error("Failed to reconnect after adding relay:", err)
+      );
       
       toast({
         title: "Relay added",
@@ -165,6 +177,11 @@ export function addRelay(relayUrl: string, currentUser: NostrProfile | null): bo
     return true;
   } catch (error) {
     console.error("Error adding relay:", error);
+    toast({
+      title: "Error adding relay",
+      description: `Failed to add ${relayUrl}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      variant: "destructive",
+    });
     return false;
   }
 }
@@ -181,6 +198,12 @@ export function removeRelay(relayUrl: string, currentUser: NostrProfile | null):
     currentUser.relays = [...userRelays];
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
   }
+  
+  closeActiveConnections();
+  
+  connectToRelays().catch(err => 
+    console.error("Failed to reconnect after removing relay:", err)
+  );
   
   toast({
     title: "Relay removed",
@@ -199,6 +222,12 @@ export function resetRelays(currentUser: NostrProfile | null): void {
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
   }
   
+  closeActiveConnections();
+  
+  connectToRelays().catch(err => 
+    console.error("Failed to reconnect after resetting relays:", err)
+  );
+  
   toast({
     title: "Relays reset",
     description: "Your relays have been reset to default",
@@ -209,7 +238,10 @@ export function loadRelaysFromStorage(): void {
   try {
     const savedRelays = localStorage.getItem(NOSTR_RELAYS_KEY);
     if (savedRelays) {
-      userRelays = JSON.parse(savedRelays);
+      const parsedRelays = JSON.parse(savedRelays);
+      if (Array.isArray(parsedRelays) && parsedRelays.length > 0) {
+        userRelays = parsedRelays;
+      }
     }
   } catch (error) {
     console.error("Failed to load relays from storage:", error);
