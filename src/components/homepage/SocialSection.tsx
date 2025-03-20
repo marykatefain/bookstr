@@ -1,14 +1,17 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { GuestFeedCard } from "./social/GuestFeedCard";
 import { Users } from "lucide-react";
+import { UserPostsFeed } from "./UserPostsFeed";
 
 export function SocialSection() {
-  // Simple refresh function for the CreatePostBox
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Refresh function for the CreatePostBox
   const refreshFeed = () => {
-    console.log("Post created successfully, but feed display is disabled");
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -20,7 +23,7 @@ export function SocialSection() {
         </h2>
       </div>
       
-      <div className="mb-6">
+      <div className="mb-4">
         {isLoggedIn() ? (
           <CreatePostBox onPostSuccess={refreshFeed} />
         ) : (
@@ -28,7 +31,8 @@ export function SocialSection() {
         )}
       </div>
       
-      {/* Feed has been removed as requested */}
+      {/* User's posts feed */}
+      <UserPostsFeed refreshTrigger={refreshTrigger} />
     </div>
   );
 }
