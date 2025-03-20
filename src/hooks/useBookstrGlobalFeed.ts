@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { getSharedPool } from "@/lib/nostr/utils/poolManager";
@@ -165,9 +164,9 @@ export function useBookstrGlobalFeed() {
         }, minDisplayTime);
       });
       
-      // Fixing the subscription method to use the correct API
-      // The SimplePool in nostr-tools uses sub() not subscribe()
-      const sub = pool.sub(relays, [filter]);
+      // Using the correct method for the SimplePool from nostr-tools
+      // SimplePool has 'list', 'get', 'publish', and other methods, not 'sub'
+      const sub = pool.subscribeMany(relays, [filter]);
       
       sub.on('event', (event) => {
         if (!collectedEvents.some(e => e.id === event.id)) {
