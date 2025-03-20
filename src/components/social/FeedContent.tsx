@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { ActivityCard } from "./ActivityCard";
 import { PostCard } from "../post/PostCard";
@@ -10,16 +10,20 @@ interface FeedContentProps {
   refreshTrigger?: number;
 }
 
+// Memoize individual activity items to prevent unnecessary re-renders
+const MemoizedActivityCard = memo(ActivityCard);
+const MemoizedPostCard = memo(PostCard);
+
 export function FeedContent({ activities, onReaction, refreshTrigger }: FeedContentProps) {
   return (
     <div className="space-y-4">
       {activities.map((activity) => {
-        // Add refreshTrigger to the key if provided to force re-render when refreshed
-        const key = refreshTrigger ? `${activity.id}-${refreshTrigger}` : activity.id;
+        // Use just the ID as the key since we're using memo to prevent re-renders
+        const key = activity.id;
         
         if (activity.type === 'post') {
           return (
-            <PostCard
+            <MemoizedPostCard
               key={key}
               post={activity}
               onReaction={onReaction}
@@ -27,7 +31,7 @@ export function FeedContent({ activities, onReaction, refreshTrigger }: FeedCont
           );
         }
         return (
-          <ActivityCard 
+          <MemoizedActivityCard 
             key={key} 
             activity={activity} 
             onReaction={onReaction} 

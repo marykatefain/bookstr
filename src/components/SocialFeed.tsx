@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+
+import React, { useEffect, useCallback, memo } from "react";
 import { isLoggedIn } from "@/lib/nostr";
 import { useSocialFeed } from "@/hooks/use-social-feed";
 import { useFeedReactions } from "@/hooks/use-feed-reactions";
@@ -21,6 +22,9 @@ interface SocialFeedProps {
   isBackgroundRefresh?: boolean;
   onRefreshComplete?: () => void;
 }
+
+// Memoize FeedContent to prevent unnecessary re-renders
+const MemoizedFeedContent = memo(FeedContent);
 
 export function SocialFeed({ 
   activities: providedActivities, 
@@ -48,22 +52,24 @@ export function SocialFeed({
 
   const { activities: reactiveActivities, handleReact } = useFeedReactions(activities);
   
+  // Simplified callback for refresh completion
   useEffect(() => {
     if ((!loading && !backgroundLoading) && onRefreshComplete) {
       onRefreshComplete();
     }
   }, [loading, backgroundLoading, onRefreshComplete]);
 
-  const handleFindFriends = () => {
+  const handleFindFriends = useCallback(() => {
     const findFriendsTab = document.querySelector('[value="find-friends"]');
     if (findFriendsTab && findFriendsTab instanceof HTMLElement) {
       findFriendsTab.click();
     }
-  };
+  }, []);
 
   const connectionStatus = getConnectionStatus();
   const isDisconnected = connectionStatus === 'disconnected';
   
+  // Only show loading state when we have no data
   if (loading && reactiveActivities.length === 0) {
     return <FeedLoadingState />;
   }
@@ -84,7 +90,7 @@ export function SocialFeed({
     return <FeedLoginState feedType={type} />;
   }
 
-  if (activities.length === 0) {
+  if (reactiveActivities.length === 0) {
     return <EmptyFeedState type={type} onFindFriends={handleFindFriends} />;
   }
 
@@ -107,8 +113,16 @@ export function SocialFeed({
           </Button>
         </div>
       )}
-      <FeedContent 
-        activities={activities}
+      {backgroundLoading && (
+        <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800 text-center">
+          <span className="text-sm text-blue-800 dark:text-blue-400 flex items-center justify-center">
+            <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+            Refreshing feed...
+          </span>
+        </div>
+      )}
+      <MemoizedFeedContent 
+        activities={reactiveActivities}
         onReaction={handleReact} 
         refreshTrigger={refreshTrigger}
       />
