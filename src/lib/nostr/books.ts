@@ -1,9 +1,10 @@
-
 import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool, Event } from "nostr-tools";
 import { getCurrentUser } from "./user";
 import { getUserRelays } from "./relay";
+import { fetchFollowingList } from "./fetch";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Fetch all ISBNs from a specific list type
@@ -492,15 +493,61 @@ export async function followUser(pubkey: string): Promise<string | null> {
     return null;
   }
   
-  const event = {
-    kind: NOSTR_KINDS.CONTACTS,
-    tags: [
-      ["p", pubkey]
-    ],
-    content: ""
-  };
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    throw new Error("User not logged in");
+  }
   
-  return publishToNostr(event);
+  console.log(`===== Following user ${pubkey} =====`);
+  
+  try {
+    // First, fetch the user's existing follow list
+    const { follows } = await fetchFollowingList(currentUser.pubkey);
+    console.log("Current follows:", follows);
+    
+    // Check if already following
+    if (follows.includes(pubkey)) {
+      console.log(`Already following ${pubkey}`);
+      return null;
+    }
+    
+    // If the follows list is empty, warn the user that this might be their first follow
+    const isFirstFollow = follows.length === 0;
+    
+    // Create a new set to avoid duplicates
+    const updatedFollows = new Set([...follows, pubkey]);
+    console.log("Updated follows:", Array.from(updatedFollows));
+    
+    // Convert to the format needed for tags
+    const followTags = Array.from(updatedFollows).map(key => ["p", key]);
+    
+    // Create the event with all follows included
+    const event = {
+      kind: NOSTR_KINDS.CONTACTS,
+      tags: followTags,
+      content: ""
+    };
+    
+    if (isFirstFollow) {
+      toast({
+        title: "This may be your first follow",
+        description: "If you already follow others but they're not appearing, please ensure your follow list is synced to the relays.",
+        variant: "warning",
+        duration: 5000
+      });
+    }
+    
+    console.log("Publishing follow event with tags:", followTags);
+    return publishToNostr(event);
+  } catch (error) {
+    console.error("Error in followUser:", error);
+    toast({
+      title: "Error following user",
+      description: "Could not update your follow list. Please try again.",
+      variant: "destructive"
+    });
+    return null;
+  }
 }
 
 /**

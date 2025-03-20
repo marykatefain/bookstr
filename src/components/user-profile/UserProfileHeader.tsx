@@ -3,11 +3,12 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus, AlertTriangle } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
-import { followUser, isLoggedIn } from "@/lib/nostr";
+import { followUser, isLoggedIn, fetchFollowingList } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserProfileHeaderProps {
   profile: NostrProfile | null;
@@ -23,6 +24,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   currentUserPubkey
 }) => {
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowWarning, setShowFollowWarning] = useState(false);
   const { toast } = useToast();
   
   const formatPubkey = (key: string): string => {
@@ -46,17 +48,33 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
     
     setFollowLoading(true);
     try {
-      await followUser(profile.pubkey);
-      setFollowing(true);
-      toast({
-        title: "Success",
-        description: `You are now following ${profile.name || 'this user'}`
-      });
+      // Check if the user has any existing follows
+      if (currentUserPubkey) {
+        const { follows } = await fetchFollowingList(currentUserPubkey);
+        if (follows.length === 0) {
+          setShowFollowWarning(true);
+        }
+      }
+      
+      const result = await followUser(profile.pubkey);
+      
+      if (result !== null) {
+        setFollowing(true);
+        toast({
+          title: "Success",
+          description: `You are now following ${profile.name || 'this user'}`
+        });
+      } else if (following) {
+        toast({
+          title: "Already following",
+          description: `You already follow ${profile.name || 'this user'}`
+        });
+      }
     } catch (error) {
       console.error("Error following user:", error);
       toast({
         title: "Error",
-        description: "Could not follow user",
+        description: "Could not follow user. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -88,6 +106,15 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         <p className="text-center max-w-lg text-muted-foreground">
           {profile.about}
         </p>
+      )}
+      
+      {showFollowWarning && (
+        <Alert variant="warning" className="max-w-lg">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            This appears to be your first follow. If you already follow others but they're not showing, please ensure your follow list is synced to the relays first.
+          </AlertDescription>
+        </Alert>
       )}
       
       {currentUserPubkey && profile && currentUserPubkey !== profile.pubkey && (

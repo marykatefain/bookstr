@@ -7,6 +7,7 @@ import { getUserRelays } from "../relay";
  * Get the list of users a person follows
  */
 export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
+  console.log(`Fetching follow list for pubkey: ${pubkey}`);
   const relays = getUserRelays();
   const pool = new SimplePool();
   
@@ -17,11 +18,13 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
     };
     
     const events = await pool.querySync(relays, filter);
+    console.log(`Found ${events.length} contact events for ${pubkey}`);
     
     // Use the most recent CONTACTS event
     const latestEvent = events.sort((a, b) => b.created_at - a.created_at)[0];
     
     if (!latestEvent) {
+      console.log(`No contact events found for ${pubkey}`);
       return { follows: [] };
     }
     
@@ -30,6 +33,7 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
       .filter(tag => tag[0] === 'p')
       .map(tag => tag[1]);
     
+    console.log(`Found ${follows.length} follows for ${pubkey}`);
     return { follows };
   } catch (error) {
     console.error("Error fetching following list:", error);
@@ -37,6 +41,17 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
   } finally {
     pool.close(relays);
   }
+}
+
+/**
+ * Validate if a user has a proper follow list on the relays
+ */
+export async function validateFollowList(pubkey: string): Promise<{isValid: boolean; followCount: number}> {
+  const { follows } = await fetchFollowingList(pubkey);
+  return {
+    isValid: follows.length > 0,
+    followCount: follows.length
+  };
 }
 
 /**
