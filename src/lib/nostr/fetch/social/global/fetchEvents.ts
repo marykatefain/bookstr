@@ -39,7 +39,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   // Check if we have a recent cached result
   const cachedEvents = getCachedQueryResult(cacheKey);
   if (cachedEvents) {
-    console.log("Using cached events for global feed");
+    console.log("Using cached events for global feed, count:", cachedEvents.length);
     return cachedEvents;
   }
   
@@ -54,21 +54,9 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       return [];
     }
     
-    // Set up a promise that will resolve with results or reject after timeout
-    const queryPromise = pool.querySync(relays, combinedFilter);
-    
-    // Execute the query with a timeout
-    let events: Event[] = [];
-    try {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Query timed out")), MAX_REQUEST_TIME);
-      });
-      
-      events = await Promise.race([queryPromise, timeoutPromise]);
-    } catch (error) {
-      console.log("Query timeout or error, returning empty result set");
-      return []; // Return empty array instead of throwing an error
-    }
+    // Execute the query without a catch block to allow errors to bubble up
+    const events = await pool.querySync(relays, combinedFilter);
+    console.log(`Received ${events.length} raw events from relays`);
     
     // Cache the result for future use
     if (events && events.length > 0) {
@@ -76,7 +64,6 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       console.log(`Cached ${events.length} events for future use`);
     }
     
-    console.log(`Found ${events.length} events in global feed query`);
     return events || [];
   } catch (error) {
     console.error("Error fetching global events:", error);

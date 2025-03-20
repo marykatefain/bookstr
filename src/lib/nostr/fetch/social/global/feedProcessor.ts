@@ -9,12 +9,21 @@ import { fetchUserProfiles } from "../../../profile";
  * Process feed events into SocialActivity objects
  */
 export async function processFeedEvents(events: Event[], limit: number): Promise<SocialActivity[]> {
+  console.log(`Processing ${events.length} events into social activities`);
+  
+  if (!events || events.length === 0) {
+    console.log("No events to process for global feed");
+    return [];
+  }
+  
   // Filter events to only include valid ones with either k=isbn or t=bookstr
   const filteredEvents = events.filter(event => {
     const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
     const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
     return hasIsbnTag || hasBookstrTag;
   });
+  
+  console.log(`Filtered down to ${filteredEvents.length} valid events`);
   
   // Limit the number of events to process
   const eventsToProcess = filteredEvents.slice(0, limit);
@@ -27,11 +36,13 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
   
   // Get all unique pubkeys to fetch profiles in one batch
   const uniquePubkeys = extractUniquePubkeys(eventsToProcess);
+  console.log(`Fetching profiles for ${uniquePubkeys.length} unique pubkeys`);
   
   // Fetch profiles for these pubkeys with error handling
   let profiles = [];
   try {
     profiles = await fetchUserProfiles(uniquePubkeys);
+    console.log(`Received ${profiles.length} user profiles`);
   } catch (error) {
     console.error("Error fetching user profiles:", error);
     // Continue with empty profiles rather than failing completely
@@ -40,11 +51,13 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
   // Create a map of pubkey to profile data for faster lookups
   const profileMap = new Map();
   profiles.forEach(profile => {
-    profileMap.set(profile.pubkey, {
-      name: profile.name || profile.display_name,
-      picture: profile.picture,
-      npub: profile.pubkey
-    });
+    if (profile && profile.pubkey) {
+      profileMap.set(profile.pubkey, {
+        name: profile.name || profile.display_name,
+        picture: profile.picture,
+        npub: profile.pubkey
+      });
+    }
   });
   
   // Extract all ISBNs to fetch book details in one batch
@@ -52,11 +65,14 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
     .map(event => extractISBNFromTags(event))
     .filter((isbn): isbn is string => isbn !== null);
   
+  console.log(`Fetching details for ${isbns.length} unique books`);
+  
   // Fetch book details with error handling
   let books = [];
   try {
     if (isbns.length > 0) {
       books = await getBooksByISBN([...new Set(isbns)]);
+      console.log(`Received ${books.length} book details`);
     }
   } catch (error) {
     console.error("Error fetching book details:", error);
@@ -66,12 +82,14 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
   // Create a map of ISBN to book details for faster lookups
   const bookMap = new Map<string, Book>();
   books.forEach(book => {
-    if (book.isbn) {
+    if (book && book.isbn) {
       bookMap.set(book.isbn, book);
     }
   });
   
-  return createSocialActivities(eventsToProcess, bookMap, profileMap);
+  const activities = createSocialActivities(eventsToProcess, bookMap, profileMap);
+  console.log(`Created ${activities.length} social activities`);
+  return activities;
 }
 
 /**
@@ -161,7 +179,7 @@ function createSocialActivities(
       
       socialFeed.push(activity);
     } catch (error) {
-      console.error("Error processing event:", event.id, error);
+      console.error("Error processing event:", error);
       // Skip this event but continue processing others
     }
   }

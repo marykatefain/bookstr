@@ -68,7 +68,7 @@ export function useFeedFetcher({
       }
     }
     
-    console.log(`Fetching ${type} feed from Nostr network`);
+    console.log(`Fetching ${type} feed from Nostr network with connection status: ${getConnectionStatus()}`);
     
     let feed: SocialActivity[] = [];
     
@@ -80,6 +80,7 @@ export function useFeedFetcher({
         if (type === "global" && !isBackgroundFetch) {
           updateGlobalRefreshTimestamp();
         }
+        console.log(`Calling fetchGlobalSocialFeed with limit ${maxItems || 30}`);
         feed = await fetchGlobalSocialFeed(maxItems || 30);
       }
       
@@ -144,7 +145,9 @@ export function useFeedFetcher({
         previousActivitiesRef.current = [...activities];
       }
       
+      console.log(`Starting feed data fetch, background: ${isBackgroundRefresh}`);
       const fetchedActivities = await fetchFeedData(isBackgroundRefresh);
+      console.log(`Feed data fetch completed, received ${fetchedActivities.length} activities`);
       
       if (isBackgroundRefresh) {
         // Compare with previous feed to see if there are new items

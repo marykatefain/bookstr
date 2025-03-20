@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Users, Globe, RefreshCw } from "lucide-react";
 import { isLoggedIn } from "@/lib/nostr";
@@ -30,6 +31,7 @@ export function SocialSection() {
   // Debounced refresh function to prevent multiple rapid refreshes
   const debouncedRefresh = useRef(
     debounce(() => {
+      console.log("Triggering debounced refresh");
       setRefreshTrigger(prev => prev + 1);
     }, 1000)
   ).current;
@@ -46,6 +48,9 @@ export function SocialSection() {
         console.log("Initial connection to relays on component mount");
         refreshSharedPool();
         await connectToRelays(undefined, true);
+        console.log("Initial connection successful, refreshing feed");
+        // Trigger initial feed refresh after connection
+        refreshFeed();
       } catch (error) {
         console.error("Failed to connect on component mount:", error);
       }
@@ -92,7 +97,8 @@ export function SocialSection() {
     }
     
     // Refresh the feed regardless of connection status
-    refreshFeed();
+    console.log("Triggering manual feed refresh");
+    setRefreshTrigger(prev => prev + 1);
     
     // Ensure the refreshing state is removed after a timeout
     setTimeout(() => {
@@ -137,6 +143,12 @@ export function SocialSection() {
       }
     };
   }, [feedType]);
+
+  // Initial feed load effect
+  useEffect(() => {
+    console.log("SocialSection mounted, triggering initial feed refresh");
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   return (
     <div className="flex flex-col space-y-4">
