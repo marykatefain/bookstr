@@ -43,6 +43,11 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
  * Fetch profile for a user
  */
 export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | null> {
+  if (!pubkey) {
+    console.error("Missing pubkey parameter in fetchUserProfile");
+    return null;
+  }
+
   const relays = getUserRelays();
   const pool = new SimplePool();
   

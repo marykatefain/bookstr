@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -56,18 +57,14 @@ const UserProfile = () => {
   const currentUser = getCurrentUser();
 
   useEffect(() => {
-    if (window.location.pathname.includes('/users/')) {
-      const newPath = window.location.pathname.replace('/users/', '/user/');
-      navigate(newPath, { replace: true });
-      return;
-    }
-    
     const fetchProfile = async () => {
       if (!pubkey) return;
       
       setLoading(true);
       try {
         let actualPubkey = pubkey;
+        
+        // Only try to decode if it starts with 'npub'
         if (pubkey.startsWith('npub')) {
           try {
             const decoded = nip19.decode(pubkey);
@@ -124,7 +121,13 @@ const UserProfile = () => {
       }
     };
     
-    fetchProfile();
+    // Handle route change from /users/ to /user/
+    if (window.location.pathname.includes('/users/')) {
+      const newPath = window.location.pathname.replace('/users/', '/user/');
+      navigate(newPath, { replace: true });
+    } else {
+      fetchProfile();
+    }
   }, [pubkey, toast, currentUser, navigate]);
 
   const handleFollow = async () => {
