@@ -34,4 +34,5 @@ export interface BookReview {
   bookTitle?: string;
   bookCover?: string;
   bookAuthor?: string;
+  replies?: Reply[]; // Add replies property
 }
