@@ -1,6 +1,6 @@
 
 import { useCallback, useState } from "react";
-import { Post, SocialActivity } from "@/lib/nostr/types";
+import { Post, SocialActivity, Book } from "@/lib/nostr/types";
 import { fetchUserPosts } from "@/lib/nostr/posts";
 import { getCurrentUser, fetchUserBooks, fetchUserReviews } from "@/lib/nostr";
 import { NOSTR_KINDS } from "@/lib/nostr/types/constants";
@@ -21,7 +21,7 @@ export function useUserPosts(limit: number = 10) {
       }
 
       // Fetch all types of user content in parallel
-      const [userPosts, userBooks, userReviews] = await Promise.all([
+      const [userPosts, userBooksData, userReviews] = await Promise.all([
         fetchUserPosts(currentUser.pubkey, false),
         fetchUserBooks(currentUser.pubkey),
         fetchUserReviews(currentUser.pubkey)
@@ -35,12 +35,12 @@ export function useUserPosts(limit: number = 10) {
         content: post.content,
         createdAt: post.createdAt,
         author: post.author,
-        book: post.taggedBook || {
-          id: '',
-          title: '',
-          author: '',
-          isbn: '',
-          coverUrl: ''
+        book: {
+          id: post.taggedBook?.isbn || '',
+          title: post.taggedBook?.title || '',
+          author: '',  // Ensure author is always provided
+          isbn: post.taggedBook?.isbn || '',
+          coverUrl: post.taggedBook?.coverUrl || ''
         },
         mediaUrl: post.mediaUrl,
         mediaType: post.mediaType,
@@ -50,28 +50,60 @@ export function useUserPosts(limit: number = 10) {
       }));
 
       // Transform book activities (tbr, reading, finished)
-      const bookActivities: SocialActivity[] = userBooks.flatMap(book => {
-        if (!book.readingStatus) return [];
+      const bookActivities: SocialActivity[] = [];
+      
+      // Process TBR books
+      userBooksData.tbr.forEach(book => {
+        if (!book.readingStatus) return;
         
-        const status = book.readingStatus.status;
-        return {
-          id: `${book.id}-${status}-${book.readingStatus.dateAdded}`,
+        bookActivities.push({
+          id: `${book.id}-tbr-${book.readingStatus.dateAdded}`,
           pubkey: currentUser.pubkey,
-          type: status,
-          book: {
-            id: book.id,
-            title: book.title,
-            author: book.author,
-            isbn: book.isbn,
-            coverUrl: book.coverUrl
-          },
+          type: 'tbr',
+          book: book,
           createdAt: book.readingStatus.dateAdded,
           author: {
             name: currentUser.name,
             picture: currentUser.picture,
             npub: currentUser.npub
           }
-        };
+        });
+      });
+      
+      // Process reading books
+      userBooksData.reading.forEach(book => {
+        if (!book.readingStatus) return;
+        
+        bookActivities.push({
+          id: `${book.id}-reading-${book.readingStatus.dateAdded}`,
+          pubkey: currentUser.pubkey,
+          type: 'reading',
+          book: book,
+          createdAt: book.readingStatus.dateAdded,
+          author: {
+            name: currentUser.name,
+            picture: currentUser.picture,
+            npub: currentUser.npub
+          }
+        });
+      });
+      
+      // Process finished books
+      userBooksData.read.forEach(book => {
+        if (!book.readingStatus) return;
+        
+        bookActivities.push({
+          id: `${book.id}-finished-${book.readingStatus.dateAdded}`,
+          pubkey: currentUser.pubkey,
+          type: 'finished',
+          book: book,
+          createdAt: book.readingStatus.dateAdded,
+          author: {
+            name: currentUser.name,
+            picture: currentUser.picture,
+            npub: currentUser.npub
+          }
+        });
       });
 
       // Transform review activities
