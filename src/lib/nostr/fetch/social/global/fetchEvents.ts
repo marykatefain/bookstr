@@ -19,14 +19,18 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     return [];
   }
   
-  // Create filter for query - only reading status events
+  // Create filter for query
   const combinedFilter: Filter = {
     kinds: [
-      NOSTR_KINDS.BOOK_TBR,     // 10075
-      NOSTR_KINDS.BOOK_READING, // 10074
-      NOSTR_KINDS.BOOK_READ     // 10073
+      NOSTR_KINDS.BOOK_TBR,
+      NOSTR_KINDS.BOOK_READING, 
+      NOSTR_KINDS.BOOK_READ,
+      NOSTR_KINDS.BOOK_RATING,
+      NOSTR_KINDS.REVIEW,
+      NOSTR_KINDS.TEXT_NOTE
     ],
-    limit: limit * 5 // Increase limit to ensure we get enough events for multi-book events
+    limit: limit * 2, // Increase limit as we'll filter later
+    "#t": ["bookstr"]
   };
   
   // Generate cache key for this query
@@ -50,7 +54,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       return [];
     }
     
-    // Execute the query using querySync instead of list
+    // Execute the query without a catch block to allow errors to bubble up
     const events = await pool.querySync(relays, combinedFilter);
     console.log(`Received ${events.length} raw events from relays`);
     

@@ -14,7 +14,6 @@ import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
 import UserProfile from "./pages/UserProfile";
 import Profile from "./pages/Profile";
-import ActivityFeed from "./pages/ActivityFeed";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 
@@ -41,7 +40,6 @@ function App() {
             <Route path="/library" element={<Library />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/social" element={<Index />} />
-            <Route path="/activity" element={<ActivityFeed />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/users" element={<UserSearch />} />
             <Route path="/users/:pubkey" element={<UserProfile />} />

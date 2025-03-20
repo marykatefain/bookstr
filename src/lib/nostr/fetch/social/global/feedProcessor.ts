@@ -1,6 +1,7 @@
+
 import { type Event } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
-import { extractISBNFromTags, extractAllISBNsFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../../utils/eventUtils";
+import { extractISBNFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../../profile";
 
@@ -15,15 +16,11 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
     return [];
   }
   
-  // Filter to only include reading status events
+  // Filter events to only include valid ones with either k=isbn or t=bookstr
   const filteredEvents = events.filter(event => {
-    const isReadingStatusKind = [
-      NOSTR_KINDS.BOOK_TBR,     // 10075
-      NOSTR_KINDS.BOOK_READING, // 10074
-      NOSTR_KINDS.BOOK_READ     // 10073
-    ].includes(event.kind);
-    
-    return isReadingStatusKind;
+    const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
+    const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
+    return hasIsbnTag || hasBookstrTag;
   });
   
   console.log(`Filtered down to ${filteredEvents.length} valid events`);
@@ -64,31 +61,17 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
   });
   
   // Extract all ISBNs to fetch book details in one batch
-  const allIsbns: string[] = [];
+  const isbns = eventsToProcess
+    .map(event => extractISBNFromTags(event))
+    .filter((isbn): isbn is string => isbn !== null);
   
-  eventsToProcess.forEach(event => {
-    // Get all ISBNs from the event
-    const eventIsbns = extractAllISBNsFromTags(event);
-    if (eventIsbns.length > 0) {
-      allIsbns.push(...eventIsbns);
-    } else {
-      // Fallback to single ISBN if no multiple ISBNs found
-      const singleIsbn = extractISBNFromTags(event);
-      if (singleIsbn) {
-        allIsbns.push(singleIsbn);
-      }
-    }
-  });
-  
-  // Filter out duplicates
-  const uniqueIsbns = [...new Set(allIsbns)];
-  console.log(`Fetching details for ${uniqueIsbns.length} unique books`);
+  console.log(`Fetching details for ${isbns.length} unique books`);
   
   // Fetch book details with error handling
   let books = [];
   try {
-    if (uniqueIsbns.length > 0) {
-      books = await getBooksByISBN(uniqueIsbns);
+    if (isbns.length > 0) {
+      books = await getBooksByISBN([...new Set(isbns)]);
       console.log(`Received ${books.length} book details`);
     }
   } catch (error) {
@@ -111,7 +94,6 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
 
 /**
  * Convert filtered events to SocialActivity objects
- * Now supports multiple books per event
  */
 function createSocialActivities(
   events: Event[], 
@@ -122,25 +104,80 @@ function createSocialActivities(
   
   for (const event of events) {
     try {
-      // Get all ISBNs from the event
-      const allIsbns = extractAllISBNsFromTags(event);
+      const isbn = extractISBNFromTags(event);
       
-      // If we have multiple ISBNs, create one activity per ISBN
-      if (allIsbns.length > 1) {
-        for (const isbn of allIsbns) {
-          const activity = createSingleActivity(event, isbn, bookMap, profileMap);
-          if (activity) {
-            socialFeed.push(activity);
-          }
-        }
+      // Get book details from the map or create a basic book object
+      let book: Book;
+      
+      if (isbn) {
+        book = bookMap.get(isbn) || {
+          id: `isbn:${isbn}`,
+          title: "Unknown Book",
+          author: "Unknown Author",
+          isbn,
+          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+        };
       } else {
-        // Otherwise handle as a single book activity
-        const isbn = allIsbns[0] || extractISBNFromTags(event);
-        const activity = createSingleActivity(event, isbn, bookMap, profileMap);
-        if (activity) {
-          socialFeed.push(activity);
-        }
+        // For posts without ISBN but with bookstr tag, create a generic book object
+        book = {
+          id: "generic",
+          title: "Book Discussion",
+          author: "",
+          isbn: "",
+          coverUrl: ""
+        };
       }
+      
+      // Determine activity type based on event kind
+      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
+      
+      switch (event.kind) {
+        case NOSTR_KINDS.REVIEW:
+          activityType = 'review';
+          break;
+        case NOSTR_KINDS.BOOK_RATING:
+          activityType = 'rating';
+          break;
+        case NOSTR_KINDS.BOOK_TBR:
+          activityType = 'tbr';
+          break;
+        case NOSTR_KINDS.BOOK_READING:
+          activityType = 'reading';
+          break;
+        case NOSTR_KINDS.BOOK_READ:
+          activityType = 'finished';
+          break;
+        case NOSTR_KINDS.TEXT_NOTE:
+          activityType = 'post';
+          break;
+        default:
+          continue; // Skip unknown event kinds
+      }
+      
+      // Find media tags for posts
+      const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      
+      // Create social activity object
+      const activity: SocialActivity = {
+        id: event.id,
+        pubkey: event.pubkey,
+        type: activityType,
+        book,
+        content: event.content,
+        rating: extractRatingFromTags(event),
+        createdAt: event.created_at * 1000,
+        author: profileMap.get(event.pubkey),
+        reactions: {
+          count: 0,
+          userReacted: false
+        },
+        mediaUrl: mediaTag ? mediaTag[2] : undefined,
+        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
+      };
+      
+      socialFeed.push(activity);
     } catch (error) {
       console.error("Error processing event:", error);
       // Skip this event but continue processing others
@@ -149,71 +186,4 @@ function createSocialActivities(
   
   // Sort by creation date, newest first
   return socialFeed.sort((a, b) => b.createdAt - a.createdAt);
-}
-
-/**
- * Create a single activity for a book
- */
-function createSingleActivity(
-  event: Event,
-  isbn: string | null,
-  bookMap: Map<string, Book>,
-  profileMap: Map<string, any>
-): SocialActivity | null {
-  // Skip if no ISBN
-  if (!isbn) {
-    return null;
-  }
-  
-  // Get book details from the map or create a basic book object
-  let book: Book = bookMap.get(isbn) || {
-    id: `isbn:${isbn}`,
-    title: "Unknown Book",
-    author: "Unknown Author",
-    isbn,
-    coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
-  };
-  
-  // Determine activity type based on event kind
-  let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
-  
-  switch (event.kind) {
-    case NOSTR_KINDS.BOOK_TBR:
-      activityType = 'tbr';
-      break;
-    case NOSTR_KINDS.BOOK_READING:
-      activityType = 'reading';
-      break;
-    case NOSTR_KINDS.BOOK_READ:
-      activityType = 'finished';
-      break;
-    default:
-      // Return null for unsupported event kinds
-      return null;
-  }
-  
-  // Find media tags for posts
-  const mediaTag = event.tags.find(tag => tag[0] === 'media');
-  const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
-  
-  // Create social activity object
-  const activity: SocialActivity = {
-    id: `${event.id}-${isbn}`, // Ensure unique ID for multi-book events
-    pubkey: event.pubkey,
-    type: activityType,
-    book,
-    content: event.content,
-    rating: extractRatingFromTags(event),
-    createdAt: event.created_at * 1000,
-    author: profileMap.get(event.pubkey),
-    reactions: {
-      count: 0,
-      userReacted: false
-    },
-    mediaUrl: mediaTag ? mediaTag[2] : undefined,
-    mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-    isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
-  };
-  
-  return activity;
 }
