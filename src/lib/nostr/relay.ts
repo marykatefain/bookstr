@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { NostrProfile } from "./types";
 
@@ -128,7 +129,7 @@ export function closeActiveConnections(): void {
 
 export function getUserRelays(): string[] {
   loadRelaysFromStorage();
-  return userRelays;
+  return [...userRelays]; // Return a copy to avoid direct mutation
 }
 
 export function addRelay(relayUrl: string, currentUser: NostrProfile | null): boolean {
@@ -141,40 +142,63 @@ export function addRelay(relayUrl: string, currentUser: NostrProfile | null): bo
   }
   
   try {
+    // Test connection to the relay first
     const ws = new WebSocket(relayUrl);
     
-    ws.onopen = () => {
-      userRelays.push(relayUrl);
-      localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
-      ws.close();
+    // We'll set up a promise to handle the WebSocket connection
+    return new Promise<boolean>((resolve) => {
+      const timeout = setTimeout(() => {
+        // If connection takes too long, abort
+        ws.close();
+        toast({
+          title: "Connection timeout",
+          description: `Could not connect to ${relayUrl}`,
+          variant: "destructive",
+        });
+        resolve(false);
+      }, 5000);
       
-      if (currentUser) {
-        currentUser.relays = [...userRelays];
-        localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
-      }
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        // Successfully connected, update relay list
+        userRelays.push(relayUrl);
+        localStorage.setItem(NOSTR_RELAYS_KEY, JSON.stringify(userRelays));
+        
+        // Update user profile if available
+        if (currentUser) {
+          currentUser.relays = [...userRelays];
+          localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+        }
+        
+        // Close the test connection
+        ws.close();
+        
+        // Reconnect to all relays including the new one
+        closeActiveConnections();
+        
+        connectToRelays().catch(err => 
+          console.error("Failed to reconnect after adding relay:", err)
+        );
+        
+        toast({
+          title: "Relay added",
+          description: `Added ${relayUrl} to your relays`,
+        });
+        
+        resolve(true);
+      };
       
-      closeActiveConnections();
-      
-      connectToRelays().catch(err => 
-        console.error("Failed to reconnect after adding relay:", err)
-      );
-      
-      toast({
-        title: "Relay added",
-        description: `Added ${relayUrl} to your relays`,
-      });
-    };
-    
-    ws.onerror = () => {
-      toast({
-        title: "Invalid relay",
-        description: `Could not connect to ${relayUrl}`,
-        variant: "destructive",
-      });
-      ws.close();
-    };
-    
-    return true;
+      ws.onerror = () => {
+        clearTimeout(timeout);
+        toast({
+          title: "Invalid relay",
+          description: `Could not connect to ${relayUrl}`,
+          variant: "destructive",
+        });
+        ws.close();
+        resolve(false);
+      };
+    }) as unknown as boolean; // Type assertion to match return type
   } catch (error) {
     console.error("Error adding relay:", error);
     toast({
@@ -199,6 +223,7 @@ export function removeRelay(relayUrl: string, currentUser: NostrProfile | null):
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
   }
   
+  // Close all connections and reconnect to updated relay list
   closeActiveConnections();
   
   connectToRelays().catch(err => 

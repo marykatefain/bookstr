@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, X, RotateCcw } from "lucide-react";
@@ -17,16 +17,21 @@ import {
   addRelay, 
   removeRelay, 
   resetRelays,
-  getCurrentUser 
+  getCurrentUser
 } from "@/lib/nostr";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export function RelaySettings() {
   const { toast } = useToast();
   const [relayUrl, setRelayUrl] = useState("");
-  const [relays, setRelays] = useState<string[]>(getUserRelays());
+  const [relays, setRelays] = useState<string[]>([]);
   const currentUser = getCurrentUser();
+  
+  useEffect(() => {
+    // Load relays when component mounts
+    setRelays(getUserRelays());
+  }, []);
 
   const handleAddRelay = () => {
     // Basic validation
@@ -40,14 +45,20 @@ export function RelaySettings() {
     }
 
     if (addRelay(relayUrl, currentUser)) {
-      setRelays(getUserRelays());
-      setRelayUrl("");
+      // We'll update the local state after the relay is successfully added
+      setTimeout(() => {
+        setRelays(getUserRelays());
+        setRelayUrl("");
+      }, 500); // Short delay to ensure relay is properly added
     }
   };
 
   const handleRemoveRelay = (relay: string) => {
     if (removeRelay(relay, currentUser)) {
-      setRelays(getUserRelays());
+      // Small delay to ensure UI is updated after relay is removed
+      setTimeout(() => {
+        setRelays(getUserRelays());
+      }, 500);
     } else if (relay === DEFAULT_RELAYS[0]) {
       toast({
         title: "Cannot remove default relay",
@@ -59,7 +70,9 @@ export function RelaySettings() {
 
   const handleResetRelays = () => {
     resetRelays(currentUser);
-    setRelays(getUserRelays());
+    setTimeout(() => {
+      setRelays(getUserRelays());
+    }, 500);
   };
 
   return (
