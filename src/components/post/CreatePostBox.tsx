@@ -88,6 +88,9 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
       console.log("Search returned results:", results.length, results);
       
       if (results && Array.isArray(results)) {
+        if (results.length > 0) {
+          console.log("First result details:", results[0]);
+        }
         setSearchResults(results);
       } else {
         console.error("Invalid search results format:", results);
@@ -372,7 +375,9 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
                             </div>
                             <div className="truncate">
                               <p className="text-sm font-medium truncate">{book.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{book.author}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {book.author || "Unknown Author"}
+                              </p>
                             </div>
                           </CommandItem>
                         ))

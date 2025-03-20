@@ -91,11 +91,33 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
 }
 
 /**
+ * Extract author name from OpenLibrary doc
+ * Handles both author_name array and author_key fields
+ */
+export function extractAuthorName(doc: OpenLibraryDoc): string {
+  // First try to get author name directly from author_name array
+  if (doc.author_name && Array.isArray(doc.author_name) && doc.author_name.length > 0) {
+    return doc.author_name[0];
+  }
+  
+  // If we don't have author_name but have author key, use a placeholder
+  // The actual name could be fetched asynchronously if needed
+  if (doc.author_key && Array.isArray(doc.author_key) && doc.author_key.length > 0) {
+    return "Author ID: " + doc.author_key[0];
+  }
+  
+  return "Unknown Author";
+}
+
+/**
  * Helper to convert an OpenLibrary doc to our Book type
  */
 export function docToBook(doc: OpenLibraryDoc): Book {
   // Extract ISBN using our enhanced function
   const isbn = extractISBN(doc);
+  
+  // Extract author name using our new helper function
+  const authorName = extractAuthorName(doc);
   
   // Extract categories from subjects or create a default category
   const categories = doc.subject
@@ -105,7 +127,7 @@ export function docToBook(doc: OpenLibraryDoc): Book {
   return {
     id: doc.key || `ol-${isbn || doc.cover_i || Math.random().toString(36).substr(2, 9)}`,
     title: doc.title || "Unknown Title",
-    author: doc.author_name?.[0] || "Unknown Author",
+    author: authorName,
     isbn: isbn,
     coverUrl: getCoverUrl(isbn, doc.cover_i),
     description: doc.description || "",

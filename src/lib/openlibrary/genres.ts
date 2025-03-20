@@ -1,7 +1,7 @@
 
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
-import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
+import { getCoverUrl, fetchISBNFromEditionKey, extractAuthorName } from './utils';
 import { searchBooks } from './search';
 
 /**
@@ -56,10 +56,13 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
             }
           }
           
+          // Use our helper to get author name
+          const authorName = extractAuthorName(doc);
+          
           return {
             id: doc.key,
             title: doc.title,
-            author: doc.author_name?.[0] || "Unknown Author",
+            author: authorName,
             isbn: isbn,
             coverUrl: getCoverUrl(isbn, doc.cover_i),
             description: doc.description || "",
