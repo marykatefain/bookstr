@@ -38,7 +38,7 @@ export function HeroSection() {
           )}
           
           <div className="flex flex-wrap justify-center gap-4">
-            {isLoggedIn() ? (
+            {isLoggedIn() && (
               <>
                 <Link to="/books">
                   <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
@@ -53,13 +53,6 @@ export function HeroSection() {
                   </Button>
                 </Link>
               </>
-            ) : (
-              <Link to="/books">
-                <Button size="lg" className="bg-bookverse-accent hover:bg-bookverse-highlight">
-                  <Book className="mr-2 h-5 w-5" />
-                  Discover Books
-                </Button>
-              </Link>
             )}
           </div>
           
@@ -72,13 +65,13 @@ export function HeroSection() {
               </h2>
               
               {loading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="aspect-[2/3] bg-gray-200 animate-pulse rounded-md"></div>
                   ))}
                 </div>
               ) : books.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                   {books.slice(0, 5).map((book) => (
                     <Link to={`/book/${book.isbn || book.id}`} key={book.id}>
                       <BookCard 
