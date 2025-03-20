@@ -5,6 +5,7 @@ import { getUserRelays, connectToRelays, getConnectionStatus } from "@/lib/nostr
 import { NOSTR_KINDS } from "@/lib/nostr/types/constants";
 import { fetchUserProfiles } from "@/lib/nostr";
 import { transformEventsToActivities } from "@/lib/nostr/utils/eventTransformer";
+import { fetchGlobalEvents } from "@/lib/nostr/fetch/social/global/fetchEvents";
 
 // Cache for storing fetched events
 const eventCache = new Map<string, {data: SocialActivity[], timestamp: number}>();
@@ -102,13 +103,6 @@ export function useBookstrGlobalFeed() {
         await connectToRelays();
       }
       
-      const relays = getUserRelays();
-      const pool = getSharedPool();
-      
-      if (!pool) {
-        throw new Error('Failed to get pool for fetching events');
-      }
-      
       setLoading(true);
       console.log('Fetching book list events (kinds 10073-10075) for global feed...');
       
@@ -164,21 +158,31 @@ export function useBookstrGlobalFeed() {
         }, minDisplayTime);
       });
       
-      // Using the correct method for the SimplePool from nostr-tools
-      // SimplePool has 'list', 'get', 'publish', and other methods, not 'sub'
-      const sub = pool.subscribeMany(relays, [filter]);
-      
-      sub.on('event', (event) => {
-        if (!collectedEvents.some(e => e.id === event.id)) {
-          collectedEvents.push(event);
+      // Using direct event fetching instead of SimplePool subscription
+      // This avoids the issues with the SimplePool API
+      try {
+        const events = await fetchGlobalEvents(FETCH_LIMIT);
+        
+        // Add events to our collection
+        events.forEach(event => {
+          if (!collectedEvents.some(e => e.id === event.id)) {
+            collectedEvents.push(event);
+          }
+        });
+        
+        // Process immediately if we have events
+        if (collectedEvents.length > 0) {
+          await processIncrementally(collectedEvents);
         }
-      });
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
       
       // Wait for initial processing to complete
       await initialProcessing;
       
       // Wait a bit longer for more events to arrive
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Final processing of all events we've received
       if (collectedEvents.length > 0) {
@@ -189,9 +193,6 @@ export function useBookstrGlobalFeed() {
           setCachedEvents(activities);
         }
       }
-      
-      // Clean up subscription
-      sub.unsub();
       
       setError(null);
       return activities;

@@ -54,10 +54,19 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     // Set up a timeout to collect events that have arrived so far
     let collectedEvents: Event[] = [];
     
-    // Start the query
-    const eventsPromise = pool.querySync(relays, combinedFilter);
+    // Use the list method to query events - this is the correct method for SimplePool
+    const eventsPromise = new Promise<Event[]>((resolve) => {
+      pool.list(relays, [combinedFilter])
+        .then(events => {
+          resolve(events);
+        })
+        .catch(err => {
+          console.error("Error listing events:", err);
+          resolve([]);
+        });
+    });
     
-    // Cache and return events as they arrive
+    // Set up a timeout promise
     const timeoutPromise = new Promise<Event[]>((resolve) => {
       setTimeout(() => {
         // Cache whatever we've collected so far
