@@ -38,12 +38,35 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const starRating = displayRating();
 
   return (
-    <Card className="h-full">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
-        {showBookInfo && bookTitle && (
-          <Link to={`/book/${review.bookIsbn || ''}`} className="text-lg font-medium hover:text-bookverse-accent transition-colors">
-            {bookTitle}
-          </Link>
+        {showBookInfo && (
+          <div className="flex gap-3 mb-2">
+            {review.bookCover && (
+              <Link to={`/book/${review.bookIsbn || ''}`} className="shrink-0">
+                <img 
+                  src={review.bookCover} 
+                  alt={bookTitle || "Book cover"} 
+                  className="h-16 w-12 object-cover rounded-sm"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
+                />
+              </Link>
+            )}
+            <div className="flex flex-col justify-center">
+              {bookTitle && (
+                <Link to={`/book/${review.bookIsbn || ''}`} className="text-lg font-medium hover:text-bookverse-accent transition-colors line-clamp-2">
+                  {bookTitle}
+                </Link>
+              )}
+              {review.bookAuthor && (
+                <span className="text-sm text-muted-foreground line-clamp-1">
+                  by {review.bookAuthor}
+                </span>
+              )}
+            </div>
+          </div>
         )}
         <div className="flex items-center justify-between">
           {!showBookInfo && review.author && (
@@ -78,7 +101,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="pb-2 flex-grow">
         <p className="text-muted-foreground whitespace-pre-wrap">
           {review.content || "No review text provided."}
         </p>
