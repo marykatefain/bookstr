@@ -13,19 +13,24 @@ interface NostrLoginProps {
 export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
   const { toast } = useToast();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [connectionAttempted, setConnectionAttempted] = useState(false);
 
-  // Initialize Nostr on component mount
+  // Initialize Nostr on component mount, but only once
   useEffect(() => {
+    if (connectionAttempted) return;
+    
     const initializeNostr = async () => {
       try {
+        setConnectionAttempted(true);
         loadRelaysFromStorage();
         const user = await initNostr();
         console.info("Nostr initialized");
         
         if (user) {
           // Establish relay connections upon successful login
+          // but don't force refresh connections if they're already established
           try {
-            await connectToRelays(undefined, true); // Force fresh connections
+            await connectToRelays(undefined, false);
             console.info("Relay connections established");
           } catch (error) {
             console.error("Failed to connect to relays:", error);
@@ -37,7 +42,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
     };
     
     initializeNostr();
-  }, []);
+  }, [connectionAttempted]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);

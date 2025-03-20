@@ -9,6 +9,10 @@ import {
 } from "@/lib/nostr";
 import { toast } from "@/hooks/use-toast";
 
+// Track the last global refresh timestamp
+let lastGlobalRefreshTime = 0;
+const GLOBAL_REFRESH_COOLDOWN = 20000; // 20 seconds between global refreshes
+
 interface UseSocialFeedParams {
   type?: "followers" | "global";
   useMockData?: boolean;
@@ -42,6 +46,9 @@ export function useSocialFeed({
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
+  
+  // Add reference to prevent multiple concurrent refreshes
+  const isRefreshingRef = useRef(false);
 
   // Clear any retry timeout on unmount
   useEffect(() => {
@@ -54,10 +61,28 @@ export function useSocialFeed({
   }, []);
 
   const loadFeed = useCallback(async (retry = false) => {
+    // Prevent multiple concurrent refreshes
+    if (isRefreshingRef.current) {
+      console.log("Skipping refresh - another refresh is already in progress");
+      return;
+    }
+    
+    // For global feed, implement a cooldown to prevent too frequent refreshes
+    const now = Date.now();
+    if (type === "global" && !retry && now - lastGlobalRefreshTime < GLOBAL_REFRESH_COOLDOWN) {
+      console.log(`Skipping global feed refresh due to cooldown (${Math.round((GLOBAL_REFRESH_COOLDOWN - (now - lastGlobalRefreshTime)) / 1000)}s remaining)`);
+      return;
+    }
+    
     if (!retry) {
       setLoading(true);
       setError(null);
       retryCountRef.current = 0;
+      isRefreshingRef.current = true;
+      
+      if (type === "global") {
+        lastGlobalRefreshTime = now;
+      }
     }
     
     try {
@@ -91,14 +116,28 @@ export function useSocialFeed({
     } finally {
       if (!retry || retryCountRef.current >= MAX_RETRIES) {
         setLoading(false);
+        isRefreshingRef.current = false;
       }
     }
-  }, [isBackgroundRefresh]);
+  }, [isBackgroundRefresh, type]);
 
   const loadFeedInBackground = async () => {
-    if (backgroundLoading) return;
+    if (backgroundLoading || isRefreshingRef.current) return;
+    
+    // For global feed, implement a cooldown for background refreshes too
+    const now = Date.now();
+    if (type === "global" && now - lastGlobalRefreshTime < GLOBAL_REFRESH_COOLDOWN) {
+      console.log(`Skipping background global feed refresh due to cooldown (${Math.round((GLOBAL_REFRESH_COOLDOWN - (now - lastGlobalRefreshTime)) / 1000)}s remaining)`);
+      return;
+    }
     
     setBackgroundLoading(true);
+    isRefreshingRef.current = true;
+    
+    if (type === "global") {
+      lastGlobalRefreshTime = now;
+    }
+    
     try {
       // Save current activities to ref for comparison
       previousActivitiesRef.current = [...activities];
@@ -108,6 +147,7 @@ export function useSocialFeed({
       // Don't show error messages for background failures
     } finally {
       setBackgroundLoading(false);
+      isRefreshingRef.current = false;
     }
   };
 
@@ -150,30 +190,16 @@ export function useSocialFeed({
       return;
     }
     
-    // Fetch replies and reactions for each activity
-    const activitiesWithData = await Promise.all(
-      feed.map(async (activity) => {
-        try {
-          const [replies, reactions] = await Promise.all([
-            fetchReplies(activity.id),
-            fetchReactions(activity.id)
-          ]);
-          
-          return {
-            ...activity,
-            replies,
-            reactions: reactions
-          };
-        } catch (error) {
-          console.error(`Error fetching data for activity ${activity.id}:`, error);
-          // Return activity without extra data rather than failing completely
-          return activity;
-        }
-      })
-    );
+    // For global feed, we already have reactions and replies data from the optimized fetch
+    // So only fetch additional data for follower feed
+    let processedFeed = feed;
+    
+    if (type === "followers") {
+      // Batch fetch reactions and replies for efficiency
+      processedFeed = await enrichActivitiesWithData(feed);
+    }
     
     // Apply maxItems limit if specified
-    let processedFeed = activitiesWithData;
     if (maxItems && processedFeed.length > maxItems) {
       processedFeed = processedFeed.slice(0, maxItems);
     }
@@ -195,6 +221,51 @@ export function useSocialFeed({
     } else {
       setActivities(processedFeed);
     }
+  };
+  
+  // Helper function to batch fetch reactions and replies
+  const enrichActivitiesWithData = async (activities: SocialActivity[]): Promise<SocialActivity[]> => {
+    // Get all activity IDs first
+    const activityIds = activities.map(activity => activity.id);
+    
+    // Batch fetching in groups of 5 to avoid too many parallel requests
+    const batchSize = 5;
+    const batches = [];
+    
+    for (let i = 0; i < activityIds.length; i += batchSize) {
+      batches.push(activityIds.slice(i, i + batchSize));
+    }
+    
+    // Process each batch sequentially
+    const enrichedActivities = [...activities];
+    
+    for (const batch of batches) {
+      await Promise.all(
+        batch.map(async (activityId) => {
+          try {
+            const [replies, reactions] = await Promise.all([
+              fetchReplies(activityId),
+              fetchReactions(activityId)
+            ]);
+            
+            // Find the activity in our array and enrich it
+            const activityIndex = enrichedActivities.findIndex(a => a.id === activityId);
+            if (activityIndex !== -1) {
+              enrichedActivities[activityIndex] = {
+                ...enrichedActivities[activityIndex],
+                replies,
+                reactions
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching data for activity ${activityId}:`, error);
+            // Continue with other activities
+          }
+        })
+      );
+    }
+    
+    return enrichedActivities;
   };
 
   useEffect(() => {

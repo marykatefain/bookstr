@@ -8,20 +8,45 @@ import { SocialFeed } from "@/components/SocialFeed";
 import { Button } from "@/components/ui/button";
 import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
 
+// Debounce helper function
+const debounce = (fn: Function, ms = 300) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function(this: any, ...args: any[]) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), ms);
+  };
+};
+
 export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const autoRefreshTimerRef = useRef<number | null>(null);
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [manualRefreshing, setManualRefreshing] = useState(false);
+  const lastManualRefreshRef = useRef<number>(0);
+  
+  // Debounced refresh function to prevent multiple rapid refreshes
+  const debouncedRefresh = useRef(
+    debounce(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 1000)
+  ).current;
   
   // This function will be passed to the CreatePostBox to trigger feed refresh
   const refreshFeed = () => {
-    setRefreshTrigger(prev => prev + 1);
+    debouncedRefresh();
   };
 
   // Function to manually refresh the feed with loading indicator
   const handleManualRefresh = async () => {
+    // Prevent multiple rapid refreshes
+    const now = Date.now();
+    if (now - lastManualRefreshRef.current < 5000) { // 5 second cooldown
+      console.log("Manual refresh cooldown active, ignoring request");
+      return;
+    }
+    
+    lastManualRefreshRef.current = now;
     setManualRefreshing(true);
     
     // Check connection status and reconnect if needed
@@ -45,10 +70,10 @@ export function SocialSection() {
       autoRefreshTimerRef.current = null;
     }
 
-    // Only set up auto-refresh for global feed
+    // Only set up auto-refresh for global feed and use a longer interval
     if (feedType === "global") {
       console.log("Setting up auto-refresh for global feed");
-      // Refresh every 30 seconds
+      // Refresh every 2 minutes instead of 30 seconds
       autoRefreshTimerRef.current = window.setInterval(() => {
         // Only refresh if we have an active connection
         const connectionStatus = getConnectionStatus();
@@ -59,7 +84,7 @@ export function SocialSection() {
         } else {
           console.log("Skipping auto-refresh due to connection issues:", connectionStatus);
         }
-      }, 30000); // 30 seconds
+      }, 120000); // 2 minutes
     }
 
     // Cleanup on unmount
