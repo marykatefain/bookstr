@@ -11,12 +11,7 @@ export const RelaySettingsPanel: React.FC<RelaySettingsPanelProps> = ({ visible 
 
   return (
     <div className="animate-in fade-in slide-in-from-top-5 duration-300">
-      <div className="p-4 border rounded-lg bg-background">
-        <h3 className="text-lg font-medium mb-2">Relay Settings</h3>
-        <p className="text-muted-foreground mb-4">Configure your Nostr relays here.</p>
-        
-        <RelaySettings />
-      </div>
+      <RelaySettings />
     </div>
   );
 };
