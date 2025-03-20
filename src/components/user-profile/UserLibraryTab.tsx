@@ -12,6 +12,21 @@ interface UserLibraryTabProps {
 }
 
 export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => {
+  // Log books with ratings for debugging
+  const readBooksWithRatings = userBooks.read.filter(book => 
+    book.readingStatus?.rating !== undefined
+  );
+  
+  if (readBooksWithRatings.length > 0) {
+    console.log(`Found ${readBooksWithRatings.length} read books with ratings:`, 
+      readBooksWithRatings.map(b => ({ 
+        title: b.title, 
+        isbn: b.isbn, 
+        rating: b.readingStatus?.rating 
+      }))
+    );
+  }
+  
   return (
     <div className="space-y-8">
       <div>
@@ -26,6 +41,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
                 book={book} 
                 size="small"
                 showDescription={false}
+                showRating={true}
                 onUpdate={() => {}}
               />
             ))}
@@ -45,6 +61,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
                 book={book} 
                 size="small"
                 showDescription={false}
+                showRating={true}
                 onUpdate={() => {}}
               />
             ))}
@@ -64,6 +81,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
                 book={book} 
                 size="small"
                 showDescription={false}
+                showRating={true}
                 onUpdate={() => {}}
               />
             ))}

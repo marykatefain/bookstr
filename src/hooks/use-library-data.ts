@@ -29,6 +29,7 @@ export const useLibraryData = () => {
       try {
         console.log("Fetching user books data for library");
         const userBooks = await fetchUserBooks(user.pubkey);
+        console.log("User books data fetched:", userBooks);
         return userBooks;
       } catch (error) {
         console.error("Error fetching user books:", error);

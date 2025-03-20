@@ -19,6 +19,21 @@ export const BookSection: React.FC<BookSectionProps> = ({
 }) => {
   console.log(`Rendering ${title} section with ${books.length} books`);
   
+  // Log books with ratings for debugging
+  const booksWithRatings = books.filter(book => 
+    book.readingStatus?.rating !== undefined
+  );
+  
+  if (booksWithRatings.length > 0) {
+    console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section:`, 
+      booksWithRatings.map(b => ({ 
+        title: b.title, 
+        isbn: b.isbn, 
+        rating: b.readingStatus?.rating 
+      }))
+    );
+  }
+  
   return (
     <section className="mb-12">
       <h2 className="text-2xl font-serif font-semibold mb-4">{title}</h2>
@@ -31,6 +46,7 @@ export const BookSection: React.FC<BookSectionProps> = ({
               key={book.id} 
               book={book} 
               size="medium" 
+              showRating={true}
               onUpdate={onUpdate} 
             />
           ))}

@@ -1,9 +1,8 @@
-
 import { SimplePool, type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
-import { getReadingStatusFromEventKind } from "../utils/eventUtils";
+import { getReadingStatusFromEventKind, extractRatingFromTags } from "../utils/eventUtils";
 
 /**
  * Extract all ISBNs from the tags of an event
@@ -47,10 +46,18 @@ export function eventToBook(event: Event, isbn: string): Book | null {
       categories: []
     };
     
+    // Extract rating if this is a review/rating event
+    let rating;
+    if (event.kind === NOSTR_KINDS.REVIEW) {
+      rating = extractRatingFromTags(event);
+      console.log(`Extracted rating ${rating} from event`, event);
+    }
+    
     // Add event creation date as reading status date
     const readingStatus = {
       status: getReadingStatusFromEventKind(event.kind),
       dateAdded: event.created_at * 1000,
+      rating: rating !== undefined ? rating : undefined
     };
     
     return { ...book, readingStatus };
@@ -72,39 +79,44 @@ export async function fetchUserBooks(pubkey: string): Promise<{
   const pool = new SimplePool();
   
   try {
-    // Create a filter for all book event kinds
-    const filter: Filter = {
+    // Create filters for book event kinds and ratings
+    const bookListFilter: Filter = {
       kinds: [
         NOSTR_KINDS.BOOK_TBR,
         NOSTR_KINDS.BOOK_READING,
         NOSTR_KINDS.BOOK_READ
       ],
       authors: [pubkey],
-      limit: 1000 // Increased limit from default to 1000
+      limit: 1000
     };
     
-    const events = await pool.querySync(relays, filter);
-    console.log(`Found ${events.length} book events`);
+    const ratingFilter: Filter = {
+      kinds: [NOSTR_KINDS.REVIEW],
+      authors: [pubkey],
+      "#k": ["isbn"],
+      limit: 1000
+    };
+    
+    // Fetch both book list events and rating events
+    const listEvents = await pool.querySync(relays, bookListFilter);
+    const ratingEvents = await pool.querySync(relays, ratingFilter);
+    
+    console.log(`Found ${listEvents.length} book list events and ${ratingEvents.length} rating events`);
     
     // Group books by reading status
     const tbrBooks: Book[] = [];
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
-    // Process all events and extract books for each ISBN in each event
-    for (const event of events) {
-      console.log(`Processing event: ${event.id}, kind: ${event.kind}, tags:`, event.tags);
-      
-      // Get all ISBNs from this event's tags
+    // Process list events first
+    for (const event of listEvents) {
       const isbns = extractISBNsFromTags(event);
-      console.log(`Found ${isbns.length} ISBNs in event ${event.id}:`, isbns);
       
       if (isbns.length === 0) {
         console.warn(`No ISBNs found in event ${event.id}`);
         continue;
       }
       
-      // Create a book object for each ISBN
       for (const isbn of isbns) {
         const book = eventToBook(event, isbn);
         if (!book || !book.readingStatus) continue;
@@ -120,10 +132,46 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       }
     }
     
-    console.log(`Created book objects: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+    // Create a map of ISBN to rating from rating events
+    const ratingsMap = new Map<string, number>();
+    
+    for (const event of ratingEvents) {
+      const isbn = extractISBNFromTags(event);
+      if (!isbn) continue;
+      
+      const rating = extractRatingFromTags(event);
+      if (rating !== undefined) {
+        ratingsMap.set(isbn, rating);
+        console.log(`Added rating ${rating} for ISBN ${isbn} to ratings map`);
+      }
+    }
+    
+    // Apply ratings to books
+    const applyRatings = (books: Book[]): Book[] => {
+      return books.map(book => {
+        if (book.isbn && ratingsMap.has(book.isbn)) {
+          const rating = ratingsMap.get(book.isbn);
+          console.log(`Applying rating ${rating} to book ${book.title} (${book.isbn})`);
+          return {
+            ...book,
+            readingStatus: {
+              ...book.readingStatus!,
+              rating
+            }
+          };
+        }
+        return book;
+      });
+    };
+    
+    const tbrBooksWithRatings = applyRatings(tbrBooks);
+    const readingBooksWithRatings = applyRatings(readingBooks);
+    const readBooksWithRatings = applyRatings(readBooks);
+    
+    console.log(`Books with ratings: TBR=${tbrBooksWithRatings.length}, Reading=${readingBooksWithRatings.length}, Read=${readBooksWithRatings.length}`);
     
     // Extract all unique ISBNs from all books
-    const allBooks = [...tbrBooks, ...readingBooks, ...readBooks];
+    const allBooks = [...tbrBooksWithRatings, ...readingBooksWithRatings, ...readBooksWithRatings];
     const isbns = allBooks.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
     const uniqueIsbns = [...new Set(isbns)];
     
@@ -142,28 +190,28 @@ export async function fetchUserBooks(pubkey: string): Promise<{
           }
         });
         
-        // Enhance books with OpenLibrary data
+        // Enhance books with OpenLibrary data while preserving ratings
         const enhanceBook = (book: Book) => {
           if (!book.isbn) return book;
           
           const details = bookDetailsMap.get(book.isbn);
           if (details) {
-            // Merge the details while preserving the id and reading status
+            // Merge the details while preserving the id, reading status and rating
             return {
               ...book,
               ...details,
               id: book.id, // Keep the original ID
               isbn: book.isbn, // Keep the original ISBN
-              readingStatus: book.readingStatus // Keep the reading status
+              readingStatus: book.readingStatus // Keep the reading status with rating
             };
           }
           return book;
         };
         
         // Apply enhancements to each list
-        const enhancedTbrBooks = tbrBooks.map(enhanceBook);
-        const enhancedReadingBooks = readingBooks.map(enhanceBook);
-        const enhancedReadBooks = readBooks.map(enhanceBook);
+        const enhancedTbrBooks = tbrBooksWithRatings.map(enhanceBook);
+        const enhancedReadingBooks = readingBooksWithRatings.map(enhanceBook);
+        const enhancedReadBooks = readBooksWithRatings.map(enhanceBook);
         
         console.log(`Enhanced books: TBR=${enhancedTbrBooks.length}, Reading=${enhancedReadingBooks.length}, Read=${enhancedReadBooks.length}`);
         
@@ -175,22 +223,22 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       } catch (error) {
         console.error('Error enhancing books with OpenLibrary data:', error);
         // Fall back to using basic book data without enhancements
-        console.log(`Falling back to unenhanced data: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+        console.log(`Falling back to unenhanced data with ratings: TBR=${tbrBooksWithRatings.length}, Reading=${readingBooksWithRatings.length}, Read=${readBooksWithRatings.length}`);
         
         return {
-          tbr: tbrBooks,
-          reading: readingBooks,
-          read: readBooks
+          tbr: tbrBooksWithRatings,
+          reading: readingBooksWithRatings,
+          read: readBooksWithRatings
         };
       }
     } else {
-      // No ISBNs, just use the basic book data
-      console.log(`No ISBNs found, using basic data: TBR=${tbrBooks.length}, Reading=${readingBooks.length}, Read=${readBooks.length}`);
+      // No ISBNs, just use the basic book data with ratings
+      console.log(`No ISBNs found, using basic data with ratings: TBR=${tbrBooksWithRatings.length}, Reading=${readingBooksWithRatings.length}, Read=${readBooksWithRatings.length}`);
       
       return {
-        tbr: tbrBooks,
-        reading: readingBooks,
-        read: readBooks
+        tbr: tbrBooksWithRatings,
+        reading: readingBooksWithRatings,
+        read: readBooksWithRatings
       };
     }
   } catch (error) {

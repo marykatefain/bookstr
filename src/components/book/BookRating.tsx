@@ -7,7 +7,7 @@ interface BookRatingProps {
 }
 
 export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
-  if (!rating) {
+  if (!rating && rating !== 0) {
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
 
