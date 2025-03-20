@@ -6,7 +6,7 @@ import { CreatePostBox } from "@/components/post/CreatePostBox";
 import { Card } from "@/components/ui/card";
 import { SocialFeed } from "@/components/SocialFeed";
 import { Button } from "@/components/ui/button";
-import { getConnectionStatus } from "@/lib/nostr/relay";
+import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
 
 export function SocialSection() {
   const [feedType, setFeedType] = useState<"followers" | "global">("global");
@@ -21,8 +21,19 @@ export function SocialSection() {
   };
 
   // Function to manually refresh the feed with loading indicator
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setManualRefreshing(true);
+    
+    // Check connection status and reconnect if needed
+    const connectionStatus = getConnectionStatus();
+    if (connectionStatus !== 'connected') {
+      try {
+        await connectToRelays(undefined, true); // Force reconnect
+      } catch (error) {
+        console.error("Failed to reconnect:", error);
+      }
+    }
+    
     refreshFeed();
   };
 

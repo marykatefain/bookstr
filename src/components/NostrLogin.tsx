@@ -25,7 +25,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
         if (user) {
           // Establish relay connections upon successful login
           try {
-            await connectToRelays();
+            await connectToRelays(undefined, true); // Force fresh connections
             console.info("Relay connections established");
           } catch (error) {
             console.error("Failed to connect to relays:", error);

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { isLoggedIn } from "@/lib/nostr";
 import { useSocialFeed } from "@/hooks/use-social-feed";
@@ -10,6 +9,8 @@ import { FeedLoginState } from "./social/FeedLoginState";
 import { FeedErrorState } from "./social/FeedErrorState";
 import { SocialActivity } from "@/lib/nostr/types";
 import { getConnectionStatus } from "@/lib/nostr/relay";
+import { RefreshCw, WifiOff } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface SocialFeedProps {
   activities?: SocialActivity[];
@@ -47,7 +48,6 @@ export function SocialFeed({
 
   const { activities: reactiveActivities, handleReact } = useFeedReactions(activities);
   
-  // Call onRefreshComplete when loading or backgroundLoading changes to false
   useEffect(() => {
     if ((!loading && !backgroundLoading) && onRefreshComplete) {
       onRefreshComplete();
@@ -55,28 +55,23 @@ export function SocialFeed({
   }, [loading, backgroundLoading, onRefreshComplete]);
 
   const handleFindFriends = () => {
-    // Find and click the find-friends tab
     const findFriendsTab = document.querySelector('[value="find-friends"]');
     if (findFriendsTab && findFriendsTab instanceof HTMLElement) {
       findFriendsTab.click();
     }
   };
 
-  // Show connection status or error
   const connectionStatus = getConnectionStatus();
   const isDisconnected = connectionStatus === 'disconnected';
   
-  // Show loading state only when initially loading and there are no activities yet
   if (loading && reactiveActivities.length === 0) {
     return <FeedLoadingState />;
   }
 
-  // Show error state when there's an error
   if (error && reactiveActivities.length === 0) {
     return <FeedErrorState error={error} onRetry={refreshFeed} />;
   }
 
-  // Show disconnected state
   if (isDisconnected && reactiveActivities.length === 0 && !loading) {
     return <FeedErrorState 
       error={new Error("Not connected to any relays")} 
@@ -85,20 +80,38 @@ export function SocialFeed({
     />;
   }
 
-  // Login state for followers feed
   if (!isLoggedIn() && type === "followers") {
     return <FeedLoginState feedType={type} />;
   }
 
-  // Empty state when there are no activities
   if (reactiveActivities.length === 0) {
     return <EmptyFeedState type={type} onFindFriends={handleFindFriends} />;
   }
 
-  // Render the feed content with activities
-  return <FeedContent 
-    activities={reactiveActivities} 
-    onReaction={handleReact} 
-    refreshTrigger={refreshTrigger}
-  />;
+  return (
+    <div>
+      {isDisconnected && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-md border border-amber-200 dark:border-amber-800 flex items-center justify-between">
+          <div className="flex items-center">
+            <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-500 mr-2" />
+            <span className="text-sm text-amber-800 dark:text-amber-400">Connection to Nostr relays lost</span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshFeed}
+            className="text-xs"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Reconnect
+          </Button>
+        </div>
+      )}
+      <FeedContent 
+        activities={reactiveActivities} 
+        onReaction={handleReact} 
+        refreshTrigger={refreshTrigger}
+      />
+    </div>
+  );
 }

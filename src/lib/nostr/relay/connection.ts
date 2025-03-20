@@ -19,10 +19,12 @@ import {
 /**
  * Connect to relays with cooldown and timeout management
  */
-export async function connectToRelays(relays: string[] = userRelays): Promise<WebSocket[]> {
+export async function connectToRelays(relays: string[] = userRelays, forceReconnect: boolean = false): Promise<WebSocket[]> {
+  console.log("Attempting to connect to relays", { relays, forceReconnect });
   const now = Date.now();
   
-  if (now - lastConnectionAttempt < CONNECTION_COOLDOWN) {
+  // If forceReconnect is true, skip cooldown check
+  if (!forceReconnect && now - lastConnectionAttempt < CONNECTION_COOLDOWN) {
     const openConnections = activeConnections.filter(
       conn => conn.readyState === WebSocket.OPEN
     );
@@ -33,7 +35,7 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
     }
   }
   
-  if (connectionPromise) {
+  if (connectionPromise && !forceReconnect) {
     console.log("Connection attempt already in progress, reusing promise");
     return connectionPromise;
   }
@@ -43,18 +45,23 @@ export async function connectToRelays(relays: string[] = userRelays): Promise<We
   
   const promise = new Promise<WebSocket[]>(async (resolve, reject) => {
     try {
-      const openConnections = activeConnections.filter(
-        conn => conn.readyState === WebSocket.OPEN
-      );
-      
-      if (openConnections.length > 0) {
-        console.log(`Using ${openConnections.length} existing open connections`);
-        setConnectionAttemptInProgress(false);
-        setConnectionPromise(null);
-        return resolve(openConnections);
+      // If forceReconnect is true, close existing connections first
+      if (forceReconnect) {
+        closeActiveConnections();
+      } else {
+        const openConnections = activeConnections.filter(
+          conn => conn.readyState === WebSocket.OPEN
+        );
+        
+        if (openConnections.length > 0) {
+          console.log(`Using ${openConnections.length} existing open connections`);
+          setConnectionAttemptInProgress(false);
+          setConnectionPromise(null);
+          return resolve(openConnections);
+        }
+        
+        closeActiveConnections();
       }
-      
-      closeActiveConnections();
       
       const connections: WebSocket[] = [];
       console.log(`Attempting to connect to relays: ${relays.join(', ')}`);
@@ -163,15 +170,15 @@ export function closeActiveConnections(): void {
 /**
  * Ensure we have open connections, reconnecting if needed
  */
-export async function ensureConnections(): Promise<WebSocket[]> {
+export async function ensureConnections(forceReconnect: boolean = false): Promise<WebSocket[]> {
   const openConnections = activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
   
-  if (openConnections.length > 0) {
+  if (openConnections.length > 0 && !forceReconnect) {
     console.log(`Using ${openConnections.length} existing open connections`);
     return openConnections;
   } else {
-    console.log("No open connections found, reconnecting to relays");
-    return await connectToRelays();
+    console.log("No open connections found or forced reconnect requested, reconnecting to relays");
+    return await connectToRelays(userRelays, forceReconnect);
   }
 }
 
