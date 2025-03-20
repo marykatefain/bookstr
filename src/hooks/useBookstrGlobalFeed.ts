@@ -112,11 +112,24 @@ export function useBookstrGlobalFeed() {
       const authorPubkeys = [...new Set(allEvents.map(event => event.pubkey))];
       
       // Fetch author profiles
-      const profiles = await fetchUserProfiles(authorPubkeys);
-      console.log(`Fetched ${Object.keys(profiles).length} profiles`);
+      const profilesArray = await fetchUserProfiles(authorPubkeys);
+      console.log(`Fetched ${profilesArray.length} profiles`);
+      
+      // Convert the profiles array to a Record/object with pubkey as key
+      const profilesRecord: Record<string, { name?: string; picture?: string; nip05?: string; npub?: string }> = {};
+      profilesArray.forEach(profile => {
+        if (profile && profile.pubkey) {
+          profilesRecord[profile.pubkey] = {
+            name: profile.name || profile.display_name,
+            picture: profile.picture,
+            nip05: profile.nip05,
+            npub: profile.npub
+          };
+        }
+      });
       
       // Transform events to activities
-      const result = await transformEventsToActivities(allEvents, profiles);
+      const result = await transformEventsToActivities(allEvents, profilesRecord);
       
       // Sort by recent first
       result.sort((a, b) => b.createdAt - a.createdAt);

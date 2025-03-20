@@ -38,7 +38,7 @@ export async function transformEventsToActivities(
         isbn: isbn || 'unknown',
         title: title,
         coverUrl: coverUrl,
-        authors: [],
+        author: '', // Fixed: Changed 'authors' to 'author' to match the Book type
       };
       
       // Determine type of activity based on event kind
