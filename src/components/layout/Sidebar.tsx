@@ -9,7 +9,7 @@ import {
   LogOut,
   Search,
   Info,
-  ActivityStream
+  Activity // Changed from ActivityStream to Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -32,7 +32,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
     { path: "/library", label: "Library", icon: Library },
-    { path: "/activity", label: "Activity Feed", icon: ActivityStream },
+    { path: "/activity", label: "Activity Feed", icon: Activity }, // Changed from ActivityStream to Activity
     { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];

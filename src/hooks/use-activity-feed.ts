@@ -73,7 +73,7 @@ export function useActivityFeed({
       }
       
       // Process events into activities
-      const processedActivities = await processFeedEvents(events);
+      const processedActivities = await processFeedEvents(events, 100); // Added second parameter for limit
       
       // Sort by created time descending (newest first)
       const sortedActivities = processedActivities.sort(

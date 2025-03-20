@@ -10,7 +10,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
-import { ActivityStream } from "lucide-react";
+import { Activity } from "lucide-react"; // Changed from ActivityStream to Activity
 import { useActivityFeed } from "@/hooks/use-activity-feed";
 
 export default function ActivityFeed() {
@@ -40,7 +40,7 @@ export default function ActivityFeed() {
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold font-serif text-bookverse-ink flex items-center">
-            <ActivityStream className="mr-2 h-7 w-7 text-bookverse-accent" />
+            <Activity className="mr-2 h-7 w-7 text-bookverse-accent" /> {/* Changed from ActivityStream to Activity */}
             Activity Feed
           </h1>
           <p className="text-muted-foreground mt-2">
