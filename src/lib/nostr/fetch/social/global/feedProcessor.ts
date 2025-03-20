@@ -16,11 +16,21 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
     return [];
   }
   
-  // Filter events to only include valid ones with either k=isbn or t=bookstr
+  // Modified filtering logic to be more inclusive
+  // Accept events with ISBN tags or bookstr tags or any of the relevant kinds
   const filteredEvents = events.filter(event => {
     const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
     const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
-    return hasIsbnTag || hasBookstrTag;
+    const isRelevantKind = [
+      NOSTR_KINDS.BOOK_TBR,
+      NOSTR_KINDS.BOOK_READING,
+      NOSTR_KINDS.BOOK_READ,
+      NOSTR_KINDS.BOOK_RATING,
+      NOSTR_KINDS.REVIEW,
+      NOSTR_KINDS.TEXT_NOTE
+    ].includes(event.kind);
+    
+    return isRelevantKind || hasIsbnTag || hasBookstrTag;
   });
   
   console.log(`Filtered down to ${filteredEvents.length} valid events`);

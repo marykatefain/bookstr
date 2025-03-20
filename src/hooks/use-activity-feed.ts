@@ -43,9 +43,12 @@ export function useActivityFeed({
       kinds: [
         NOSTR_KINDS.BOOK_TBR,
         NOSTR_KINDS.BOOK_READING, 
-        NOSTR_KINDS.BOOK_READ
+        NOSTR_KINDS.BOOK_READ,
+        NOSTR_KINDS.BOOK_RATING,
+        NOSTR_KINDS.REVIEW,
+        NOSTR_KINDS.TEXT_NOTE
       ],
-      limit: 100 // Fetch more to have data for pagination
+      limit: 150 // Fetch more to have data for pagination and account for filtering
     };
     
     try {

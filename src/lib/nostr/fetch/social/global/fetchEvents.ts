@@ -19,7 +19,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     return [];
   }
   
-  // Create filter for query
+  // Create filter for query - expanded to include all relevant events
   const combinedFilter: Filter = {
     kinds: [
       NOSTR_KINDS.BOOK_TBR,
@@ -29,8 +29,7 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
       NOSTR_KINDS.REVIEW,
       NOSTR_KINDS.TEXT_NOTE
     ],
-    limit: limit * 2, // Increase limit as we'll filter later
-    "#t": ["bookstr"]
+    limit: limit * 3, // Increase limit significantly to account for filtering
   };
   
   // Generate cache key for this query
