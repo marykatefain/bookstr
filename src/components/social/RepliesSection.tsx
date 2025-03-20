@@ -132,7 +132,7 @@ export function RepliesSection({
 
   return (
     <div className="mt-2 w-full">
-      <div className={`flex items-center ${buttonLayout === "horizontal" ? "gap-4" : "flex-col items-start gap-2"}`}>
+      <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
           size="sm" 

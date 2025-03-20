@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, Heart } from "lucide-react";
+import { Star } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
@@ -158,20 +157,12 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
           <p className="text-sm whitespace-pre-wrap">{review.content}</p>
         </CardContent>
         <CardFooter className="pt-0 flex-col items-start">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-            onClick={() => handleReactToReview(review.id)}
-          >
-            <Heart className="mr-1 h-4 w-4" />
-            <span>Like</span>
-          </Button>
-          
           <RepliesSection 
             eventId={review.id}
             authorPubkey={review.pubkey}
             initialReplies={review.replies}
+            buttonLayout="horizontal"
+            onReaction={handleReactToReview}
           />
         </CardFooter>
       </Card>
