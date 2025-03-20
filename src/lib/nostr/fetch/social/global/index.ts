@@ -1,4 +1,3 @@
-
 import { SocialActivity } from "../../../types";
 import { fetchGlobalEvents } from "./fetchEvents";
 import { processFeedEvents } from "./feedProcessor";
