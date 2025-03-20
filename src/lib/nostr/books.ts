@@ -1,3 +1,4 @@
+
 import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
 import { publishToNostr, updateNostrEvent } from "./publish";
 import { SimplePool, Event } from "nostr-tools";
@@ -217,21 +218,23 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
  * Rate a book separately
  */
 export async function rateBook(book: Book, rating: number): Promise<string | null> {
-  if (rating < 1 || rating > 5) {
-    throw new Error("Rating must be between 1 and 5");
-  }
-  
   if (!book.isbn) {
     console.error("Cannot rate book: ISBN is missing");
     return null;
   }
   
+  // Ensure rating is between 0 and 1
+  if (rating < 0 || rating > 1) {
+    console.error("Rating must be between 0 and 1");
+    return null;
+  }
+  
   const event = {
-    kind: NOSTR_KINDS.BOOK_RATING,
+    kind: NOSTR_KINDS.REVIEW,  // Changed from BOOK_RATING to REVIEW (31985)
     tags: [
-      ["i", `isbn:${book.isbn}`],
-      ["rating", rating.toString()],
-      ["k", "isbn"]
+      ["d", `isbn:${book.isbn}`],  // Changed from ["i", `isbn:${book.isbn}`] to ["d", `isbn:${book.isbn}`]
+      ["k", "isbn"],
+      ["rating", rating.toString()]
     ],
     content: ""
   };
