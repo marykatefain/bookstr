@@ -86,6 +86,7 @@ export function SocialFeed({
     />;
   }
 
+  // Only check login for followers feed
   if (!isLoggedIn() && type === "followers") {
     return <FeedLoginState feedType={type} />;
   }

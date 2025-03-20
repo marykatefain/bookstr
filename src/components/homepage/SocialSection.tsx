@@ -31,7 +31,7 @@ export function SocialSection() {
         )}
       </div>
       
-      {/* User's activity feed */}
+      {/* Global activity feed (changed from user's activity feed) */}
       <UserPostsFeed refreshTrigger={refreshTrigger} />
     </div>
   );
