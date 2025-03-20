@@ -8,67 +8,107 @@ import { mockBooks, isLoggedIn } from "@/lib/nostr";
 import { AreaChart, BarChart, LineChart, PieChart } from "recharts";
 import { BarChart as BarChartIcon, PieChart as PieChartIcon, BookOpen, Clock, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const mockReadingData = [
-  { month: "Jan", books: 2, pages: 450 },
-  { month: "Feb", books: 1, pages: 320 },
-  { month: "Mar", books: 3, pages: 780 },
-  { month: "Apr", books: 2, pages: 520 },
-  { month: "May", books: 4, pages: 1100 },
-  { month: "Jun", books: 3, pages: 890 },
-  { month: "Jul", books: 1, pages: 400 },
-  { month: "Aug", books: 2, pages: 550 },
-  { month: "Sep", books: 3, pages: 720 },
-  { month: "Oct", books: 2, pages: 600 },
-  { month: "Nov", books: 1, pages: 350 },
-  { month: "Dec", books: 2, pages: 480 },
-];
-
-const mockGenreData = [
-  { name: "Fiction", value: 35 },
-  { name: "Fantasy", value: 25 },
-  { name: "Science Fiction", value: 15 },
-  { name: "Mystery", value: 10 },
-  { name: "Non-Fiction", value: 15 },
-];
-
-const mockTimeData = [
-  { time: "Morning", percent: 30 },
-  { time: "Afternoon", percent: 15 },
-  { time: "Evening", percent: 40 },
-  { time: "Night", percent: 15 },
-];
-
+const mockReadingData = [{
+  month: "Jan",
+  books: 2,
+  pages: 450
+}, {
+  month: "Feb",
+  books: 1,
+  pages: 320
+}, {
+  month: "Mar",
+  books: 3,
+  pages: 780
+}, {
+  month: "Apr",
+  books: 2,
+  pages: 520
+}, {
+  month: "May",
+  books: 4,
+  pages: 1100
+}, {
+  month: "Jun",
+  books: 3,
+  pages: 890
+}, {
+  month: "Jul",
+  books: 1,
+  pages: 400
+}, {
+  month: "Aug",
+  books: 2,
+  pages: 550
+}, {
+  month: "Sep",
+  books: 3,
+  pages: 720
+}, {
+  month: "Oct",
+  books: 2,
+  pages: 600
+}, {
+  month: "Nov",
+  books: 1,
+  pages: 350
+}, {
+  month: "Dec",
+  books: 2,
+  pages: 480
+}];
+const mockGenreData = [{
+  name: "Fiction",
+  value: 35
+}, {
+  name: "Fantasy",
+  value: 25
+}, {
+  name: "Science Fiction",
+  value: 15
+}, {
+  name: "Mystery",
+  value: 10
+}, {
+  name: "Non-Fiction",
+  value: 15
+}];
+const mockTimeData = [{
+  time: "Morning",
+  percent: 30
+}, {
+  time: "Afternoon",
+  percent: 15
+}, {
+  time: "Evening",
+  percent: 40
+}, {
+  time: "Night",
+  percent: 15
+}];
 const Stats = () => {
   if (!isLoggedIn()) {
     return <Navigate to="/" />;
   }
-
   const [activeTab, setActiveTab] = useState("yearly");
   const [timeframe, setTimeframe] = useState("year");
   const [showPrototypeModal, setShowPrototypeModal] = useState(true);
-
   const totalBooks = 26;
   const totalPages = 7160;
   const avgPagesPerDay = 19;
   const longestStreak = 24;
   const currentStreak = 3;
-
-  return (
-    <Layout>
+  return <Layout>
       <Dialog open={showPrototypeModal} onOpenChange={setShowPrototypeModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-serif text-bookverse-ink">Prototype Notice</DialogTitle>
+            <DialogTitle className="text-xl font-serif text-bookverse-ink">Coming Soon!</DialogTitle>
             <DialogDescription className="pt-2">
               This Reading Stats page is currently a prototype. Real statistics based on your reading activity are coming soon! Feel free to explore this preview of what's to come.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end">
-            <Button 
-              onClick={() => setShowPrototypeModal(false)}
-              className="bg-bookverse-accent hover:bg-bookverse-highlight"
-            >
+            <Button onClick={() => setShowPrototypeModal(false)} className="bg-bookverse-accent hover:bg-bookverse-highlight">
               Continue Exploring
             </Button>
           </div>
@@ -147,28 +187,13 @@ const Stats = () => {
               <div className="flex items-center justify-between">
                 <CardTitle>Reading History</CardTitle>
                 <div className="flex space-x-2">
-                  <Button 
-                    variant={timeframe === "year" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setTimeframe("year")}
-                    className={timeframe === "year" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}
-                  >
+                  <Button variant={timeframe === "year" ? "default" : "outline"} size="sm" onClick={() => setTimeframe("year")} className={timeframe === "year" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}>
                     Year
                   </Button>
-                  <Button 
-                    variant={timeframe === "month" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setTimeframe("month")}
-                    className={timeframe === "month" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}
-                  >
+                  <Button variant={timeframe === "month" ? "default" : "outline"} size="sm" onClick={() => setTimeframe("month")} className={timeframe === "month" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}>
                     Month
                   </Button>
-                  <Button 
-                    variant={timeframe === "week" ? "default" : "outline"} 
-                    size="sm"
-                    onClick={() => setTimeframe("week")}
-                    className={timeframe === "week" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}
-                  >
+                  <Button variant={timeframe === "week" ? "default" : "outline"} size="sm" onClick={() => setTimeframe("week")} className={timeframe === "week" ? "bg-bookverse-accent hover:bg-bookverse-highlight" : ""}>
                     Week
                   </Button>
                 </div>
@@ -179,15 +204,12 @@ const Stats = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[300px] w-full">
-                <AreaChart
-                  data={mockReadingData}
-                  margin={{
-                    top: 20,
-                    right: 20,
-                    left: 20,
-                    bottom: 20,
-                  }}
-                >
+                <AreaChart data={mockReadingData} margin={{
+                top: 20,
+                right: 20,
+                left: 20,
+                bottom: 20
+              }}>
                   <defs>
                     <linearGradient id="colorBooks" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#7F5E32" stopOpacity={0.8} />
@@ -199,13 +221,7 @@ const Stats = () => {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="books"
-                    stroke="#7F5E32"
-                    fillOpacity={1}
-                    fill="url(#colorBooks)"
-                  />
+                  <Area type="monotone" dataKey="books" stroke="#7F5E32" fillOpacity={1} fill="url(#colorBooks)" />
                 </AreaChart>
               </div>
             </CardContent>
@@ -222,19 +238,8 @@ const Stats = () => {
               <CardContent>
                 <div className="h-[300px]">
                   <PieChart width={400} height={300}>
-                    <Pie
-                      data={mockGenreData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {mockGenreData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                    <Pie data={mockGenreData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name">
+                      {mockGenreData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -252,15 +257,12 @@ const Stats = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
-                  <BarChart
-                    data={mockTimeData}
-                    margin={{
-                      top: 20,
-                      right: 20,
-                      left: 20,
-                      bottom: 20,
-                    }}
-                  >
+                  <BarChart data={mockTimeData} margin={{
+                  top: 20,
+                  right: 20,
+                  left: 20,
+                  bottom: 20
+                }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="time" />
                     <YAxis />
@@ -274,36 +276,37 @@ const Stats = () => {
           </div>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 function Legend() {
   return null;
 }
-
 function Tooltip() {
   return null;
 }
-
-function XAxis({ dataKey }: { dataKey: string }) {
+function XAxis({
+  dataKey
+}: {
+  dataKey: string;
+}) {
   return null;
 }
-
 function YAxis() {
   return null;
 }
-
-function CartesianGrid({ strokeDasharray }: { strokeDasharray: string }) {
+function CartesianGrid({
+  strokeDasharray
+}: {
+  strokeDasharray: string;
+}) {
   return null;
 }
-
 function Area({
   type,
   dataKey,
   stroke,
   fillOpacity,
-  fill,
+  fill
 }: {
   type: string;
   dataKey: string;
@@ -313,7 +316,6 @@ function Area({
 }) {
   return null;
 }
-
 function Pie({
   data,
   cx,
@@ -323,7 +325,7 @@ function Pie({
   fill,
   dataKey,
   nameKey,
-  children,
+  children
 }: {
   data: any[];
   cx: string;
@@ -337,15 +339,23 @@ function Pie({
 }) {
   return null;
 }
-
-function Cell({ fill }: { fill: string }) {
+function Cell({
+  fill
+}: {
+  fill: string;
+}) {
   return null;
 }
-
-function Bar({ dataKey, name, fill }: { dataKey: string; name: string; fill: string }) {
+function Bar({
+  dataKey,
+  name,
+  fill
+}: {
+  dataKey: string;
+  name: string;
+  fill: string;
+}) {
   return null;
 }
-
 const COLORS = ['#7F5E32', '#CF9E52', '#1C2C3B', '#A67C52', '#D4B483'];
-
 export default Stats;
