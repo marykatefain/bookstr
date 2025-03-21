@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -22,10 +21,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const [localRating, setLocalRating] = useState<number>(0);
   const { toast } = useToast();
 
-  // Initialize localRating from book's readingStatus if available
   useEffect(() => {
     if (book.readingStatus?.rating !== undefined) {
-      // Convert from 0-1 scale to 1-5 scale
       setLocalRating(Math.round(book.readingStatus.rating * 5));
     } else {
       setLocalRating(0);
@@ -145,22 +142,20 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const handleRating = async (rating: number) => {
     try {
       setIsRating(true);
-      setLocalRating(rating); // Update local state immediately for better UX
+      setLocalRating(rating);
       
       if (!book.isbn) {
         throw new Error("ISBN is required");
       }
       
-      // Convert from 1-5 scale to 0-1 scale for storage
       const normalizedRating = rating / 5;
-      await rateBook(book, normalizedRating);
+      await rateBook(book.isbn, normalizedRating);
       
       toast({
         title: "Success!",
         description: `You've rated "${book.title}" ${rating} stars.`,
       });
       
-      // Update book object with new rating in local state
       const updatedBook = {
         ...book,
         readingStatus: {
@@ -179,7 +174,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         description: `Failed to rate the book. Please try again.`,
         variant: "destructive",
       });
-      // Revert to previous rating on failure
       setLocalRating(book.readingStatus?.rating ? Math.round(book.readingStatus.rating * 5) : 0);
     } finally {
       setIsRating(false);
@@ -197,7 +191,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const iconSize = size === 'small' ? 14 : size === 'large' ? 20 : 16;
   const buttonSize = getButtonSize();
   
-  // Updated class for better layout control
   const containerClass = horizontal 
     ? 'grid grid-cols-2 gap-2 mt-2 w-full' 
     : 'flex flex-col space-y-2 mt-2 w-full';
@@ -208,9 +201,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
 
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
-  
-  // Use the local rating state instead of reading directly from book
-  const userRating = localRating || 0;
 
   return (
     <>
@@ -250,33 +240,16 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         )}
         
         {showUnmarkButton && (
-          <>
-            <div className="flex justify-center mt-1 mb-1 col-span-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  onClick={() => !isRating && handleRating(star)}
-                  className={`h-5 w-5 cursor-pointer ${
-                    isRating ? 'opacity-50' : ''
-                  } ${
-                    star <= userRating
-                      ? "text-yellow-500 fill-yellow-500"
-                      : "text-gray-300"
-                  }`}
-                />
-              ))}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className={`${buttonSize} text-muted-foreground hover:bg-muted/50 col-span-2 w-full`}
-              onClick={() => handleAction('finished')}
-              disabled={isLoading !== null}
-            >
-              <X size={iconSize} />
-              {size !== 'small' && <span>Mark Unread</span>}
-            </Button>
-          </>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={`${buttonSize} text-muted-foreground hover:bg-muted/50 w-full`}
+            onClick={() => handleAction('finished')}
+            disabled={isLoading !== null}
+          >
+            <X size={iconSize} />
+            {size !== 'small' && <span>Mark Unread</span>}
+          </Button>
         )}
       </div>
 
