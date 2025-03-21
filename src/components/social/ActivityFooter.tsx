@@ -26,7 +26,6 @@ export function ActivityFooter({
   onReaction,
   replies = []
 }: ActivityFooterProps) {
-  const isMobile = useIsMobile();
   const [reactions, setReactions] = useState({
     count: reactionCount || 0,
     userReacted: userReacted || false

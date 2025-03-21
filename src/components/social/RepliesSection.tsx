@@ -149,6 +149,15 @@ export function RepliesSection({
   };
 
   const handleReaction = () => {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to react",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (onReaction) {
       onReaction(eventId);
       // Update local state optimistically
