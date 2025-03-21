@@ -18,7 +18,6 @@ const BookDetail = () => {
     loading,
     reviews,
     ratings,
-    userRating,
     reviewText,
     setReviewText,
     submitting,
@@ -30,7 +29,6 @@ const BookDetail = () => {
     loadingActivity,
     refreshTrigger,
     handleMarkAsRead,
-    handleRateBook,
     handleSubmitReview,
     handleReactToReview,
     handleReactToActivity,
@@ -82,12 +80,10 @@ const BookDetail = () => {
           {activeTab === "reviews" && (
             <BookReviewSection
               reviews={reviews}
-              userRating={userRating}
               reviewText={reviewText}
               setReviewText={setReviewText}
               submitting={submitting}
               handleSubmitReview={handleSubmitReview}
-              handleRateBook={handleRateBook}
               handleReactToReview={handleReactToReview}
             />
           )}

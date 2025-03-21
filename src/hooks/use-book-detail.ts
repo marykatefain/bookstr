@@ -15,11 +15,9 @@ export const useBookDetail = (isbn: string | undefined) => {
   const { 
     reviews, 
     ratings, 
-    userRating, 
     reviewText, 
     setReviewText, 
     submitting, 
-    handleRateBook, 
     handleSubmitReview 
   } = useBookReviews(isbn);
 
@@ -35,12 +33,11 @@ export const useBookDetail = (isbn: string | undefined) => {
     setActiveTab, 
     bookActivity, 
     loadingActivity,
-    refreshTrigger // Make sure we're accessing the refreshTrigger property
+    refreshTrigger
   } = useBookActivity(isbn);
 
   // Combine the hooks with book-specific wrappers
   const handleMarkAsRead = () => markAsRead(book, setIsRead);
-  const handleRateBookWrapper = (rating: number) => handleRateBook(book, rating);
   const handleSubmitReviewWrapper = () => handleSubmitReview(book);
   const handleReactToReview = (reviewId: string) => handleReactToContent(reviewId);
   const handleReactToActivity = (activityId: string) => handleReactToContent(activityId);
@@ -50,7 +47,6 @@ export const useBookDetail = (isbn: string | undefined) => {
     loading,
     reviews,
     ratings,
-    userRating,
     reviewText,
     setReviewText,
     submitting,
@@ -60,9 +56,8 @@ export const useBookDetail = (isbn: string | undefined) => {
     setActiveTab,
     bookActivity,
     loadingActivity,
-    refreshTrigger, // Add this to the returned object
+    refreshTrigger,
     handleMarkAsRead,
-    handleRateBook: handleRateBookWrapper,
     handleSubmitReview: handleSubmitReviewWrapper,
     handleReactToReview,
     handleReactToActivity,
