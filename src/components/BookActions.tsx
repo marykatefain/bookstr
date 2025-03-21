@@ -217,7 +217,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <BookOpen size={iconSize} />
               )}
-              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "Move to TBR"}</span>}
+              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "Add to TBR"}</span>}
             </Button>
             
             <Button 
