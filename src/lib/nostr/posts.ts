@@ -1,5 +1,4 @@
-
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Post, Book, NOSTR_KINDS, SocialActivity } from "./types";
 import { publishToNostr } from "./publish";
 import { getCurrentUser, isLoggedIn } from "./user";
@@ -84,6 +83,32 @@ export async function fetchPosts(limit: number = 20, useMockData: boolean = true
   
   // This now delegates to fetchBookPosts which includes the tag filtering logic
   return fetchBookPostsByISBN(undefined, false);
+}
+
+/**
+ * Fetch events from Nostr
+ */
+export async function fetchEvents(): Promise<any[]> {
+  return [];
+}
+
+/**
+ * Create a post on Nostr
+ */
+export async function createPost(content: string): Promise<string | null> {
+  try {
+    // Implementation would go here
+    console.log("Creating post:", content);
+    return null;
+  } catch (error) {
+    console.error("Error creating post:", error);
+    toast({
+      title: "Error",
+      description: "Could not create post",
+      variant: "destructive"
+    });
+    return null;
+  }
 }
 
 /**

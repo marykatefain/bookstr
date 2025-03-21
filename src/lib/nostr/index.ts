@@ -3,10 +3,6 @@
 export {
   getCurrentUser,
   isLoggedIn,
-  login,
-  logout,
-  getUserDetails,
-  updateUserDetails,
   loginWithNostr,
   logoutNostr
 } from "./user";
@@ -35,28 +31,18 @@ export {
   addBookToList,
   updateBookInList,
   removeBookFromList,
-  fetchBookReviews,
-  fetchBookRatings,
-  fetchSingleBookReview,
   reactToContent,
   fetchReactions,
   replyToContent,
   fetchReplies,
   fetchEventById,
-  fetchUserBooks,
-  fetchBookByISBN,
-  fetchUserReviews,
-  followUser,
-  fetchFollowingList,
-  fetchProfileData,
-  fetchUserProfile
+  followUser
 } from "./books";
 
 // Export events functions
 export {
   fetchEvents,
   fetchPosts,
-  createPost,
   fetchUserPosts,
   createBookPost
 } from "./posts";
@@ -72,8 +58,28 @@ export {
   fetchBookActivity
 } from "./fetch/social";
 
+// Export fetch functions
+export {
+  fetchUserBooks,
+  fetchBookByISBN,
+  fetchBookReviews,
+  fetchBookRatings,
+  fetchSingleBookReview,
+  fetchUserReviews
+} from "./fetch";
+
+// Export profile functions
+export {
+  fetchFollowingList,
+  fetchUserProfile
+} from "./fetch/profileFetch";
+
+export {
+  fetchProfileData
+} from "./profile";
+
 // Export mock data
-export { mockBooks } from "./types";
+export { mockBooks } from "./types/mock";
 
 // Export initialization function
 export const initNostr = async () => {
