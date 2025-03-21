@@ -32,6 +32,7 @@ export function UserPostsFeed({
   useEffect(() => {
     refreshFeed();
   }, [refreshFeed, refreshTrigger]);
+
   if (loading && activities.length === 0) {
     return <div className="space-y-4 mt-6">
         {[...Array(2)].map((_, i) => <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-lg h-[150px] animate-pulse" />)}
