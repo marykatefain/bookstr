@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -232,7 +233,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <Eye size={iconSize} />
               )}
-              {size !== 'small' && <span>{isReading ? "Stop" : "Read"}</span>}
+              {size !== 'small' && <span>{isReading ? "Stop" : "Start Reading"}</span>}
             </Button>
           </>
         )}
