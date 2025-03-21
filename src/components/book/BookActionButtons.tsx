@@ -120,20 +120,22 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
             />
           ))}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full text-xs text-muted-foreground hover:bg-muted/50"
-          onClick={handleUnmarkClick}
-          disabled={!!pendingAction}
-        >
-          {pendingAction === 'finished' ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          ) : (
-            <X className="mr-1 h-3 w-3" />
-          )}
-          Mark Unread
-        </Button>
+        <div className="w-full flex justify-center">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-[200%] text-xs text-muted-foreground hover:bg-muted/50"
+            onClick={handleUnmarkClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'finished' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <X className="mr-1 h-3 w-3" />
+            )}
+            Mark Unread
+          </Button>
+        </div>
       </div>
     );
   }
