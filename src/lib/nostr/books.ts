@@ -215,8 +215,11 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
 /**
  * Rate a book separately
  */
-export async function rateBook(book: Book, rating: number): Promise<string | null> {
-  if (!book.isbn) {
+export async function rateBook(bookOrIsbn: Book | string, rating: number): Promise<string | null> {
+  // Determine if we have a book object or just an ISBN string
+  const isbn = typeof bookOrIsbn === 'string' ? bookOrIsbn : bookOrIsbn.isbn;
+  
+  if (!isbn) {
     console.error("Cannot rate book: ISBN is missing");
     return null;
   }
@@ -230,7 +233,7 @@ export async function rateBook(book: Book, rating: number): Promise<string | nul
   const event = {
     kind: NOSTR_KINDS.REVIEW,
     tags: [
-      ["d", `isbn:${book.isbn}`],
+      ["d", `isbn:${isbn}`],
       ["k", "isbn"],
       ["rating", rating.toString()]
     ],
@@ -716,3 +719,4 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
     throw error;
   }
 }
+

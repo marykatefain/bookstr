@@ -64,7 +64,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
         onRatingChange(newRating);
       } else {
         // Fallback direct rating if no callback provided
-        // Use the isbn string instead of passing the Book object
+        // Use the isbn string directly
         await rateBook(isbn, newRating);
         toast({
           title: "Rating saved",
