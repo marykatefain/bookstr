@@ -11,6 +11,7 @@ import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
+import { BookRating } from "./BookRating";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -72,7 +73,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
               <Star 
                 className={`h-6 w-6 ${
                   displayRating >= rating 
-                    ? 'text-yellow-500 fill-yellow-500' 
+                    ? 'text-bookverse-highlight fill-bookverse-highlight' 
                     : 'text-gray-300 dark:text-gray-600'
                 }`} 
               />
@@ -161,7 +162,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
                     <>
                       <span className="mx-1">•</span>
                       <div className="flex items-center">
-                        {renderStars(Math.round(review.rating * 5))}
+                        <BookRating rating={review.rating} />
                       </div>
                     </>
                   )}
