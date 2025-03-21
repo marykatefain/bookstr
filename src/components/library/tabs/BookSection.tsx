@@ -1,14 +1,16 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { EmptyState } from "@/components/profile/EmptyState";
 import { BookCard } from "@/components/BookCard";
 import { Book } from "@/lib/nostr/types";
+
 interface BookSectionProps {
   title: string;
   books: Book[];
   emptyStateType: string;
   onUpdate?: () => void;
 }
+
 export const BookSection: React.FC<BookSectionProps> = ({
   title,
   books,
@@ -19,18 +21,21 @@ export const BookSection: React.FC<BookSectionProps> = ({
 
   // Enhanced logging for books with ratings
   const booksWithRatings = books.filter(book => book.readingStatus?.rating !== undefined);
-  if (booksWithRatings.length > 0) {
-    console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section:`, 
-      booksWithRatings.map(b => ({
-        title: b.title,
-        isbn: b.isbn,
-        rating: b.readingStatus?.rating,
-        readingStatus: b.readingStatus?.status
-      }))
-    );
-  } else {
-    console.log(`No books with ratings found in ${title} section`);
-  }
+  
+  useEffect(() => {
+    if (booksWithRatings.length > 0) {
+      console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section:`, 
+        booksWithRatings.map(b => ({
+          title: b.title,
+          isbn: b.isbn,
+          rating: b.readingStatus?.rating,
+          readingStatus: b.readingStatus?.status
+        }))
+      );
+    } else {
+      console.log(`No books with ratings found in ${title} section`);
+    }
+  }, [booksWithRatings.length, title]);
 
   return (
     <section className="mb-12 py-0 my-[25px]">

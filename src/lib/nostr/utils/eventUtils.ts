@@ -46,15 +46,22 @@ export function extractRatingFromTags(event: Event): number | undefined {
     try {
       console.log(`Found rating tag: ${ratingTag[1]}`);
       const ratingValue = parseFloat(ratingTag[1]);
+      
       if (!isNaN(ratingValue)) {
         // Determine if it's already on 0-1 scale or 1-5 scale
         if (ratingValue >= 0 && ratingValue <= 1) {
           console.log(`Found rating in 0-1 scale: ${ratingValue}`);
-          return ratingValue; // Already in 0-1 scale
+          return ratingValue; // Return as is for 0-1 scale
         } else if (ratingValue >= 1 && ratingValue <= 5) {
           // Convert from 1-5 scale to 0-1 scale
           const normalizedRating = ratingValue / 5;
           console.log(`Converting rating from 1-5 scale (${ratingValue}) to 0-1 scale: ${normalizedRating}`);
+          return normalizedRating;
+        } else {
+          // Handle unexpected values by normalizing to 0-1 scale
+          const clampedValue = Math.min(5, Math.max(1, ratingValue));
+          const normalizedRating = clampedValue / 5;
+          console.log(`Clamping unexpected rating ${ratingValue} to ${clampedValue}, normalized: ${normalizedRating}`);
           return normalizedRating;
         }
       }

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { BookSection } from "./BookSection";
 import { Book } from "@/lib/nostr/types";
 import { EmptyState } from "@/components/profile/EmptyState";
@@ -34,17 +34,20 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
 
   // Log all read books with ratings for debugging
   const readBooksWithRatings = books.read.filter(book => book.readingStatus?.rating !== undefined);
-  if (readBooksWithRatings.length > 0) {
-    console.log(`Found ${readBooksWithRatings.length} read books with ratings in BooksTabContent:`, 
-      readBooksWithRatings.map(b => ({
-        title: b.title,
-        isbn: b.isbn,
-        rating: b.readingStatus?.rating
-      }))
-    );
-  } else {
-    console.log('No read books with ratings found in BooksTabContent');
-  }
+  
+  useEffect(() => {
+    if (readBooksWithRatings.length > 0) {
+      console.log(`Found ${readBooksWithRatings.length} read books with ratings in BooksTabContent:`, 
+        readBooksWithRatings.map(b => ({
+          title: b.title,
+          isbn: b.isbn,
+          rating: b.readingStatus?.rating
+        }))
+      );
+    } else {
+      console.log('No read books with ratings found in BooksTabContent');
+    }
+  }, [readBooksWithRatings.length]);
 
   // If we're filtering for a specific book type, show only that section
   if (filterType === "reading") {

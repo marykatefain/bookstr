@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
-  const { getBookReadingStatus, books } = useLibraryData();
+  const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
 
   const { 
     data: book = null, 
@@ -42,37 +42,10 @@ export const useBookData = (isbn: string | undefined) => {
   const readingStatus = getBookReadingStatus(isbn);
 
   // Find the book in user's library to get its rating
-  const findBookWithRating = () => {
-    if (!isbn || !books) return null;
-    
-    console.log(`Looking for book with ISBN ${isbn} in user's library to get rating`);
-    
-    // Check each list for the book with matching ISBN
-    const bookInTbr = books.tbr.find(b => b.isbn === isbn);
-    if (bookInTbr?.readingStatus?.rating !== undefined) {
-      console.log(`Found rating ${bookInTbr.readingStatus.rating} for book in TBR list`);
-      return bookInTbr;
-    }
-    
-    const bookInReading = books.reading.find(b => b.isbn === isbn);
-    if (bookInReading?.readingStatus?.rating !== undefined) {
-      console.log(`Found rating ${bookInReading.readingStatus.rating} for book in Reading list`);
-      return bookInReading;
-    }
-    
-    const bookInRead = books.read.find(b => b.isbn === isbn);
-    if (bookInRead?.readingStatus?.rating !== undefined) {
-      console.log(`Found rating ${bookInRead.readingStatus.rating} for book in Read list`);
-      return bookInRead;
-    }
-    
-    console.log(`No rating found for book with ISBN ${isbn} in user's library`);
-    return null;
-  };
-
+  const bookInLibrary = getBookByISBN(isbn);
+  
   // Get user's rating from their library if available
-  const bookWithRating = findBookWithRating();
-  const userRating = bookWithRating?.readingStatus?.rating;
+  const userRating = bookInLibrary?.readingStatus?.rating;
 
   console.log(`Book with ISBN ${isbn} has user rating:`, userRating);
 

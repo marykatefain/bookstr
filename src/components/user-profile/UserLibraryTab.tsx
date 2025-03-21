@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { BookCard } from "@/components/BookCard";
 import { Book } from "@/lib/nostr/types";
 
@@ -17,17 +17,19 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
     book.readingStatus?.rating !== undefined
   );
   
-  if (readBooksWithRatings.length > 0) {
-    console.log(`Found ${readBooksWithRatings.length} read books with ratings in UserLibraryTab:`, 
-      readBooksWithRatings.map(b => ({ 
-        title: b.title, 
-        isbn: b.isbn, 
-        rating: b.readingStatus?.rating 
-      }))
-    );
-  } else {
-    console.log('No read books with ratings found in UserLibraryTab');
-  }
+  useEffect(() => {
+    if (readBooksWithRatings.length > 0) {
+      console.log(`Found ${readBooksWithRatings.length} read books with ratings in UserLibraryTab:`, 
+        readBooksWithRatings.map(b => ({ 
+          title: b.title, 
+          isbn: b.isbn, 
+          rating: b.readingStatus?.rating 
+        }))
+      );
+    } else {
+      console.log('No read books with ratings found in UserLibraryTab');
+    }
+  }, [readBooksWithRatings.length]);
   
   return (
     <div className="space-y-8">

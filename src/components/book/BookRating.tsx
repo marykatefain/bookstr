@@ -16,7 +16,6 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
   }
 
   // Convert rating from 0-1 scale to 1-5 scale for display
-  // Ensure it's a number and handle different scale formats
   let displayRating: number;
   
   if (typeof rating === 'number') {
@@ -51,6 +50,9 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
           }`}
         />
       ))}
+      <span className="text-xs ml-1 text-muted-foreground">
+        {displayRating}/5
+      </span>
     </div>
   );
-};
+}
