@@ -1,13 +1,12 @@
 
 # Bookstr
 
-Bookstr is a Goodreads or Storygraph alternative built on Nostr. 
-
-## Project info
+Bookstr is a Goodreads or Storygraph alternative built on Nostr built with Lovable AI. 
 
 **URL**: [https://bookstr.xyz](https://bookstr.xyz)
 
-## How can I edit this code?
+
+## Development
 
 There are several ways of editing your application.
 
@@ -62,11 +61,3 @@ This project is built with .
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/7bc87f7a-80df-4dcb-b3c5-7addab0bc347) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
