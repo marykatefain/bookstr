@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Check, Star } from "lucide-react";
+import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
@@ -15,6 +15,8 @@ interface BookCoverProps {
   isRead?: boolean;
   pendingAction?: string | null;
   onReadAction?: () => void;
+  onRemoveAction?: () => void;
+  readingStatus?: 'tbr' | 'reading' | 'finished' | null;
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
   rating?: number;
   onRatingChange?: (rating: number) => void;
@@ -28,6 +30,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   isRead = false,
   pendingAction = null,
   onReadAction = () => {},
+  onRemoveAction,
+  readingStatus,
   size = "medium",
   rating,
   onRatingChange
@@ -128,6 +132,25 @@ export const BookCover: React.FC<BookCoverProps> = ({
     );
   };
 
+  const removeButton = () => {
+    if (!onRemoveAction || !readingStatus) return null;
+    
+    return (
+      <button
+        onClick={onRemoveAction}
+        className="absolute top-2 left-2 rounded-full p-1.5 transition-all duration-200 
+          bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-red-500 hover:border-red-500"
+        title={`Remove from ${readingStatus === 'tbr' ? 'TBR' : readingStatus === 'reading' ? 'reading' : 'finished'} list`}
+      >
+        {pendingAction === readingStatus ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <X className="h-4 w-4" />
+        )}
+      </button>
+    );
+  };
+
   const actionButton = () => {
     if (isFinished) {
       // Show star rating for finished books
@@ -163,6 +186,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
       ) : (
         coverElement
       )}
+      {removeButton()}
       {actionButton()}
     </div>
   );

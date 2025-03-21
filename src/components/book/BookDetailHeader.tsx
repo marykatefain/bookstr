@@ -14,6 +14,7 @@ interface BookDetailHeaderProps {
   pendingAction: string | null;
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
+  handleRemove?: () => void;
 }
 
 export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
@@ -23,7 +24,8 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
   isRead,
   pendingAction,
   handleMarkAsRead,
-  addBookToList
+  addBookToList,
+  handleRemove
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -33,6 +35,7 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
         pendingAction={pendingAction}
         handleMarkAsRead={handleMarkAsRead}
         addBookToList={addBookToList}
+        handleRemove={handleRemove}
       />
       
       <BookInfoSection
@@ -50,7 +53,8 @@ const BookCoverSection: React.FC<{
   pendingAction: string | null;
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList }) => {
+  handleRemove?: () => void;
+}> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList, handleRemove }) => {
   const readingStatus = book.readingStatus?.status;
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
@@ -59,7 +63,6 @@ const BookCoverSection: React.FC<{
   const { toast } = useToast();
   
   const showActionButtons = !isFinished;
-  const showUnmarkButton = isFinished;
   
   return (
     <div className="md:w-1/3">
@@ -69,6 +72,8 @@ const BookCoverSection: React.FC<{
           isRead={isRead}
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
+          handleRemove={handleRemove}
+          readingStatus={readingStatus as 'tbr' | 'reading' | 'finished' | null}
         />
         <div className="mt-4 flex gap-2">
           {showActionButtons && (
@@ -101,17 +106,6 @@ const BookCoverSection: React.FC<{
               </Button>
             </>
           )}
-          
-          {showUnmarkButton && (
-            <Button 
-              className="flex-1 bg-bookverse-highlight"
-              onClick={handleMarkAsRead}
-              disabled={pendingAction !== null}
-            >
-              <X className="mr-2 h-4 w-4" />
-              Unmark as Read
-            </Button>
-          )}
         </div>
       </div>
     </div>
@@ -123,7 +117,9 @@ const BookCover: React.FC<{
   isRead: boolean;
   pendingAction: string | null;
   handleMarkAsRead: () => void;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
+  handleRemove?: () => void;
+  readingStatus?: 'tbr' | 'reading' | 'finished' | null;
+}> = ({ book, isRead, pendingAction, handleMarkAsRead, handleRemove, readingStatus }) => {
   const isFinished = book.readingStatus?.status === 'finished';
   const [isRating, setIsRating] = useState(false);
   const [ratingHover, setRatingHover] = useState<number | null>(null);
@@ -192,6 +188,25 @@ const BookCover: React.FC<{
     );
   };
   
+  const removeButton = () => {
+    if (!handleRemove || !readingStatus) return null;
+    
+    return (
+      <button
+        onClick={handleRemove}
+        className="absolute top-2 left-2 rounded-full p-1.5 transition-all duration-200 
+          bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-red-500 hover:border-red-500"
+        title={`Remove from ${readingStatus === 'tbr' ? 'TBR' : readingStatus === 'reading' ? 'reading' : 'finished'} list`}
+      >
+        {pendingAction === readingStatus ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <X className="h-4 w-4" />
+        )}
+      </button>
+    );
+  };
+  
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
       <img 
@@ -202,6 +217,8 @@ const BookCover: React.FC<{
           e.currentTarget.src = "/placeholder.svg";
         }} 
       />
+      
+      {removeButton()}
       
       {!isFinished && (
         <BookReadButton 

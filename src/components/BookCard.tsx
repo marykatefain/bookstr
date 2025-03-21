@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -251,6 +252,8 @@ export const BookCard: React.FC<BookCardProps> = ({
                 isRead={isRead}
                 pendingAction={pendingAction}
                 onReadAction={() => handleAction('finished')}
+                onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
+                readingStatus={mappedReadingStatus}
                 size={size}
                 rating={localBook.readingStatus?.rating}
                 onRatingChange={handleRating}
@@ -279,15 +282,11 @@ export const BookCard: React.FC<BookCardProps> = ({
                 <BookCategories categories={localBook.categories} />
               )}
               
-              <BookActionButtons
-                size={size}
-                pendingAction={pendingAction}
-                onAddToTbr={() => handleAction('tbr')}
-                onStartReading={() => handleAction('reading')}
-                onRemove={handleRemove}
-                readingStatus={mappedReadingStatus}
+              <BookActions
                 book={localBook}
                 onUpdate={handleBookUpdate}
+                size={size}
+                horizontal={true}
               />
             </div>
           </div>
@@ -303,6 +302,8 @@ export const BookCard: React.FC<BookCardProps> = ({
                   isRead={isRead}
                   pendingAction={pendingAction}
                   onReadAction={() => handleAction('finished')}
+                  onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
+                  readingStatus={mappedReadingStatus}
                   size={size}
                   rating={localBook.readingStatus?.rating}
                   onRatingChange={handleRating}

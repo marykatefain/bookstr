@@ -4,7 +4,7 @@ import { Book, BookActionType } from '@/lib/nostr/types';
 import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn, rateBook } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookOpen, Eye, Check, X, Star } from "lucide-react";
+import { BookOpen, Eye, X } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;
@@ -198,7 +198,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const isFinished = book.readingStatus?.status === 'finished';
 
   const showActionButtons = !isFinished;
-  const showUnmarkButton = isFinished;
 
   return (
     <>
@@ -206,48 +205,27 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         {showActionButtons && (
           <>
             <Button 
-              variant={isTbr ? "secondary" : "outline"} 
+              variant="outline" 
               size="sm"
               className={`${buttonSize} w-full`}
               onClick={() => handleAction('tbr')}
               disabled={isLoading !== null}
             >
-              {isTbr ? (
-                <X size={iconSize} />
-              ) : (
-                <BookOpen size={iconSize} />
-              )}
-              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "Add to TBR"}</span>}
+              <BookOpen size={iconSize} />
+              {size !== 'small' && <span>Add to TBR</span>}
             </Button>
             
             <Button 
-              variant={isReading ? "secondary" : "outline"} 
+              variant="outline" 
               size="sm"
               className={`${buttonSize} w-full`}
               onClick={() => handleAction('reading')}
               disabled={isLoading !== null}
             >
-              {isReading ? (
-                <X size={iconSize} />
-              ) : (
-                <Eye size={iconSize} />
-              )}
-              {size !== 'small' && <span>{isReading ? "Remove from List" : "Start Reading"}</span>}
+              <Eye size={iconSize} />
+              {size !== 'small' && <span>Start Reading</span>}
             </Button>
           </>
-        )}
-        
-        {showUnmarkButton && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            className={`${buttonSize} text-muted-foreground hover:bg-muted/50 w-full`}
-            onClick={() => handleAction('finished')}
-            disabled={isLoading !== null}
-          >
-            <X size={iconSize} />
-            {size !== 'small' && <span>Mark Unread</span>}
-          </Button>
         )}
       </div>
 
