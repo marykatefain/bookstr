@@ -59,13 +59,9 @@ export const useBookData = (isbn: string | undefined) => {
     } : book.readingStatus
   } : null;
 
-  // Log the enriched book to debug rating issues
-  if (enrichedBook) {
-    console.log(`Enriched book details for ISBN ${isbn}:`, {
-      title: enrichedBook.title,
-      readingStatus: enrichedBook.readingStatus?.status,
-      rating: enrichedBook.readingStatus?.rating
-    });
+  // Enhanced logging for rating visibility
+  if (enrichedBook && enrichedBook.readingStatus?.rating) {
+    console.log(`Book ${enrichedBook.title} has rating:`, enrichedBook.readingStatus.rating);
   }
 
   // Set read status when book data is available

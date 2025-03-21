@@ -65,6 +65,7 @@ const BookCoverSection: React.FC<{
           isRead={isRead}
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
+          userRating={book.readingStatus?.rating}
         />
         <div className="mt-4 flex gap-2">
           {showActionButtons && (
@@ -119,7 +120,8 @@ const BookCover: React.FC<{
   isRead: boolean;
   pendingAction: string | null;
   handleMarkAsRead: () => void;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
+  userRating?: number | null;
+}> = ({ book, isRead, pendingAction, handleMarkAsRead, userRating }) => {
   const isFinished = book.readingStatus?.status === 'finished';
   
   return (
@@ -141,14 +143,22 @@ const BookCover: React.FC<{
         />
       )}
       
-      {isFinished && (
+      {isFinished && userRating && userRating > 0 ? (
+        <div
+          className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
+          title={`You rated this ${Math.round(userRating * 5)}/5 stars`}
+        >
+          <Star className="h-3 w-3 fill-white" />
+          <span className="text-xs font-medium">{Math.round(userRating * 5)}</span>
+        </div>
+      ) : isFinished ? (
         <div
           className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
           title="Read"
         >
           <Check className="h-4 w-4" />
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
