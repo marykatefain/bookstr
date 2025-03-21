@@ -56,8 +56,8 @@ export const useBookData = (isbn: string | undefined) => {
       userRating = ratingValue;
     } else if (typeof ratingValue === 'object' && ratingValue !== null) {
       // Try to extract the value from the object
-      if ('value' in ratingValue && typeof ratingValue.value === 'string') {
-        const parsedValue = parseFloat(ratingValue.value);
+      if (ratingValue && 'value' in ratingValue && typeof (ratingValue as any).value === 'string') {
+        const parsedValue = parseFloat((ratingValue as any).value);
         if (!isNaN(parsedValue)) {
           userRating = parsedValue;
         }
@@ -107,3 +107,4 @@ export const useBookData = (isbn: string | undefined) => {
     setIsRead
   };
 };
+
