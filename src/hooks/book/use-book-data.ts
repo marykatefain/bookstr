@@ -45,51 +45,53 @@ export const useBookData = (isbn: string | undefined) => {
   const bookInLibrary = getBookByISBN(isbn);
   
   // Extract user's rating from their library if available
-  let userRating: number | undefined | null = null;
+  let userRating: number | null = null;
   
   if (bookInLibrary?.readingStatus?.rating !== undefined) {
-    // Handle case where rating might be stored as an object
     const ratingValue = bookInLibrary.readingStatus.rating;
-    console.log(`Raw rating value from library:`, ratingValue);
+    console.log(`Processing rating for ${isbn}:`, ratingValue);
     
+    // Handle different rating formats
     if (typeof ratingValue === 'number') {
       userRating = ratingValue;
-    } else if (typeof ratingValue === 'object' && ratingValue !== null) {
-      // Try to extract the value from the object
-      if (ratingValue && 'value' in ratingValue && typeof (ratingValue as any).value === 'string') {
-        const parsedValue = parseFloat((ratingValue as any).value);
-        if (!isNaN(parsedValue)) {
-          userRating = parsedValue;
-        }
-      }
+      console.log(`Numeric rating found: ${userRating}`);
     } else if (typeof ratingValue === 'string') {
-      // Try to parse string as number
       const parsedValue = parseFloat(ratingValue);
       if (!isNaN(parsedValue)) {
         userRating = parsedValue;
+        console.log(`String rating parsed: ${userRating}`);
+      }
+    } else if (ratingValue !== null && typeof ratingValue === 'object') {
+      // Handle complex object format
+      if ('value' in ratingValue && ratingValue.value !== undefined) {
+        const valueField = ratingValue.value;
+        if (typeof valueField === 'number') {
+          userRating = valueField;
+        } else if (typeof valueField === 'string') {
+          const parsedValue = parseFloat(valueField);
+          if (!isNaN(parsedValue)) {
+            userRating = parsedValue;
+          }
+        }
+        console.log(`Object rating extracted: ${userRating}`);
       }
     }
   }
 
-  console.log(`Book with ISBN ${isbn} has user rating:`, userRating);
-  console.log(`Book in library:`, bookInLibrary);
+  console.log(`Final rating value for ${isbn}:`, userRating);
   
-  if (bookInLibrary) {
-    console.log(`Rating from readingStatus:`, bookInLibrary.readingStatus?.rating);
-  }
-
   // Update the book object with the reading status and rating
   const enrichedBook = book ? {
     ...book,
     readingStatus: readingStatus ? {
       status: readingStatus,
       dateAdded: Date.now(), // Add the required dateAdded property
-      rating: userRating !== undefined && userRating !== null ? userRating : book.readingStatus?.rating
+      rating: userRating !== null ? userRating : book.readingStatus?.rating
     } : book.readingStatus
   } : null;
 
   // Enhanced logging for rating visibility
-  if (enrichedBook && enrichedBook.readingStatus?.rating) {
+  if (enrichedBook && enrichedBook.readingStatus?.rating !== undefined) {
     console.log(`Book ${enrichedBook.title} has rating:`, enrichedBook.readingStatus.rating);
   }
 
@@ -107,4 +109,3 @@ export const useBookData = (isbn: string | undefined) => {
     setIsRead
   };
 };
-

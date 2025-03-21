@@ -46,13 +46,21 @@ export function extractRatingFromTags(event: Event): number | undefined {
     try {
       console.log(`Found rating tag: ${ratingTag[1]}`);
       // Handle case where the rating might be stored as an object
-      if (ratingTag[1].includes('{') && ratingTag[1].includes('}')) {
+      if (typeof ratingTag[1] === 'string' && ratingTag[1].includes('{') && ratingTag[1].includes('}')) {
         try {
           const ratingObj = JSON.parse(ratingTag[1]);
-          if (ratingObj.value && !isNaN(parseFloat(ratingObj.value))) {
-            const ratingValue = parseFloat(ratingObj.value);
-            console.log(`Parsed rating value from object: ${ratingValue}`);
-            return ratingValue;
+          if (ratingObj && typeof ratingObj === 'object' && 'value' in ratingObj) {
+            const valueField = ratingObj.value;
+            if (valueField !== undefined) {
+              if (typeof valueField === 'number') {
+                return parseNormalizeRating(valueField);
+              } else if (typeof valueField === 'string') {
+                const parsedValue = parseFloat(valueField);
+                if (!isNaN(parsedValue)) {
+                  return parseNormalizeRating(parsedValue);
+                }
+              }
+            }
           }
         } catch (e) {
           console.error("Error parsing rating object:", e);
@@ -60,24 +68,10 @@ export function extractRatingFromTags(event: Event): number | undefined {
       }
       
       // Handle normal numeric rating
-      const ratingValue = parseFloat(ratingTag[1]);
-      
-      if (!isNaN(ratingValue)) {
-        // Determine if it's already on 0-1 scale or 1-5 scale
-        if (ratingValue >= 0 && ratingValue <= 1) {
-          console.log(`Found rating in 0-1 scale: ${ratingValue}`);
-          return ratingValue; // Return as is for 0-1 scale
-        } else if (ratingValue >= 1 && ratingValue <= 5) {
-          // Convert from 1-5 scale to 0-1 scale
-          const normalizedRating = ratingValue / 5;
-          console.log(`Converting rating from 1-5 scale (${ratingValue}) to 0-1 scale: ${normalizedRating}`);
-          return normalizedRating;
-        } else {
-          // Handle unexpected values by normalizing to 0-1 scale
-          const clampedValue = Math.min(5, Math.max(1, ratingValue));
-          const normalizedRating = clampedValue / 5;
-          console.log(`Clamping unexpected rating ${ratingValue} to ${clampedValue}, normalized: ${normalizedRating}`);
-          return normalizedRating;
+      if (typeof ratingTag[1] === 'string') {
+        const ratingValue = parseFloat(ratingTag[1]);
+        if (!isNaN(ratingValue)) {
+          return parseNormalizeRating(ratingValue);
         }
       }
     } catch (e) {
@@ -90,31 +84,33 @@ export function extractRatingFromTags(event: Event): number | undefined {
   for (const tag of event.tags) {
     if (tag[0] === 'r' || tag[0] === 'score' || (tag[0] === 'alt' && tag[1] && tag[1].includes('rating'))) {
       try {
-        // Handle case where the rating might be stored as an object
-        if (tag[1] && tag[1].includes('{') && tag[1].includes('}')) {
-          try {
-            const ratingObj = JSON.parse(tag[1]);
-            if (ratingObj.value && !isNaN(parseFloat(ratingObj.value))) {
-              const ratingValue = parseFloat(ratingObj.value);
-              console.log(`Parsed rating value from object in alt tag: ${ratingValue}`);
-              return ratingValue;
+        if (tag[1] && typeof tag[1] === 'string') {
+          // Handle object format
+          if (tag[1].includes('{') && tag[1].includes('}')) {
+            try {
+              const ratingObj = JSON.parse(tag[1]);
+              if (ratingObj && typeof ratingObj === 'object' && 'value' in ratingObj) {
+                const valueField = ratingObj.value;
+                if (valueField !== undefined) {
+                  if (typeof valueField === 'number') {
+                    return parseNormalizeRating(valueField);
+                  } else if (typeof valueField === 'string') {
+                    const parsedValue = parseFloat(valueField);
+                    if (!isNaN(parsedValue)) {
+                      return parseNormalizeRating(parsedValue);
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing rating object from alt tag:", e);
             }
-          } catch (e) {
-            console.error("Error parsing rating object from alt tag:", e);
           }
-        }
-        
-        // Handle normal numeric rating
-        const value = parseFloat(tag[1]);
-        if (!isNaN(value)) {
-          // Normalize to 0-1 scale if needed
-          if (value >= 0 && value <= 1) {
-            console.log(`Found alternative rating in 0-1 scale: ${value}`);
-            return value;
-          } else if (value >= 1 && value <= 5) {
-            const normalizedRating = value / 5;
-            console.log(`Found alternative rating and converting from 1-5 scale (${value}) to 0-1 scale: ${normalizedRating}`);
-            return normalizedRating;
+          
+          // Handle normal numeric rating
+          const value = parseFloat(tag[1]);
+          if (!isNaN(value)) {
+            return parseNormalizeRating(value);
           }
         }
       } catch (e) {
@@ -128,14 +124,7 @@ export function extractRatingFromTags(event: Event): number | undefined {
     try {
       const contentValue = parseFloat(event.content);
       if (!isNaN(contentValue)) {
-        if (contentValue >= 0 && contentValue <= 1) {
-          console.log(`Found rating in content (0-1 scale): ${contentValue}`);
-          return contentValue;
-        } else if (contentValue >= 1 && contentValue <= 5) {
-          const normalizedRating = contentValue / 5;
-          console.log(`Found rating in content, converting from 1-5 scale (${contentValue}) to 0-1 scale: ${normalizedRating}`);
-          return normalizedRating;
-        }
+        return parseNormalizeRating(contentValue);
       }
     } catch (e) {
       console.error("Error parsing content rating:", e);
@@ -145,6 +134,30 @@ export function extractRatingFromTags(event: Event): number | undefined {
   // No valid rating found
   console.log(`No valid rating found for event ${event.id}`);
   return undefined;
+}
+
+/**
+ * Helper function to normalize ratings to 0-1 scale
+ */
+function parseNormalizeRating(value: number): number {
+  // If rating is already in 0-1 scale
+  if (value >= 0 && value <= 1) {
+    console.log(`Rating already in 0-1 scale: ${value}`);
+    return value;
+  } 
+  // If rating is in 1-5 scale
+  else if (value >= 1 && value <= 5) {
+    const normalizedValue = value / 5;
+    console.log(`Normalizing rating from 1-5 scale (${value}) to 0-1 scale: ${normalizedValue}`);
+    return normalizedValue;
+  }
+  // Handle any other scales by clamping to 0-1
+  else {
+    const clampedValue = Math.min(5, Math.max(1, value));
+    const normalizedValue = clampedValue / 5;
+    console.log(`Clamping unexpected rating value ${value} to ${clampedValue}, normalized: ${normalizedValue}`);
+    return normalizedValue;
+  }
 }
 
 /**

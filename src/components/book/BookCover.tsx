@@ -53,11 +53,23 @@ export const BookCover: React.FC<BookCoverProps> = ({
     // Not displaying any button if there's no action handler
     if (!onReadAction && !isRead && !userRating) return null;
     
-    // If the book is read and has a rating, show the rating
+    // Show rating if available and book is read
     if (isRead && userRating !== null && userRating > 0) {
       console.log(`Displaying rating for ${title}: ${userRating}`);
-      // Convert from 0-1 scale to 1-5 scale for display
-      const displayRating = Math.round(userRating * 5);
+      // Display rating on 1-5 scale
+      let displayRating: number;
+      
+      // If rating is between 0-1, convert to 1-5 scale
+      if (userRating >= 0 && userRating <= 1) {
+        displayRating = Math.round(userRating * 5);
+      } else if (userRating >= 1 && userRating <= 5) {
+        // Already in 1-5 scale
+        displayRating = Math.round(userRating);
+      } else {
+        // Fallback for unexpected values
+        displayRating = Math.min(5, Math.max(1, Math.round(userRating)));
+      }
+      
       return (
         <div
           className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
