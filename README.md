@@ -1,9 +1,11 @@
 
-# Welcome to your Bookstr project
+# Bookstr
+
+Bookstr is a Goodreads or Storygraph alternative built on Nostr. 
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/7bc87f7a-80df-4dcb-b3c5-7addab0bc347
+**URL**: [https://bookstr.xyz](https://bookstr.xyz)
 
 ## How can I edit this code?
 
