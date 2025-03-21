@@ -145,7 +145,7 @@ const BookCover: React.FC<{
         />
       )}
       
-      {isFinished && userRating && userRating > 0 ? (
+      {isFinished && userRating !== undefined && userRating !== null && userRating > 0 ? (
         <div
           className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
           title={`You rated this ${Math.round(userRating * 5)}/5 stars`}

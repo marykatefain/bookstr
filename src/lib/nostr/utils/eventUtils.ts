@@ -45,6 +45,21 @@ export function extractRatingFromTags(event: Event): number | undefined {
   if (ratingTag && ratingTag[1]) {
     try {
       console.log(`Found rating tag: ${ratingTag[1]}`);
+      // Handle case where the rating might be stored as an object
+      if (ratingTag[1].includes('{') && ratingTag[1].includes('}')) {
+        try {
+          const ratingObj = JSON.parse(ratingTag[1]);
+          if (ratingObj.value && !isNaN(parseFloat(ratingObj.value))) {
+            const ratingValue = parseFloat(ratingObj.value);
+            console.log(`Parsed rating value from object: ${ratingValue}`);
+            return ratingValue;
+          }
+        } catch (e) {
+          console.error("Error parsing rating object:", e);
+        }
+      }
+      
+      // Handle normal numeric rating
       const ratingValue = parseFloat(ratingTag[1]);
       
       if (!isNaN(ratingValue)) {
@@ -70,10 +85,26 @@ export function extractRatingFromTags(event: Event): number | undefined {
     }
   }
 
-  // Look for any tag that might contain a number rating
+  // Check for alternative rating formats
+  // Look for any tag that might contain a rating
   for (const tag of event.tags) {
     if (tag[0] === 'r' || tag[0] === 'score' || (tag[0] === 'alt' && tag[1] && tag[1].includes('rating'))) {
       try {
+        // Handle case where the rating might be stored as an object
+        if (tag[1] && tag[1].includes('{') && tag[1].includes('}')) {
+          try {
+            const ratingObj = JSON.parse(tag[1]);
+            if (ratingObj.value && !isNaN(parseFloat(ratingObj.value))) {
+              const ratingValue = parseFloat(ratingObj.value);
+              console.log(`Parsed rating value from object in alt tag: ${ratingValue}`);
+              return ratingValue;
+            }
+          } catch (e) {
+            console.error("Error parsing rating object from alt tag:", e);
+          }
+        }
+        
+        // Handle normal numeric rating
         const value = parseFloat(tag[1]);
         if (!isNaN(value)) {
           // Normalize to 0-1 scale if needed
@@ -89,6 +120,25 @@ export function extractRatingFromTags(event: Event): number | undefined {
       } catch (e) {
         console.error("Error parsing alternative rating tag:", e);
       }
+    }
+  }
+
+  // If kind is BOOK_RATING, look for content field which might contain a rating
+  if (event.kind === NOSTR_KINDS.BOOK_RATING && event.content) {
+    try {
+      const contentValue = parseFloat(event.content);
+      if (!isNaN(contentValue)) {
+        if (contentValue >= 0 && contentValue <= 1) {
+          console.log(`Found rating in content (0-1 scale): ${contentValue}`);
+          return contentValue;
+        } else if (contentValue >= 1 && contentValue <= 5) {
+          const normalizedRating = contentValue / 5;
+          console.log(`Found rating in content, converting from 1-5 scale (${contentValue}) to 0-1 scale: ${normalizedRating}`);
+          return normalizedRating;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing content rating:", e);
     }
   }
 

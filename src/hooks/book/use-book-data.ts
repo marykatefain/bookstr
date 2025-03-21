@@ -44,8 +44,32 @@ export const useBookData = (isbn: string | undefined) => {
   // Find the book in user's library to get its rating
   const bookInLibrary = getBookByISBN(isbn);
   
-  // Get user's rating from their library if available
-  const userRating = bookInLibrary?.readingStatus?.rating;
+  // Extract user's rating from their library if available
+  let userRating: number | undefined | null = null;
+  
+  if (bookInLibrary?.readingStatus?.rating !== undefined) {
+    // Handle case where rating might be stored as an object
+    const ratingValue = bookInLibrary.readingStatus.rating;
+    console.log(`Raw rating value from library:`, ratingValue);
+    
+    if (typeof ratingValue === 'number') {
+      userRating = ratingValue;
+    } else if (typeof ratingValue === 'object' && ratingValue !== null) {
+      // Try to extract the value from the object
+      if ('value' in ratingValue && typeof ratingValue.value === 'string') {
+        const parsedValue = parseFloat(ratingValue.value);
+        if (!isNaN(parsedValue)) {
+          userRating = parsedValue;
+        }
+      }
+    } else if (typeof ratingValue === 'string') {
+      // Try to parse string as number
+      const parsedValue = parseFloat(ratingValue);
+      if (!isNaN(parsedValue)) {
+        userRating = parsedValue;
+      }
+    }
+  }
 
   console.log(`Book with ISBN ${isbn} has user rating:`, userRating);
   console.log(`Book in library:`, bookInLibrary);
@@ -60,7 +84,7 @@ export const useBookData = (isbn: string | undefined) => {
     readingStatus: readingStatus ? {
       status: readingStatus,
       dateAdded: Date.now(), // Add the required dateAdded property
-      rating: userRating !== undefined ? userRating : book.readingStatus?.rating
+      rating: userRating !== undefined && userRating !== null ? userRating : book.readingStatus?.rating
     } : book.readingStatus
   } : null;
 

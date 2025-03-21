@@ -54,8 +54,9 @@ export const BookCover: React.FC<BookCoverProps> = ({
     if (!onReadAction && !isRead && !userRating) return null;
     
     // If the book is read and has a rating, show the rating
-    if (isRead && userRating && userRating > 0) {
+    if (isRead && userRating !== null && userRating > 0) {
       console.log(`Displaying rating for ${title}: ${userRating}`);
+      // Convert from 0-1 scale to 1-5 scale for display
       const displayRating = Math.round(userRating * 5);
       return (
         <div
@@ -68,14 +69,24 @@ export const BookCover: React.FC<BookCoverProps> = ({
       );
     }
     
+    // If the book is read but has no rating, show the check mark
+    if (isRead) {
+      return (
+        <div
+          className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
+          title="Read"
+        >
+          <Check className="h-4 w-4" />
+        </div>
+      );
+    }
+    
     // Otherwise show the read/check button
     return (
       <button
         onClick={onReadAction}
-        className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
-          ${isRead 
-            ? "bg-green-500 text-white" 
-            : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+        className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+          bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"
         title="Mark as read"
       >
         {pendingAction === 'finished' ? (
