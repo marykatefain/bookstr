@@ -10,15 +10,7 @@ import { getSharedPool } from "../utils/poolManager";
  * Extract all ISBNs from the tags of an event
  */
 export function extractISBNsFromTags(event: Event): string[] {
-  const isbnTags = event.tags.filter(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
-  return isbnTags.map(tag => tag[1].replace('isbn:', ''));
-}
-
-/**
- * Extract a single ISBN from tags (used for backward compatibility)
- */
-export function extractISBNFromTags(event: Event): string | null {
-  const isbnTag = event.tags.find(([name, value]) => {
+  const isbnTags = event.tags.filter(([name, value]) => {
     if (event.kind === NOSTR_KINDS.REVIEW) {
       return name === 'd' && value?.startsWith('isbn:');
     } else {
@@ -26,7 +18,14 @@ export function extractISBNFromTags(event: Event): string | null {
     }
   });
 
-  return isbnTag?.[1].replace(/^isbn:/, '') ?? null;
+  return isbnTags.map(([, isbn]) => isbn.replace(/^isbn:/, ''));
+}
+
+/**
+ * Extract a single ISBN from tags (used for backward compatibility)
+ */
+export function extractISBNFromTags(event: Event): string | null {
+  return extractISBNsFromTags(event)[0] || null;
 }
 
 /**
