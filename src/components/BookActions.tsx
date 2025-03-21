@@ -232,7 +232,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <Eye size={iconSize} />
               )}
-              {size !== 'small' && <span>{isReading ? "Stop" : "Start Reading"}</span>}
+              {size !== 'small' && <span>{isReading ? "Remove from List" : "Start Reading"}</span>}
             </Button>
           </>
         )}
