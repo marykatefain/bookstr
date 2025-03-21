@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -218,7 +217,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
               ) : (
                 <BookOpen size={iconSize} />
               )}
-              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "TBR"}</span>}
+              {size !== 'small' && <span>{isTbr ? "Remove from TBR" : "Move to TBR"}</span>}
             </Button>
             
             <Button 
