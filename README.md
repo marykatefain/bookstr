@@ -5,6 +5,7 @@
 
 Bookstr is a Goodreads or Storygraph alternative built on Nostr built with Lovable AI. 
 
+![Bookstr Homepage](https://repository-images.githubusercontent.com/950351951/418a257b-4434-4d6f-97fe-eddceb6aa320)
 
 
 ## Development
