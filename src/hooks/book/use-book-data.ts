@@ -62,13 +62,15 @@ export const useBookData = (isbn: string | undefined) => {
         console.log(`String rating parsed: ${userRating}`);
       }
     } else if (ratingValue !== null && typeof ratingValue === 'object') {
-      // Handle complex object format
-      if ('value' in ratingValue && ratingValue.value !== undefined) {
-        const valueField = ratingValue.value;
-        if (typeof valueField === 'number') {
-          userRating = valueField;
-        } else if (typeof valueField === 'string') {
-          const parsedValue = parseFloat(valueField);
+      // Handle complex object format - proper typeguard for safety
+      const ratingObject = ratingValue as Record<string, unknown>;
+      
+      // Check if 'value' property exists and handle it safely
+      if ('value' in ratingObject && ratingObject.value !== undefined) {
+        if (typeof ratingObject.value === 'number') {
+          userRating = ratingObject.value;
+        } else if (typeof ratingObject.value === 'string') {
+          const parsedValue = parseFloat(ratingObject.value as string);
           if (!isNaN(parsedValue)) {
             userRating = parsedValue;
           }
