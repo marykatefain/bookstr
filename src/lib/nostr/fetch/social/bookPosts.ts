@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { Post, NOSTR_KINDS } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -54,11 +53,18 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     const allEvents = Array.from(eventMap.values());
     console.log(`Combined into ${allEvents.length} unique events`);
     
+    // Filter out reply posts (posts with 'e' tags)
+    const nonReplyEvents = allEvents.filter(event => 
+      !event.tags.some(tag => tag[0] === 'e')
+    );
+    
+    console.log(`Filtered out ${allEvents.length - nonReplyEvents.length} reply posts, leaving ${nonReplyEvents.length} top-level posts`);
+    
     // Process events to extract posts
     const posts: Post[] = [];
     const userPubkeys = new Set<string>();
     
-    for (const event of allEvents) {
+    for (const event of nonReplyEvents) {
       userPubkeys.add(event.pubkey);
       
       // Extract ISBN from the tag (could be in format "isbn:1234567890" or just the ISBN)
