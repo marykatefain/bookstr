@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
-import { rateBook } from "@/lib/nostr";
-import { useToast } from "@/hooks/use-toast";
 
 interface BookDetailHeaderProps {
   book: Book;
@@ -55,8 +53,6 @@ const BookCoverSection: React.FC<{
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
-  const [isRating, setIsRating] = useState(false);
-  const { toast } = useToast();
   
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;

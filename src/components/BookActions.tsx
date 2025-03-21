@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
-import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn, rateBook } from "@/lib/nostr";
+import { addBookToList, updateBookInList, removeBookFromList, isLoggedIn } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { ISBNEntryModal } from './ISBNEntryModal';
-import { BookOpen, Eye, Check, X, Star } from "lucide-react";
+import { BookOpen, Eye, Check, X } from "lucide-react";
 
 interface BookActionsProps {
   book: Book;
@@ -18,19 +18,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const [isLoading, setIsLoading] = useState<BookActionType | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<BookActionType | null>(null);
-  const [isRating, setIsRating] = useState(false);
-  const [localRating, setLocalRating] = useState<number>(0);
   const { toast } = useToast();
-
-  // Initialize localRating from book's readingStatus if available
-  useEffect(() => {
-    if (book.readingStatus?.rating !== undefined) {
-      // Convert from 0-1 scale to 1-5 scale
-      setLocalRating(Math.round(book.readingStatus.rating * 5));
-    } else {
-      setLocalRating(0);
-    }
-  }, [book.readingStatus?.rating]);
 
   const handleAction = async (action: BookActionType) => {
     const isInList = book.readingStatus?.status === action || 
@@ -142,50 +130,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     }
   };
 
-  const handleRating = async (rating: number) => {
-    try {
-      setIsRating(true);
-      setLocalRating(rating); // Update local state immediately for better UX
-      
-      if (!book.isbn) {
-        throw new Error("ISBN is required");
-      }
-      
-      // Convert from 1-5 scale to 0-1 scale for storage
-      const normalizedRating = rating / 5;
-      await rateBook(book, normalizedRating);
-      
-      toast({
-        title: "Success!",
-        description: `You've rated "${book.title}" ${rating} stars.`,
-      });
-      
-      // Update book object with new rating in local state
-      const updatedBook = {
-        ...book,
-        readingStatus: {
-          ...book.readingStatus,
-          rating: normalizedRating
-        }
-      };
-      
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error(`Error rating book:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to rate the book. Please try again.`,
-        variant: "destructive",
-      });
-      // Revert to previous rating on failure
-      setLocalRating(book.readingStatus?.rating ? Math.round(book.readingStatus.rating * 5) : 0);
-    } finally {
-      setIsRating(false);
-    }
-  };
-
   const getButtonSize = () => {
     switch (size) {
       case 'small': return 'h-8 text-xs px-2';
@@ -208,9 +152,6 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
 
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
-  
-  // Use the local rating state instead of reading directly from book
-  const userRating = localRating || 0;
 
   return (
     <>
@@ -250,33 +191,16 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         )}
         
         {showUnmarkButton && (
-          <>
-            <div className="flex justify-center mt-1 mb-1 col-span-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  onClick={() => !isRating && handleRating(star)}
-                  className={`h-5 w-5 cursor-pointer ${
-                    isRating ? 'opacity-50' : ''
-                  } ${
-                    star <= userRating
-                      ? "text-yellow-500 fill-yellow-500"
-                      : "text-gray-300"
-                  }`}
-                />
-              ))}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className={`${buttonSize} text-muted-foreground hover:bg-muted/50 col-span-2 w-full`}
-              onClick={() => handleAction('finished')}
-              disabled={isLoading !== null}
-            >
-              <X size={iconSize} />
-              {size !== 'small' && <span>Mark Unread</span>}
-            </Button>
-          </>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={`${buttonSize} text-muted-foreground hover:bg-muted/50 col-span-2 w-full`}
+            onClick={() => handleAction('finished')}
+            disabled={isLoading !== null}
+          >
+            <X size={iconSize} />
+            {size !== 'small' && <span>Mark Unread</span>}
+          </Button>
         )}
       </div>
 
