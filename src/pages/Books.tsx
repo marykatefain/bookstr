@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { BookCard } from "@/components/BookCard";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 import { useLibraryData } from "@/hooks/use-library-data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const categories = [
   "All",
@@ -31,75 +33,113 @@ const Books = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
   const { books: userBooks, getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
+  
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimerRef = useRef<number | null>(null);
+  const initialRenderRef = useRef(true);
+  const previousSearchRef = useRef({ query: "", category: "All" });
+  const searchInProgressRef = useRef(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 500);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Increase debounce time to reduce flickering
+    debounceTimerRef.current = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      debounceTimerRef.current = null;
+    }, 1000); // Increased from 800ms to 1000ms
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [searchQuery]);
 
-  useEffect(() => {
-    const enrichBooksWithReadingStatus = (bookList: Book[]): Book[] => {
-      return bookList.map(book => {
-        if (book.isbn) {
-          const readingStatus = getBookReadingStatus(book.isbn);
-          if (readingStatus) {
-            return {
-              ...book,
-              readingStatus: {
-                ...book.readingStatus,
-                status: readingStatus,
-                dateAdded: Date.now()
-              }
-            };
-          }
+  const enrichBooksWithReadingStatus = useCallback((bookList: Book[]): Book[] => {
+    return bookList.map(book => {
+      if (book.isbn) {
+        const readingStatus = getBookReadingStatus(book.isbn);
+        if (readingStatus) {
+          return {
+            ...book,
+            readingStatus: {
+              ...book.readingStatus,
+              status: readingStatus,
+              dateAdded: Date.now()
+            }
+          };
         }
-        return book;
-      }) as Book[];
-    };
+      }
+      return book;
+    }) as Book[];
+  }, [getBookReadingStatus]);
 
-    if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+  useEffect(() => {
+    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching) {
       console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
       const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
       setBooks(enrichedBooks);
       setIsLoading(false);
-    } else if (!loadingTrending && weeklyTrendingBooks.length === 0) {
+    } else if (!loadingTrending && weeklyTrendingBooks.length === 0 && initialRenderRef.current) {
       console.log("No trending books loaded, attempting to refresh");
       refreshBooks();
+      initialRenderRef.current = false;
     }
-  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, getBookReadingStatus]);
+  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, enrichBooksWithReadingStatus, isSearching]);
 
   useEffect(() => {
     const performSearch = async () => {
-      if (!debouncedSearch && activeCategory === "All") {
-        if (weeklyTrendingBooks.length > 0) {
-          console.log("Using trending books as no search or category is active");
-          const enrichedBooks = weeklyTrendingBooks.map(book => {
-            if (book.isbn) {
-              const readingStatus = getBookReadingStatus(book.isbn);
-              if (readingStatus) {
-                return {
-                  ...book,
-                  readingStatus: {
-                    ...book.readingStatus,
-                    status: readingStatus,
-                    dateAdded: Date.now()
-                  }
-                };
-              }
-            }
-            return book;
-          }) as Book[];
-          
-          setBooks(enrichedBooks);
-          setIsLoading(false);
-        }
+      // Skip search if it's the same as the previous one to prevent flickering
+      if (
+        debouncedSearch === previousSearchRef.current.query && 
+        activeCategory === previousSearchRef.current.category
+      ) {
+        console.log("Skipping duplicate search");
+        return;
+      }
+      
+      // Prevent concurrent searches
+      if (searchInProgressRef.current) {
+        console.log("Search already in progress, skipping");
         return;
       }
 
-      setIsLoading(true);
+      if (!debouncedSearch && activeCategory === "All") {
+        if (isSearching) {
+          setIsSearching(false);
+        }
+        
+        if (weeklyTrendingBooks.length > 0) {
+          console.log("Using trending books as no search or category is active");
+          const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+          setBooks(enrichedBooks);
+          setIsLoading(false);
+        }
+        
+        // Update previous search reference
+        previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
+        return;
+      }
+
+      setIsSearching(true);
+      // Only show loading if we don't already have books to display
+      if (books.length === 0) {
+        setIsLoading(true);
+      }
+      
+      searchInProgressRef.current = true;
+      
       try {
         let results: Book[] = [];
         
@@ -113,24 +153,17 @@ const Books = () => {
         
         console.log(`Search returned ${results.length} results`);
         
-        const enrichedResults = results.map(book => {
-          if (book.isbn) {
-            const readingStatus = getBookReadingStatus(book.isbn);
-            if (readingStatus) {
-              return {
-                ...book,
-                readingStatus: {
-                  ...book.readingStatus,
-                  status: readingStatus,
-                  dateAdded: Date.now()
-                }
-              };
-            }
-          }
-          return book;
-        }) as Book[];
+        // Update previous search reference
+        previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         
-        setBooks(enrichedResults);
+        if (results.length > 0) {
+          const enrichedResults = enrichBooksWithReadingStatus(results);
+          setBooks(enrichedResults);
+        } else if (books.length === 0 && weeklyTrendingBooks.length > 0) {
+          // Only use trending books as fallback if we have no results and no current books
+          const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+          setBooks(enrichedBooks);
+        }
       } catch (error) {
         console.error("Error searching books:", error);
         toast({
@@ -138,15 +171,27 @@ const Books = () => {
           description: "There was a problem with your search. Please try again.",
           variant: "destructive"
         });
+        
+        if (books.length === 0 && weeklyTrendingBooks.length > 0) {
+          const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+          setBooks(enrichedBooks);
+        }
       } finally {
         setIsLoading(false);
+        searchInProgressRef.current = false;
       }
     };
 
     performSearch();
-  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, getBookReadingStatus]);
+  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, books, enrichBooksWithReadingStatus]);
 
   const handleCategoryChange = (category: string) => {
+    // Skip if it's already the active category to prevent flickering
+    if (category === activeCategory) {
+      console.log(`Category ${category} already active, skipping change`);
+      return;
+    }
+    
     console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
     if (searchQuery) {
@@ -160,13 +205,23 @@ const Books = () => {
     refetchUserBooks();
     
     if (debouncedSearch || activeCategory !== "All") {
+      // Only trigger a new search if we need to refresh the current results
       const currentSearch = debouncedSearch;
+      const currentCategory = activeCategory;
+      // Force a refresh by briefly changing the state
       setDebouncedSearch("");
-      setTimeout(() => setDebouncedSearch(currentSearch), 10);
+      setTimeout(() => {
+        // Simulating a "force refresh" but prevent unnecessary searches
+        previousSearchRef.current = { query: "", category: "" };
+        setDebouncedSearch(currentSearch);
+      }, 10);
     } else {
       refreshBooks();
     }
   };
+
+  const shouldShowLoadingSkeleton = (isLoading || loadingTrending) && 
+    (books.length === 0 || (isSearching && books.length === 0));
 
   return (
     <Layout>
@@ -207,10 +262,15 @@ const Books = () => {
             </div>
           </div>
 
-          {isLoading || loadingTrending ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-bookverse-accent" />
-              <span className="ml-2 text-bookverse-ink">Loading books...</span>
+          {shouldShowLoadingSkeleton ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  <Skeleton className="h-[280px] w-full rounded-md" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">

@@ -40,6 +40,8 @@ export function useFeedFetcher({
     handleFetchSuccess,
     handleFetchError
   } = useFeedCore({ 
+    type,
+    maxItems,
     onComplete,
     isBackgroundRefresh 
   });
