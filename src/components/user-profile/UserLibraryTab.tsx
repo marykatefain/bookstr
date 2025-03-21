@@ -12,19 +12,21 @@ interface UserLibraryTabProps {
 }
 
 export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => {
-  // Log books with ratings for debugging
+  // Enhanced logging for books with ratings
   const readBooksWithRatings = userBooks.read.filter(book => 
     book.readingStatus?.rating !== undefined
   );
   
   if (readBooksWithRatings.length > 0) {
-    console.log(`Found ${readBooksWithRatings.length} read books with ratings:`, 
+    console.log(`Found ${readBooksWithRatings.length} read books with ratings in UserLibraryTab:`, 
       readBooksWithRatings.map(b => ({ 
         title: b.title, 
         isbn: b.isbn, 
         rating: b.readingStatus?.rating 
       }))
     );
+  } else {
+    console.log('No read books with ratings found in UserLibraryTab');
   }
   
   return (

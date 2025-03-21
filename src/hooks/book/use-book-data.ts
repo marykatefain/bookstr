@@ -45,16 +45,28 @@ export const useBookData = (isbn: string | undefined) => {
   const findBookWithRating = () => {
     if (!isbn || !books) return null;
     
+    console.log(`Looking for book with ISBN ${isbn} in user's library to get rating`);
+    
     // Check each list for the book with matching ISBN
     const bookInTbr = books.tbr.find(b => b.isbn === isbn);
-    if (bookInTbr?.readingStatus?.rating !== undefined) return bookInTbr;
+    if (bookInTbr?.readingStatus?.rating !== undefined) {
+      console.log(`Found rating ${bookInTbr.readingStatus.rating} for book in TBR list`);
+      return bookInTbr;
+    }
     
     const bookInReading = books.reading.find(b => b.isbn === isbn);
-    if (bookInReading?.readingStatus?.rating !== undefined) return bookInReading;
+    if (bookInReading?.readingStatus?.rating !== undefined) {
+      console.log(`Found rating ${bookInReading.readingStatus.rating} for book in Reading list`);
+      return bookInReading;
+    }
     
     const bookInRead = books.read.find(b => b.isbn === isbn);
-    if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
+    if (bookInRead?.readingStatus?.rating !== undefined) {
+      console.log(`Found rating ${bookInRead.readingStatus.rating} for book in Read list`);
+      return bookInRead;
+    }
     
+    console.log(`No rating found for book with ISBN ${isbn} in user's library`);
     return null;
   };
 
