@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -191,9 +192,8 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   const iconSize = size === 'small' ? 14 : size === 'large' ? 20 : 16;
   const buttonSize = getButtonSize();
   
-  const containerClass = horizontal 
-    ? 'grid grid-cols-2 gap-2 mt-2 w-full' 
-    : 'flex flex-col space-y-2 mt-2 w-full';
+  // Changed from grid to flex column
+  const containerClass = 'flex flex-col space-y-2 mt-2 w-full';
 
   const isTbr = book.readingStatus?.status === 'tbr';
   const isReading = book.readingStatus?.status === 'reading';
@@ -262,3 +262,4 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     </>
   );
 }
+
