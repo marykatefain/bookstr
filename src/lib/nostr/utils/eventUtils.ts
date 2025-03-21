@@ -1,6 +1,7 @@
 
 import { Event } from "nostr-tools";
 import { NOSTR_KINDS } from "../types";
+import { processRatingValue } from "@/lib/utils/ratingUtils";
 
 /**
  * Extract ISBN from a tag
@@ -45,34 +46,10 @@ export function extractRatingFromTags(event: Event): number | undefined {
   if (ratingTag && ratingTag[1]) {
     try {
       console.log(`Found rating tag: ${ratingTag[1]}`);
-      // Handle case where the rating might be stored as an object
-      if (typeof ratingTag[1] === 'string' && ratingTag[1].includes('{') && ratingTag[1].includes('}')) {
-        try {
-          const ratingObj = JSON.parse(ratingTag[1]);
-          if (ratingObj && typeof ratingObj === 'object' && 'value' in ratingObj) {
-            const valueField = ratingObj.value;
-            if (valueField !== undefined) {
-              if (typeof valueField === 'number') {
-                return parseNormalizeRating(valueField);
-              } else if (typeof valueField === 'string') {
-                const parsedValue = parseFloat(valueField);
-                if (!isNaN(parsedValue)) {
-                  return parseNormalizeRating(parsedValue);
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error parsing rating object:", e);
-        }
-      }
-      
-      // Handle normal numeric rating
-      if (typeof ratingTag[1] === 'string') {
-        const ratingValue = parseFloat(ratingTag[1]);
-        if (!isNaN(ratingValue)) {
-          return parseNormalizeRating(ratingValue);
-        }
+      // Process the rating using our utility function
+      const rating = processRatingValue(ratingTag[1]);
+      if (rating !== null) {
+        return parseNormalizeRating(rating);
       }
     } catch (e) {
       console.error("Error parsing rating:", e);
@@ -85,32 +62,10 @@ export function extractRatingFromTags(event: Event): number | undefined {
     if (tag[0] === 'r' || tag[0] === 'score' || (tag[0] === 'alt' && tag[1] && tag[1].includes('rating'))) {
       try {
         if (tag[1] && typeof tag[1] === 'string') {
-          // Handle object format
-          if (tag[1].includes('{') && tag[1].includes('}')) {
-            try {
-              const ratingObj = JSON.parse(tag[1]);
-              if (ratingObj && typeof ratingObj === 'object' && 'value' in ratingObj) {
-                const valueField = ratingObj.value;
-                if (valueField !== undefined) {
-                  if (typeof valueField === 'number') {
-                    return parseNormalizeRating(valueField);
-                  } else if (typeof valueField === 'string') {
-                    const parsedValue = parseFloat(valueField);
-                    if (!isNaN(parsedValue)) {
-                      return parseNormalizeRating(parsedValue);
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              console.error("Error parsing rating object from alt tag:", e);
-            }
-          }
-          
-          // Handle normal numeric rating
-          const value = parseFloat(tag[1]);
-          if (!isNaN(value)) {
-            return parseNormalizeRating(value);
+          // Process the rating using our utility function
+          const rating = processRatingValue(tag[1]);
+          if (rating !== null) {
+            return parseNormalizeRating(rating);
           }
         }
       } catch (e) {

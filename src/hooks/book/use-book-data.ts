@@ -4,12 +4,14 @@ import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
+import { processRatingValue } from "@/lib/utils/ratingUtils";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
   const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
 
+  // Query for fetching book data
   const { 
     data: book = null, 
     isLoading,
@@ -48,36 +50,9 @@ export const useBookData = (isbn: string | undefined) => {
   let userRating: number | null = null;
   
   if (bookInLibrary?.readingStatus?.rating !== undefined) {
-    const ratingValue = bookInLibrary.readingStatus.rating;
-    console.log(`Processing rating for ${isbn}:`, ratingValue);
-    
-    // Handle different rating formats
-    if (typeof ratingValue === 'number') {
-      userRating = ratingValue;
-      console.log(`Numeric rating found: ${userRating}`);
-    } else if (typeof ratingValue === 'string') {
-      const parsedValue = parseFloat(ratingValue);
-      if (!isNaN(parsedValue)) {
-        userRating = parsedValue;
-        console.log(`String rating parsed: ${userRating}`);
-      }
-    } else if (ratingValue !== null && typeof ratingValue === 'object') {
-      // Handle complex object format - proper typeguard for safety
-      const ratingObject = ratingValue as Record<string, unknown>;
-      
-      // Check if 'value' property exists and handle it safely
-      if ('value' in ratingObject && ratingObject.value !== undefined) {
-        if (typeof ratingObject.value === 'number') {
-          userRating = ratingObject.value;
-        } else if (typeof ratingObject.value === 'string') {
-          const parsedValue = parseFloat(ratingObject.value as string);
-          if (!isNaN(parsedValue)) {
-            userRating = parsedValue;
-          }
-        }
-        console.log(`Object rating extracted: ${userRating}`);
-      }
-    }
+    // Process the rating using our utility function for safety
+    userRating = processRatingValue(bookInLibrary.readingStatus.rating);
+    console.log(`Processed rating for ${isbn}:`, userRating);
   }
 
   console.log(`Final rating value for ${isbn}:`, userRating);
