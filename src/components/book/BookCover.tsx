@@ -5,6 +5,7 @@ import { Loader2, Check, Star } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
+import { Book } from "@/lib/nostr/types";
 
 interface BookCoverProps {
   isbn?: string;
@@ -63,6 +64,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
         onRatingChange(newRating);
       } else {
         // Fallback direct rating if no callback provided
+        // Use the isbn string instead of passing the Book object
         await rateBook(isbn, newRating);
         toast({
           title: "Rating saved",
