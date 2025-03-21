@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,6 +33,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   handleRateBook,
   handleReactToReview
 }) => {
+  // Convert rating from 0-1 scale to 1-5 scale for display
   const displayRating = userRating > 0 ? Math.round(userRating * 5) : 0;
   
   return (
@@ -55,18 +57,33 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   function renderRatingControls() {
     return (
       <div className="mt-4">
-        <p className="text-sm font-medium mb-2">Your Rating:</p>
-        <div className="flex gap-2">
+        <p className="text-sm font-medium mb-2">
+          {userRating > 0 ? 'Your Rating:' : 'Rate this book:'}
+        </p>
+        <div className="flex gap-2 items-center">
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
               onClick={() => handleRateBook(rating / 5)}
               disabled={submitting}
-              className={`rounded-full p-1 ${displayRating === rating ? 'bg-yellow-100' : ''}`}
+              className={`rounded-full p-1 ${displayRating === rating ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
+              aria-label={`Rate ${rating} stars`}
             >
-              <Star className={`h-6 w-6 ${displayRating >= rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+              <Star 
+                className={`h-6 w-6 ${
+                  displayRating >= rating 
+                    ? 'text-yellow-500 fill-yellow-500' 
+                    : 'text-gray-300 dark:text-gray-600'
+                }`} 
+              />
             </button>
           ))}
+          
+          {userRating > 0 && (
+            <span className="text-sm text-muted-foreground ml-2">
+              {displayRating}/5
+            </span>
+          )}
         </div>
       </div>
     );
