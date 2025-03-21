@@ -41,7 +41,24 @@ export function extractRatingFromTags(event: Event): number | undefined {
   if (ratingTag && ratingTag[1]) {
     const rating = parseFloat(ratingTag[1]);
     if (!isNaN(rating) && rating >= 0 && rating <= 1) {
+      console.log(`Extracted valid rating: ${rating} from event ${event.id}`);
       return rating;
+    } else {
+      console.log(`Found invalid rating value: ${ratingTag[1]} in event ${event.id}`);
+    }
+  } else {
+    // Try to find rating in other formats
+    for (const tag of event.tags) {
+      if (tag[0] && tag[0].toLowerCase() === 'star' && tag[1]) {
+        // Handle star rating (1-5 scale)
+        const starRating = parseInt(tag[1], 10);
+        if (!isNaN(starRating) && starRating >= 1 && starRating <= 5) {
+          // Convert from 1-5 scale to 0-1 scale
+          const normalizedRating = starRating / 5;
+          console.log(`Extracted star rating: ${starRating}/5 (normalized: ${normalizedRating}) from event ${event.id}`);
+          return normalizedRating;
+        }
+      }
     }
   }
   return undefined;
