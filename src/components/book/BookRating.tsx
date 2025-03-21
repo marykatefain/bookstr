@@ -7,10 +7,10 @@ interface BookRatingProps {
 }
 
 export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
-  // Add debug logging to see what rating values are coming in
-  console.log(`BookRating component received rating: ${rating}`);
+  // Add detailed debug logging to see what rating values are coming in
+  console.log(`BookRating component received rating: ${rating} (type: ${typeof rating})`);
   
-  if (rating === undefined) {
+  if (rating === undefined || rating === null) {
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
 
