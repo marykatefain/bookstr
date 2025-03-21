@@ -9,7 +9,7 @@ import { processRatingValue } from "@/lib/utils/ratingUtils";
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
-  const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
+  const { getBookReadingStatus, getBookByISBN } = useLibraryData();
 
   // Query for fetching book data
   const { 
@@ -63,7 +63,7 @@ export const useBookData = (isbn: string | undefined) => {
     readingStatus: readingStatus ? {
       status: readingStatus,
       dateAdded: Date.now(), // Add the required dateAdded property
-      rating: userRating !== null ? userRating : book.readingStatus?.rating
+      rating: userRating !== null ? userRating : undefined
     } : book.readingStatus
   } : null;
 

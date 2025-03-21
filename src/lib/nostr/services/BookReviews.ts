@@ -16,18 +16,26 @@ export class BookReviewService {
       return null;
     }
     
+    // Convert rating from 1-5 scale to 0-1 scale if needed
+    let normalizedRating = rating;
+    if (rating > 1 && rating <= 5) {
+      normalizedRating = rating / 5;
+    }
+    
     // Ensure rating is between 0 and 1
-    if (rating < 0 || rating > 1) {
-      console.error("Rating must be between 0 and 1");
+    if (normalizedRating < 0 || normalizedRating > 1) {
+      console.error("Rating must be between 0 and 1 (or 1-5 if being converted)");
       return null;
     }
+    
+    console.log(`Publishing rating for ${book.title}: ${normalizedRating} (original: ${rating})`);
     
     const event = {
       kind: NOSTR_KINDS.REVIEW,
       tags: [
         ["d", `isbn:${book.isbn}`],
         ["k", "isbn"],
-        ["rating", rating.toString()]
+        ["rating", normalizedRating.toString()]
       ],
       content: ""
     };

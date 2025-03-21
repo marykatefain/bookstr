@@ -32,8 +32,8 @@ export function processRatingValue(ratingValue: unknown): number | null {
     return null;
   }
   
-  // Handle object with 'value' property
-  if (typeof ratingValue === 'object') {
+  // Handle object with 'value' property (safely)
+  if (typeof ratingValue === 'object' && ratingValue !== null) {
     const ratingObject = ratingValue as Record<string, unknown>;
     
     if ('value' in ratingObject && ratingObject.value !== undefined) {
@@ -69,16 +69,24 @@ export function normalizeRatingForDisplay(rating: number | null | undefined): nu
     return null;
   }
   
+  console.log(`Normalizing rating for display: ${rating}`);
+  
   // If rating is between 0-1, convert to 1-5 scale
   if (rating >= 0 && rating <= 1) {
-    return Math.round(rating * 5);
+    const normalizedRating = Math.round(rating * 5);
+    console.log(`Converted ${rating} to ${normalizedRating} (0-1 to 1-5 scale)`);
+    return normalizedRating;
   }
   
   // If already in 1-5 scale, just round it
   if (rating >= 1 && rating <= 5) {
-    return Math.round(rating);
+    const roundedRating = Math.round(rating);
+    console.log(`Rounded ${rating} to ${roundedRating} (already in 1-5 scale)`);
+    return roundedRating;
   }
   
   // Fallback for unexpected values - clamp between 1-5
-  return Math.min(5, Math.max(1, Math.round(rating)));
+  const clampedRating = Math.min(5, Math.max(1, Math.round(rating)));
+  console.log(`Clamped unexpected rating ${rating} to ${clampedRating}`);
+  return clampedRating;
 }

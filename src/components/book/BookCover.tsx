@@ -1,6 +1,9 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Check, Star } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
+import { RatingBadge } from "./RatingBadge";
+import { ReadStatusBadge } from "./ReadStatusBadge";
 
 interface BookCoverProps {
   isbn?: string;
@@ -25,6 +28,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   size = "medium",
   userRating = null
 }) => {
+  console.log(`BookCover rendering - ${title}, rating: ${userRating}, isRead: ${isRead}`);
+  
   // We're not using these fixed height classes anymore
   // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
@@ -48,65 +53,10 @@ export const BookCover: React.FC<BookCoverProps> = ({
     </div>
   );
 
-  const renderActionButton = () => {
-    // Not displaying any button if there's no action handler
-    if (!onReadAction && !isRead && !userRating) return null;
-    
-    // Show rating if available and book is read
-    if (isRead && userRating !== null && userRating > 0) {
-      console.log(`Displaying rating for ${title}: ${userRating}`);
-      // Display rating on 1-5 scale
-      let displayRating: number;
-      
-      // If rating is between 0-1, convert to 1-5 scale
-      if (userRating >= 0 && userRating <= 1) {
-        displayRating = Math.round(userRating * 5);
-      } else if (userRating >= 1 && userRating <= 5) {
-        // Already in 1-5 scale
-        displayRating = Math.round(userRating);
-      } else {
-        // Fallback for unexpected values
-        displayRating = Math.min(5, Math.max(1, Math.round(userRating)));
-      }
-      
-      return (
-        <div
-          className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
-          title={`You rated this ${displayRating}/5 stars`}
-        >
-          <Star className="h-3 w-3 fill-white" />
-          <span className="text-xs font-medium">{displayRating}</span>
-        </div>
-      );
-    }
-    
-    // If the book is read but has no rating, show the check mark
-    if (isRead) {
-      return (
-        <div
-          className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
-          title="Read"
-        >
-          <Check className="h-4 w-4" />
-        </div>
-      );
-    }
-    
-    // Otherwise show the read/check button
-    return (
-      <button
-        onClick={onReadAction}
-        className="absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
-          bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"
-        title="Mark as read"
-      >
-        {pendingAction === 'finished' ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Check className="h-4 w-4" />
-        )}
-      </button>
-    );
+  const mapSize = (size: string): "small" | "medium" | "large" => {
+    if (size === "xxsmall" || size === "xsmall") return "small";
+    if (size === "large") return "large";
+    return "medium";
   };
 
   return (
@@ -118,7 +68,17 @@ export const BookCover: React.FC<BookCoverProps> = ({
       ) : (
         coverElement
       )}
-      {renderActionButton()}
+      
+      {/* Show rating badge if book is read and has a rating */}
+      {isRead && userRating !== null && userRating !== undefined ? (
+        <RatingBadge rating={userRating} size={mapSize(size)} />
+      ) : (
+        <ReadStatusBadge 
+          isRead={isRead}
+          pendingAction={pendingAction}
+          onReadAction={onReadAction}
+        />
+      )}
     </div>
   );
 };
