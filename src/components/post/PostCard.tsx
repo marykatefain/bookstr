@@ -122,6 +122,28 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     }).filter(Boolean);
   };
 
+  // Render the book information separately so it can be shown even for spoiler posts
+  const renderBookInfo = () => {
+    if (!postData.taggedBook) return null;
+    
+    return (
+      <Link to={`/book/${postData.taggedBook.isbn}`} className="block">
+        <div className="flex items-start gap-3 p-3 bg-muted rounded-md mt-3 hover:bg-muted/80 transition-colors">
+          <div className="flex-shrink-0 w-12 h-16">
+            <BookCover 
+              coverUrl={postData.taggedBook.coverUrl} 
+              title={postData.taggedBook.title} 
+              size="xsmall" 
+            />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-sm">{postData.taggedBook.title}</p>
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2 pt-4">
@@ -155,12 +177,20 @@ export function PostCard({ post, onReaction }: PostCardProps) {
       
       <CardContent className="py-2">
         {postData.isSpoiler && !spoilerRevealed ? (
-          <div className="bg-muted p-4 rounded-md text-center">
-            <p className="text-muted-foreground mb-2">This post contains spoilers</p>
-            <Button variant="outline" size="sm" onClick={handleRevealSpoiler}>
-              <Eye className="mr-1 h-4 w-4" />
-              <span>Reveal Content</span>
-            </Button>
+          <div className="space-y-3">
+            <div className="bg-muted p-4 rounded-md text-center">
+              <p className="text-muted-foreground mb-2">
+                This post contains spoilers
+                {postData.taggedBook && ` for "${postData.taggedBook.title}"`}
+              </p>
+              <Button variant="outline" size="sm" onClick={handleRevealSpoiler}>
+                <Eye className="mr-1 h-4 w-4" />
+                <span>Reveal Content</span>
+              </Button>
+            </div>
+            
+            {/* Always show the book information for context, even when spoiler is hidden */}
+            {renderBookInfo()}
           </div>
         ) : (
           <div className="space-y-3">
@@ -196,22 +226,7 @@ export function PostCard({ post, onReaction }: PostCardProps) {
             {/* Detect and render media URLs from content text */}
             {detectAndRenderMediaUrls(postData.content)}
             
-            {postData.taggedBook && (
-              <Link to={`/book/${postData.taggedBook.isbn}`} className="block">
-                <div className="flex items-start gap-3 p-3 bg-muted rounded-md mt-3 hover:bg-muted/80 transition-colors">
-                  <div className="flex-shrink-0 w-12 h-16">
-                    <BookCover 
-                      coverUrl={postData.taggedBook.coverUrl} 
-                      title={postData.taggedBook.title} 
-                      size="xsmall" 
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{postData.taggedBook.title}</p>
-                  </div>
-                </div>
-              </Link>
-            )}
+            {postData.taggedBook && renderBookInfo()}
           </div>
         )}
       </CardContent>
