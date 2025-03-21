@@ -125,6 +125,72 @@ const BookCover: React.FC<{
   handleMarkAsRead: () => void;
 }> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
   const isFinished = book.readingStatus?.status === 'finished';
+  const [isRating, setIsRating] = useState(false);
+  const [ratingHover, setRatingHover] = useState<number | null>(null);
+  const { toast } = useToast();
+  const rating = book.readingStatus?.rating;
+  
+  const handleRateBook = async (newRating: number) => {
+    if (!book.isbn) {
+      toast({
+        title: "Cannot rate book",
+        description: "This book is missing an ISBN",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsRating(true);
+    
+    try {
+      await rateBook(book.isbn, newRating);
+      toast({
+        title: "Rating saved",
+        description: "Your rating has been saved and published to Nostr"
+      });
+    } catch (error) {
+      console.error("Error rating book:", error);
+      toast({
+        title: "Rating failed",
+        description: "There was an error saving your rating",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  const renderRatingStars = () => {
+    const starCount = 5;
+    const displayRating = rating ? Math.round(rating * 5) : 0;
+    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
+    
+    return (
+      <div 
+        className="absolute top-2 right-2 p-1 bg-black/50 backdrop-blur-sm rounded-full flex items-center"
+        onMouseLeave={() => setRatingHover(null)}
+      >
+        {[...Array(starCount)].map((_, i) => (
+          <button
+            key={i}
+            className="p-0.5"
+            onClick={() => handleRateBook((i + 1) / 5)}
+            onMouseEnter={() => setRatingHover(i + 1)}
+            disabled={isRating}
+            aria-label={`Rate ${i + 1} stars`}
+          >
+            <Star
+              size={16}
+              className={`
+                ${i < hoverRating ? 'text-bookverse-highlight fill-bookverse-highlight' : 'text-white'}
+                transition-colors
+              `}
+            />
+          </button>
+        ))}
+      </div>
+    );
+  };
   
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
@@ -145,14 +211,7 @@ const BookCover: React.FC<{
         />
       )}
       
-      {isFinished && (
-        <div
-          className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
-          title="Read"
-        >
-          <Check className="h-4 w-4" />
-        </div>
-      )}
+      {isFinished && renderRatingStars()}
     </div>
   );
 };
