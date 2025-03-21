@@ -40,10 +40,11 @@ export function extractISBNFromTags(event: Event): string | null {
 export function extractRatingFromTags(event: Event): number | undefined {
   console.log(`Extracting rating from event ${event.id}`, event.tags);
   
-  // First try the standard rating tag
+  // First, directly look for the rating tag
   const ratingTag = event.tags.find(tag => tag[0] === 'rating');
   if (ratingTag && ratingTag[1]) {
     try {
+      console.log(`Found rating tag: ${ratingTag[1]}`);
       const ratingValue = parseFloat(ratingTag[1]);
       if (!isNaN(ratingValue)) {
         // Determine if it's already on 0-1 scale or 1-5 scale

@@ -11,7 +11,7 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
     console.log(`BookRating component received rating:`, rating);
   }, [rating]);
 
-  if (!rating && rating !== 0) {
+  if (rating === undefined || rating === null) {
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
 

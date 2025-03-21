@@ -24,7 +24,7 @@ export const BookSection: React.FC<BookSectionProps> = ({
       booksWithRatings.map(b => ({
         title: b.title,
         isbn: b.isbn,
-        rating: b.readingStatus?.rating,
+        rating: book.readingStatus?.rating,
         readingStatus: b.readingStatus?.status
       }))
     );
