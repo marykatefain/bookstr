@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
@@ -40,6 +41,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const [ratingHover, setRatingHover] = useState<number | null>(null);
   const isFinished = isRead;
   
+  // We're not using these fixed height classes anymore
+  // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
     xxsmall: "",
     xsmall: "",
@@ -64,15 +67,9 @@ export const BookCover: React.FC<BookCoverProps> = ({
       if (onRatingChange) {
         onRatingChange(newRating);
       } else {
-        const bookObj: Book = {
-          id: isbn,
-          isbn: isbn,
-          title: title,
-          author: author || '',
-          coverUrl: coverUrl
-        };
-        
-        await rateBook(bookObj, newRating);
+        // Fallback direct rating if no callback provided
+        // Use the isbn string directly
+        await rateBook(isbn, newRating);
         toast({
           title: "Rating saved",
           description: "Your rating has been saved and published to Nostr"
@@ -156,8 +153,10 @@ export const BookCover: React.FC<BookCoverProps> = ({
 
   const actionButton = () => {
     if (isFinished) {
+      // Show star rating for finished books
       return renderRatingStars();
     } else if (onReadAction) {
+      // Show mark as read button for unfinished books
       return (
         <button
           onClick={onReadAction}

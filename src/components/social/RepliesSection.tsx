@@ -5,7 +5,7 @@ import { ReplyItem } from "./ReplyItem";
 import { ReplyForm } from "./ReplyForm";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react";
-import { fetchReplies, isLoggedIn, fetchReactions, fetchEventById, reactToContent } from "@/lib/nostr";
+import { fetchReplies, isLoggedIn, fetchReactions, fetchEventById } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
 
@@ -148,42 +148,14 @@ export function RepliesSection({
     setShowReplies(!showReplies);
   };
 
-  const handleReaction = async () => {
-    if (!isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in to react",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setLoadingReactions(true);
-    try {
-      if (onReaction) {
-        onReaction(eventId);
-      } else {
-        // If no onReaction handler provided, handle it directly
-        await reactToContent(eventId);
-        // Update local state optimistically
-        setReactions(prev => ({
-          count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-          userReacted: !prev.userReacted
-        }));
-        toast({
-          title: "Reaction sent",
-          description: "Your reaction has been published to Nostr"
-        });
-      }
-    } catch (error) {
-      console.error("Error handling reaction:", error);
-      toast({
-        title: "Reaction failed",
-        description: "There was an error sending your reaction",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingReactions(false);
+  const handleReaction = () => {
+    if (onReaction) {
+      onReaction(eventId);
+      // Update local state optimistically
+      setReactions(prev => ({
+        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
+        userReacted: !prev.userReacted
+      }));
     }
   };
 

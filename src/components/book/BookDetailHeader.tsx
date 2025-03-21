@@ -139,7 +139,7 @@ const BookCover: React.FC<{
     setIsRating(true);
     
     try {
-      await rateBook(book, newRating);
+      await rateBook(book.isbn, newRating);
       toast({
         title: "Rating saved",
         description: "Your rating has been saved and published to Nostr"

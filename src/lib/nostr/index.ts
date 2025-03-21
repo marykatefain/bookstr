@@ -1,97 +1,74 @@
 
-// Export user functions
+// Export types
+export * from "./types";
+
+// Export user management functions
 export {
-  getCurrentUser,
-  isLoggedIn,
+  initNostr,
   loginWithNostr,
-  logoutNostr
+  logoutNostr,
+  getCurrentUser,
+  isLoggedIn
 } from "./user";
 
-// Export relay functions
+// Export relay management functions
 export {
+  DEFAULT_RELAYS,
+  getUserRelays,
   addRelay,
   removeRelay,
-  getUserRelays,
-  ensureConnections,
-  connectToRelays,
-  getActiveConnections,
-  getConnectionStatus,
-  DEFAULT_RELAYS,
-  resetRelays,
-  loadRelaysFromStorage
+  resetRelays
 } from "./relay";
 
-// Export books functions
+// Export pool management functions
+export {
+  getSharedPool,
+  refreshSharedPool,
+  closeSharedPool
+} from "./utils/poolManager";
+
+// Export profile functions
+export { fetchProfileData, fetchUserProfiles } from "./profile";
+
+// Export publishing functions
+export { publishToNostr, updateNostrEvent } from "./publish";
+
+// Export posts functions
+export { createBookPost, fetchPosts, fetchUserPosts } from "./posts";
+
+// Export book-specific functions
 export {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
   rateBook,
   reviewBook,
-  addBookToList,
-  updateBookInList,
-  removeBookFromList,
   reactToContent,
-  fetchReactions,
   replyToContent,
   fetchReplies,
+  fetchReactions,
   fetchEventById,
-  followUser
+  followUser,
+  addBookToList,
+  updateBookInList,
+  removeBookFromList
 } from "./books";
-
-// Export events functions
-export {
-  fetchEvents,
-  fetchPosts,
-  fetchUserPosts,
-  createBookPost
-} from "./posts";
-
-// Export types
-export type { Book } from "./types";
-
-// Export social feed functions
-export {
-  fetchSocialFeed,
-  fetchGlobalSocialFeed,
-  fetchBookPosts,
-  fetchBookActivity
-} from "./fetch/social";
 
 // Export fetch functions
 export {
   fetchUserBooks,
+  fetchBooksByISBN,
   fetchBookByISBN,
   fetchBookReviews,
   fetchBookRatings,
-  fetchSingleBookReview,
-  fetchUserReviews
+  fetchFollowingList,
+  fetchUserProfile,
+  fetchSocialFeed,
+  fetchGlobalSocialFeed,
+  fetchUserReviews,
+  ensureBookMetadata,
+  fetchBookActivity
 } from "./fetch";
 
-// Export profile functions
-export {
-  fetchFollowingList,
-  fetchUserProfile
-} from "./fetch/profileFetch";
-
-export {
-  fetchProfileData
-} from "./profile";
-
 // Export mock data
-export { mockBooks } from "./types/mock";
-
-// Export initialization function
-export const initNostr = async () => {
-  // Check for previously saved user
-  const savedUser = localStorage.getItem('nostr_user');
-  if (savedUser) {
-    try {
-      const user = JSON.parse(savedUser);
-      return user;
-    } catch (error) {
-      console.error("Error parsing saved user:", error);
-    }
-  }
-  return null;
-};
+export { mockBooks } from "./mockData";
