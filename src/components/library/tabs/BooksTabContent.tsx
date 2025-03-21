@@ -42,7 +42,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.reading.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -59,7 +59,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.tbr.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -80,6 +80,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
                 key={book.id} 
                 book={book} 
                 size="medium" 
+                showRating={true}
                 onUpdate={onUpdate} 
               />
             ))}

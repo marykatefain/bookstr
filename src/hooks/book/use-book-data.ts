@@ -47,14 +47,24 @@ export const useBookData = (isbn: string | undefined) => {
     
     // Check each list for the book with matching ISBN
     const bookInTbr = books.tbr.find(b => b.isbn === isbn);
-    if (bookInTbr?.readingStatus?.rating !== undefined) return bookInTbr;
+    if (bookInTbr?.readingStatus?.rating !== undefined) {
+      console.log(`Found book rating in TBR: ${bookInTbr.readingStatus.rating}`);
+      return bookInTbr;
+    }
     
     const bookInReading = books.reading.find(b => b.isbn === isbn);
-    if (bookInReading?.readingStatus?.rating !== undefined) return bookInReading;
+    if (bookInReading?.readingStatus?.rating !== undefined) {
+      console.log(`Found book rating in Reading: ${bookInReading.readingStatus.rating}`);
+      return bookInReading;
+    }
     
     const bookInRead = books.read.find(b => b.isbn === isbn);
-    if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
+    if (bookInRead?.readingStatus?.rating !== undefined) {
+      console.log(`Found book rating in Read: ${bookInRead.readingStatus.rating}`);
+      return bookInRead;
+    }
     
+    console.log(`No rating found in user library for ISBN: ${isbn}`);
     return null;
   };
 
