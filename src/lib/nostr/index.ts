@@ -1,74 +1,47 @@
-
-// Export types
-export * from "./types";
-
-// Export user management functions
+// Export user functions
 export {
-  initNostr,
-  loginWithNostr,
-  logoutNostr,
   getCurrentUser,
-  isLoggedIn
+  isLoggedIn,
+  login,
+  logout,
+  getUserDetails,
+  updateUserDetails
 } from "./user";
 
-// Export relay management functions
+// Export relay functions
 export {
-  DEFAULT_RELAYS,
-  getUserRelays,
   addRelay,
   removeRelay,
-  resetRelays
+  getUserRelays,
+  ensureConnections,
+  connectToRelays,
+  getActiveConnections,
+  getConnectionStatus
 } from "./relay";
 
-// Export pool management functions
-export {
-  getSharedPool,
-  refreshSharedPool,
-  closeSharedPool
-} from "./utils/poolManager";
-
-// Export profile functions
-export { fetchProfileData, fetchUserProfiles } from "./profile";
-
-// Export publishing functions
-export { publishToNostr, updateNostrEvent } from "./publish";
-
-// Export posts functions
-export { createBookPost, fetchPosts, fetchUserPosts } from "./posts";
-
-// Export book-specific functions
+// Export books functions
 export {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
   rateBook,
   reviewBook,
-  reactToContent,
-  replyToContent,
-  fetchReplies,
-  fetchReactions,
-  fetchEventById,
-  followUser,
   addBookToList,
   updateBookInList,
-  removeBookFromList
-} from "./books";
-
-// Export fetch functions
-export {
-  fetchUserBooks,
-  fetchBooksByISBN,
-  fetchBookByISBN,
+  removeBookFromList,
   fetchBookReviews,
   fetchBookRatings,
-  fetchFollowingList,
-  fetchUserProfile,
-  fetchSocialFeed,
-  fetchGlobalSocialFeed,
-  fetchUserReviews,
-  ensureBookMetadata,
-  fetchBookActivity
-} from "./fetch";
+  fetchSingleBookReview,
+  reactToContent,
+  fetchReactions,
+  replyToContent,
+  fetchReplies,
+  fetchEventById
+} from "./books";
 
-// Export mock data
-export { mockBooks } from "./mockData";
+// Export events functions
+export {
+  fetchEvents,
+  fetchPosts,
+  createPost
+} from "./events";

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post, SocialActivity } from "@/lib/nostr/types";
@@ -21,6 +20,7 @@ interface PostCardProps {
 export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isReacting, setIsReacting] = useState(false);
   const { toast } = useToast();
   
   const isSocialActivity = 'type' in post && post.type === 'post';
@@ -52,35 +52,38 @@ export function PostCard({ post, onReaction }: PostCardProps) {
   };
   
   const handleReaction = async () => {
-    if (onReaction) {
-      onReaction(postData.id);
-    } else {
-      try {
+    if (isReacting) return;
+    
+    setIsReacting(true);
+    try {
+      if (onReaction) {
+        onReaction(postData.id);
+      } else {
+        console.log("Directly reacting to post:", postData.id);
         await reactToContent(postData.id);
         toast({
           title: "Reaction sent",
           description: "You've reacted to this post"
         });
-      } catch (error) {
-        console.error("Error reacting to post:", error);
-        toast({
-          title: "Error",
-          description: "Could not send reaction",
-          variant: "destructive"
-        });
       }
+    } catch (error) {
+      console.error("Error reacting to post:", error);
+      toast({
+        title: "Error",
+        description: "Could not send reaction",
+        variant: "destructive"
+      });
+    } finally {
+      setIsReacting(false);
     }
   };
 
-  // Handle image load error
   const handleImageError = (url: string) => {
     console.log(`Error loading image: ${url}`);
     setImageErrors(prev => ({ ...prev, [url]: true }));
   };
 
-  // Function to detect URLs in text content
   const detectAndRenderMediaUrls = (content: string) => {
-    // Simple URL regex - can be improved for more accurate detection
     const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|mov|webm))/gi;
     const urlMatches = content.match(urlRegex);
     
@@ -166,7 +169,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
           <div className="space-y-3">
             <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
             
-            {/* Render specifically tagged media from post.mediaUrl if it exists */}
             {postData.mediaUrl && postData.mediaType === 'image' && !imageErrors[postData.mediaUrl] && (
               <div className="mt-3">
                 <img 
@@ -193,7 +195,6 @@ export function PostCard({ post, onReaction }: PostCardProps) {
               </div>
             )}
             
-            {/* Detect and render media URLs from content text */}
             {detectAndRenderMediaUrls(postData.content)}
             
             {postData.taggedBook && (

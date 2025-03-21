@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RepliesSection } from "./RepliesSection";
 import { Reply } from "@/lib/nostr/types";
-import { fetchReactions } from "@/lib/nostr";
+import { fetchReactions, reactToContent } from "@/lib/nostr";
 
 interface ActivityFooterProps {
   bookIsbn: string;
@@ -55,13 +55,21 @@ export function ActivityFooter({
     }
   };
 
-  const handleReaction = (eventId: string) => {
-    onReaction(eventId);
-    // Update local state optimistically
-    setReactions(prev => ({
-      count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-      userReacted: !prev.userReacted
-    }));
+  const handleReaction = async (eventId: string) => {
+    setLoading(true);
+    try {
+      console.log("ActivityFooter handling reaction for:", eventId);
+      onReaction(eventId);
+      // Update local state optimistically
+      setReactions(prev => ({
+        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
+        userReacted: !prev.userReacted
+      }));
+    } catch (error) {
+      console.error("Error handling reaction in ActivityFooter:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

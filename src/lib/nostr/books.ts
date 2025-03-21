@@ -380,15 +380,12 @@ export async function reactToContent(eventId: string): Promise<string | null> {
       throw new Error("User not logged in");
     }
 
+    console.log("Reacting to content with eventId:", eventId);
+
     // Check if user has already reacted
     const currentReactions = await fetchReactions(eventId);
-    if (currentReactions.userReacted) {
-      // If user has already reacted, we're removing the reaction
-      // This would ideally use a kind 5 deletion event, but for simplicity
-      // in the current implementation we'll just return and not add a new reaction
-      throw new Error("You've already reacted to this content");
-    }
-
+    console.log("Current reactions:", currentReactions);
+    
     // Prepare the reaction event
     const tags: string[][] = [
       ["e", eventId]
@@ -400,6 +397,7 @@ export async function reactToContent(eventId: string): Promise<string | null> {
       tags: tags
     };
 
+    console.log("Publishing reaction event:", eventData);
     return await publishToNostr(eventData);
   } catch (error) {
     console.error("Error reacting to content:", error);
