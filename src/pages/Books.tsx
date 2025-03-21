@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +37,8 @@ const Books = () => {
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimerRef = useRef<number | null>(null);
   const initialRenderRef = useRef(true);
+  const previousSearchRef = useRef({ query: "", category: "All" });
+  const searchInProgressRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -50,10 +53,11 @@ const Books = () => {
       clearTimeout(debounceTimerRef.current);
     }
 
+    // Increase debounce time to reduce flickering
     debounceTimerRef.current = window.setTimeout(() => {
       setDebouncedSearch(searchQuery);
       debounceTimerRef.current = null;
-    }, 800);
+    }, 1000); // Increased from 800ms to 1000ms
 
     return () => {
       if (debounceTimerRef.current) {
@@ -96,6 +100,21 @@ const Books = () => {
 
   useEffect(() => {
     const performSearch = async () => {
+      // Skip search if it's the same as the previous one to prevent flickering
+      if (
+        debouncedSearch === previousSearchRef.current.query && 
+        activeCategory === previousSearchRef.current.category
+      ) {
+        console.log("Skipping duplicate search");
+        return;
+      }
+      
+      // Prevent concurrent searches
+      if (searchInProgressRef.current) {
+        console.log("Search already in progress, skipping");
+        return;
+      }
+
       if (!debouncedSearch && activeCategory === "All") {
         if (isSearching) {
           setIsSearching(false);
@@ -107,11 +126,19 @@ const Books = () => {
           setBooks(enrichedBooks);
           setIsLoading(false);
         }
+        
+        // Update previous search reference
+        previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         return;
       }
 
       setIsSearching(true);
-      setIsLoading(true);
+      // Only show loading if we don't already have books to display
+      if (books.length === 0) {
+        setIsLoading(true);
+      }
+      
+      searchInProgressRef.current = true;
       
       try {
         let results: Book[] = [];
@@ -126,8 +153,17 @@ const Books = () => {
         
         console.log(`Search returned ${results.length} results`);
         
-        const enrichedResults = enrichBooksWithReadingStatus(results);
-        setBooks(enrichedResults);
+        // Update previous search reference
+        previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
+        
+        if (results.length > 0) {
+          const enrichedResults = enrichBooksWithReadingStatus(results);
+          setBooks(enrichedResults);
+        } else if (books.length === 0 && weeklyTrendingBooks.length > 0) {
+          // Only use trending books as fallback if we have no results and no current books
+          const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+          setBooks(enrichedBooks);
+        }
       } catch (error) {
         console.error("Error searching books:", error);
         toast({
@@ -142,6 +178,7 @@ const Books = () => {
         }
       } finally {
         setIsLoading(false);
+        searchInProgressRef.current = false;
       }
     };
 
@@ -149,6 +186,12 @@ const Books = () => {
   }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, books, enrichBooksWithReadingStatus]);
 
   const handleCategoryChange = (category: string) => {
+    // Skip if it's already the active category to prevent flickering
+    if (category === activeCategory) {
+      console.log(`Category ${category} already active, skipping change`);
+      return;
+    }
+    
     console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
     if (searchQuery) {
@@ -162,16 +205,23 @@ const Books = () => {
     refetchUserBooks();
     
     if (debouncedSearch || activeCategory !== "All") {
+      // Only trigger a new search if we need to refresh the current results
       const currentSearch = debouncedSearch;
+      const currentCategory = activeCategory;
+      // Force a refresh by briefly changing the state
       setDebouncedSearch("");
-      setTimeout(() => setDebouncedSearch(currentSearch), 10);
+      setTimeout(() => {
+        // Simulating a "force refresh" but prevent unnecessary searches
+        previousSearchRef.current = { query: "", category: "" };
+        setDebouncedSearch(currentSearch);
+      }, 10);
     } else {
       refreshBooks();
     }
   };
 
   const shouldShowLoadingSkeleton = (isLoading || loadingTrending) && 
-    (books.length === 0 || (isSearching && activeCategory !== "All"));
+    (books.length === 0 || (isSearching && books.length === 0));
 
   return (
     <Layout>
