@@ -1,3 +1,4 @@
+
 // Export user functions
 export {
   getCurrentUser,
@@ -5,7 +6,9 @@ export {
   login,
   logout,
   getUserDetails,
-  updateUserDetails
+  updateUserDetails,
+  loginWithNostr,
+  logoutNostr
 } from "./user";
 
 // Export relay functions
@@ -16,7 +19,10 @@ export {
   ensureConnections,
   connectToRelays,
   getActiveConnections,
-  getConnectionStatus
+  getConnectionStatus,
+  DEFAULT_RELAYS,
+  resetRelays,
+  loadRelaysFromStorage
 } from "./relay";
 
 // Export books functions
@@ -36,12 +42,50 @@ export {
   fetchReactions,
   replyToContent,
   fetchReplies,
-  fetchEventById
+  fetchEventById,
+  fetchUserBooks,
+  fetchBookByISBN,
+  fetchUserReviews,
+  followUser,
+  fetchFollowingList,
+  fetchProfileData,
+  fetchUserProfile
 } from "./books";
 
 // Export events functions
 export {
   fetchEvents,
   fetchPosts,
-  createPost
-} from "./events";
+  createPost,
+  fetchUserPosts,
+  createBookPost
+} from "./posts";
+
+// Export types
+export type { Book } from "./types";
+
+// Export social feed functions
+export {
+  fetchSocialFeed,
+  fetchGlobalSocialFeed,
+  fetchBookPosts,
+  fetchBookActivity
+} from "./fetch/social";
+
+// Export mock data
+export { mockBooks } from "./types";
+
+// Export initialization function
+export const initNostr = async () => {
+  // Check for previously saved user
+  const savedUser = localStorage.getItem('nostr_user');
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser);
+      return user;
+    } catch (error) {
+      console.error("Error parsing saved user:", error);
+    }
+  }
+  return null;
+};
