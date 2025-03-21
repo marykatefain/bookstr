@@ -22,22 +22,6 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
   filterType = "all",
   onUpdate
 }) => {
-  // Debug logging to see books with ratings
-  if (books) {
-    const readBooksWithRatings = books.read.filter(b => b.readingStatus?.rating !== undefined);
-    if (readBooksWithRatings.length > 0) {
-      console.log(`BooksTabContent: Found ${readBooksWithRatings.length} read books with ratings:`, 
-        readBooksWithRatings.map(b => ({
-          title: b.title,
-          isbn: b.isbn,
-          rating: b.readingStatus?.rating
-        }))
-      );
-    } else {
-      console.log('BooksTabContent: No read books have ratings');
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -58,7 +42,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.reading.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -75,7 +59,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.tbr.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -84,9 +68,6 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
   }
 
   if (filterType === "read") {
-    // Add logging for read books
-    console.log(`Rendering Read section with ${books.read.length} books`);
-    
     return (
       <div className="py-4">
         <h1 className="text-3xl font-serif font-semibold mb-6">Read</h1>
@@ -94,18 +75,14 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
           <EmptyState type="read" />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {books.read.map((book) => {
-              console.log(`Book in Read section: ${book.title}, rating: ${book.readingStatus?.rating}`);
-              return (
-                <BookCard 
-                  key={book.id} 
-                  book={book} 
-                  size="medium" 
-                  showRating={true}
-                  onUpdate={onUpdate} 
-                />
-              );
-            })}
+            {books.read.map((book) => (
+              <BookCard 
+                key={book.id} 
+                book={book} 
+                size="medium" 
+                onUpdate={onUpdate} 
+              />
+            ))}
           </div>
         )}
       </div>

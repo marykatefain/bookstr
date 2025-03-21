@@ -41,38 +41,26 @@ export const useBookData = (isbn: string | undefined) => {
   // Get the reading status from the user's library
   const readingStatus = getBookReadingStatus(isbn);
 
-  // Find the book in user's library to get its rating - Add detailed logging
+  // Find the book in user's library to get its rating
   const findBookWithRating = () => {
     if (!isbn || !books) return null;
     
     // Check each list for the book with matching ISBN
     const bookInTbr = books.tbr.find(b => b.isbn === isbn);
-    if (bookInTbr?.readingStatus?.rating !== undefined) {
-      console.log(`Found book with rating in TBR: ${bookInTbr.title}, rating: ${bookInTbr.readingStatus.rating}`);
-      return bookInTbr;
-    }
+    if (bookInTbr?.readingStatus?.rating !== undefined) return bookInTbr;
     
     const bookInReading = books.reading.find(b => b.isbn === isbn);
-    if (bookInReading?.readingStatus?.rating !== undefined) {
-      console.log(`Found book with rating in Reading: ${bookInReading.title}, rating: ${bookInReading.readingStatus.rating}`);
-      return bookInReading;
-    }
+    if (bookInReading?.readingStatus?.rating !== undefined) return bookInReading;
     
     const bookInRead = books.read.find(b => b.isbn === isbn);
-    if (bookInRead?.readingStatus?.rating !== undefined) {
-      console.log(`Found book with rating in Read: ${bookInRead.title}, rating: ${bookInRead.readingStatus.rating}`);
-      return bookInRead;
-    }
+    if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
     
-    console.log(`No rating found in user library for ISBN: ${isbn}`);
     return null;
   };
 
   // Get user's rating from their library if available
   const bookWithRating = findBookWithRating();
   const userRating = bookWithRating?.readingStatus?.rating;
-  
-  console.log(`User rating for ISBN ${isbn}: ${userRating} (from library)`);
 
   // Update the book object with the reading status and rating
   const enrichedBook = book ? {
@@ -83,11 +71,6 @@ export const useBookData = (isbn: string | undefined) => {
       rating: userRating !== undefined ? userRating : book.readingStatus?.rating
     } : book.readingStatus
   } : null;
-  
-  // Log the enriched book's rating for debugging
-  if (enrichedBook) {
-    console.log(`Enriched book ${enrichedBook.title} has rating: ${enrichedBook.readingStatus?.rating}`);
-  }
 
   // Set read status when book data is available
   useEffect(() => {

@@ -25,8 +25,6 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         rating: b.readingStatus?.rating 
       }))
     );
-  } else {
-    console.log("No read books with ratings found");
   }
   
   return (
@@ -57,20 +55,16 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
           <p className="text-muted-foreground">No finished books yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {userBooks.read.map(book => {
-              // Log individual book rating for debugging
-              console.log(`Rendering read book: ${book.title}, Rating: ${book.readingStatus?.rating}`);
-              return (
-                <BookCard 
-                  key={book.id} 
-                  book={book} 
-                  size="small"
-                  showDescription={false}
-                  showRating={true}
-                  onUpdate={() => {}}
-                />
-              );
-            })}
+            {userBooks.read.map(book => (
+              <BookCard 
+                key={book.id} 
+                book={book} 
+                size="small"
+                showDescription={false}
+                showRating={true}
+                onUpdate={() => {}}
+              />
+            ))}
           </div>
         )}
       </div>
