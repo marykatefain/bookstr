@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Loader2, Check, X, Star } from "lucide-react";
@@ -136,37 +137,73 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
 
   return (
     <div className="pt-2 flex flex-col gap-2 w-full">
-      <Button
-        size="sm"
-        variant={isTbr ? "default" : "outline"}
-        className={`text-xs ${isTbr ? "bg-bookverse-highlight" : ""} w-full`}
-        onClick={handleTbrClick}
-        disabled={!!pendingAction}
-      >
-        {pendingAction === 'tbr' ? (
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-        ) : isTbr ? (
-          <X className="mr-1 h-3 w-3" />
-        ) : (
-          <PlusCircle className="mr-1 h-3 w-3" />
-        )}
-        {isTbr ? "Remove" : "TBR"}
-      </Button>
-      <Button
-        size="sm"
-        className={`text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"} w-full`}
-        onClick={handleReadingClick}
-        disabled={!!pendingAction}
-      >
-        {pendingAction === 'reading' ? (
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-        ) : isReading ? (
-          <X className="mr-1 h-3 w-3" />
-        ) : (
-          <BookOpen className="mr-1 h-3 w-3" />
-        )}
-        {isReading ? "Stop" : "Start"}
-      </Button>
+      {/* For TBR books, show only Start Reading button */}
+      {isTbr && (
+        <Button
+          size="sm"
+          className="text-xs bg-bookverse-accent hover:bg-bookverse-highlight w-full"
+          onClick={handleReadingClick}
+          disabled={!!pendingAction}
+        >
+          {pendingAction === 'reading' ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <BookOpen className="mr-1 h-3 w-3" />
+          )}
+          Start Reading
+        </Button>
+      )}
+
+      {/* For Reading books, show only Add to TBR button */}
+      {isReading && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs w-full"
+          onClick={handleTbrClick}
+          disabled={!!pendingAction}
+        >
+          {pendingAction === 'tbr' ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <PlusCircle className="mr-1 h-3 w-3" />
+          )}
+          Add to TBR
+        </Button>
+      )}
+
+      {/* For books not in any list, show both buttons */}
+      {!isTbr && !isReading && !isFinished && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs w-full"
+            onClick={handleTbrClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'tbr' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <PlusCircle className="mr-1 h-3 w-3" />
+            )}
+            Add to TBR
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs bg-bookverse-accent hover:bg-bookverse-highlight w-full"
+            onClick={handleReadingClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'reading' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <BookOpen className="mr-1 h-3 w-3" />
+            )}
+            Start Reading
+          </Button>
+        </>
+      )}
     </div>
   );
 }

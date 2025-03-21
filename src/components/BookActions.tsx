@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -204,27 +205,60 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
       <div className={containerClass}>
         {showActionButtons && (
           <>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className={`${buttonSize} w-full`}
-              onClick={() => handleAction('tbr')}
-              disabled={isLoading !== null}
-            >
-              <BookOpen size={iconSize} />
-              {size !== 'small' && <span>Add to TBR</span>}
-            </Button>
+            {/* Show only "Add to TBR" button if the book is in Reading status */}
+            {isReading && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={`${buttonSize} w-full`}
+                onClick={() => handleAction('tbr')}
+                disabled={isLoading !== null}
+              >
+                <BookOpen size={iconSize} />
+                {size !== 'small' && <span>Add to TBR</span>}
+              </Button>
+            )}
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              className={`${buttonSize} w-full`}
-              onClick={() => handleAction('reading')}
-              disabled={isLoading !== null}
-            >
-              <Eye size={iconSize} />
-              {size !== 'small' && <span>Start Reading</span>}
-            </Button>
+            {/* Show only "Start Reading" button if the book is in TBR status */}
+            {isTbr && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className={`${buttonSize} w-full`}
+                onClick={() => handleAction('reading')}
+                disabled={isLoading !== null}
+              >
+                <Eye size={iconSize} />
+                {size !== 'small' && <span>Start Reading</span>}
+              </Button>
+            )}
+            
+            {/* Show both buttons only if the book is not in any list */}
+            {!isTbr && !isReading && !isFinished && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={`${buttonSize} w-full`}
+                  onClick={() => handleAction('tbr')}
+                  disabled={isLoading !== null}
+                >
+                  <BookOpen size={iconSize} />
+                  {size !== 'small' && <span>Add to TBR</span>}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={`${buttonSize} w-full`}
+                  onClick={() => handleAction('reading')}
+                  disabled={isLoading !== null}
+                >
+                  <Eye size={iconSize} />
+                  {size !== 'small' && <span>Start Reading</span>}
+                </Button>
+              </>
+            )}
           </>
         )}
       </div>
