@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { BookSection } from "./BookSection";
 import { Book } from "@/lib/nostr/types";
 import { EmptyState } from "@/components/profile/EmptyState";
@@ -32,23 +32,6 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     );
   }
 
-  // Log all read books with ratings for debugging
-  const readBooksWithRatings = books.read.filter(book => book.readingStatus?.rating !== undefined);
-  
-  useEffect(() => {
-    if (readBooksWithRatings.length > 0) {
-      console.log(`Found ${readBooksWithRatings.length} read books with ratings in BooksTabContent:`, 
-        readBooksWithRatings.map(b => ({
-          title: b.title,
-          isbn: b.isbn,
-          rating: b.readingStatus?.rating
-        }))
-      );
-    } else {
-      console.log('No read books with ratings found in BooksTabContent');
-    }
-  }, [readBooksWithRatings.length]);
-
   // If we're filtering for a specific book type, show only that section
   if (filterType === "reading") {
     return (
@@ -59,7 +42,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.reading.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -76,7 +59,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {books.tbr.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" showRating={true} onUpdate={onUpdate} />
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -97,7 +80,6 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
                 key={book.id} 
                 book={book} 
                 size="medium" 
-                showRating={true}
                 onUpdate={onUpdate} 
               />
             ))}

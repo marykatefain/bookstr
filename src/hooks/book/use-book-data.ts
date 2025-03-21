@@ -4,14 +4,12 @@ import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
-import { processRatingValue } from "@/lib/utils/ratingUtils";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
-  const { getBookReadingStatus, getBookByISBN } = useLibraryData();
+  const { getBookReadingStatus, books } = useLibraryData();
 
-  // Query for fetching book data
   const { 
     data: book = null, 
     isLoading,
@@ -44,33 +42,35 @@ export const useBookData = (isbn: string | undefined) => {
   const readingStatus = getBookReadingStatus(isbn);
 
   // Find the book in user's library to get its rating
-  const bookInLibrary = getBookByISBN(isbn);
-  
-  // Extract user's rating from their library if available
-  let userRating: number | null = null;
-  
-  if (bookInLibrary?.readingStatus?.rating !== undefined) {
-    // Process the rating using our utility function for safety
-    userRating = processRatingValue(bookInLibrary.readingStatus.rating);
-    console.log(`Processed rating for ${isbn}:`, userRating);
-  }
+  const findBookWithRating = () => {
+    if (!isbn || !books) return null;
+    
+    // Check each list for the book with matching ISBN
+    const bookInTbr = books.tbr.find(b => b.isbn === isbn);
+    if (bookInTbr?.readingStatus?.rating !== undefined) return bookInTbr;
+    
+    const bookInReading = books.reading.find(b => b.isbn === isbn);
+    if (bookInReading?.readingStatus?.rating !== undefined) return bookInReading;
+    
+    const bookInRead = books.read.find(b => b.isbn === isbn);
+    if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
+    
+    return null;
+  };
 
-  console.log(`Final rating value for ${isbn}:`, userRating);
-  
+  // Get user's rating from their library if available
+  const bookWithRating = findBookWithRating();
+  const userRating = bookWithRating?.readingStatus?.rating;
+
   // Update the book object with the reading status and rating
   const enrichedBook = book ? {
     ...book,
     readingStatus: readingStatus ? {
       status: readingStatus,
       dateAdded: Date.now(), // Add the required dateAdded property
-      rating: userRating !== null ? userRating : undefined
+      rating: userRating !== undefined ? userRating : book.readingStatus?.rating
     } : book.readingStatus
   } : null;
-
-  // Enhanced logging for rating visibility
-  if (enrichedBook && enrichedBook.readingStatus?.rating !== undefined) {
-    console.log(`Book ${enrichedBook.title} has rating:`, enrichedBook.readingStatus.rating);
-  }
 
   // Set read status when book data is available
   useEffect(() => {

@@ -2,8 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check } from "lucide-react";
-import { RatingBadge } from "./RatingBadge";
-import { ReadStatusBadge } from "./ReadStatusBadge";
 
 interface BookCoverProps {
   isbn?: string;
@@ -14,7 +12,6 @@ interface BookCoverProps {
   pendingAction?: string | null;
   onReadAction?: () => void;
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
-  userRating?: number | null;
 }
 
 export const BookCover: React.FC<BookCoverProps> = ({
@@ -25,11 +22,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   isRead = false,
   pendingAction = null,
   onReadAction = () => {},
-  size = "medium",
-  userRating = null
+  size = "medium"
 }) => {
-  console.log(`BookCover rendering - ${title}, rating: ${userRating}, isRead: ${isRead}`);
-  
   // We're not using these fixed height classes anymore
   // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
@@ -53,11 +47,22 @@ export const BookCover: React.FC<BookCoverProps> = ({
     </div>
   );
 
-  const mapSize = (size: string): "small" | "medium" | "large" => {
-    if (size === "xxsmall" || size === "xsmall") return "small";
-    if (size === "large") return "large";
-    return "medium";
-  };
+  const actionButton = isRead || onReadAction ? (
+    <button
+      onClick={onReadAction}
+      className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+        ${isRead 
+          ? "bg-green-500 text-white" 
+          : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+      title="Mark as read"
+    >
+      {pendingAction === 'read' ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Check className="h-4 w-4" />
+      )}
+    </button>
+  ) : null;
 
   return (
     <div className={`relative w-full h-full`}>
@@ -68,17 +73,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
       ) : (
         coverElement
       )}
-      
-      {/* Show rating badge if book is read and has a rating */}
-      {isRead && userRating !== null && userRating !== undefined ? (
-        <RatingBadge rating={userRating} size={mapSize(size)} />
-      ) : (
-        <ReadStatusBadge 
-          isRead={isRead}
-          pendingAction={pendingAction}
-          onReadAction={onReadAction}
-        />
-      )}
+      {actionButton}
     </div>
   );
 };

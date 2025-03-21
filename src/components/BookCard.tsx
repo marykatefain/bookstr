@@ -191,9 +191,6 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   // Get author display name, ensuring we have something to show
   const authorDisplayName = localBook.author || "Unknown Author";
-  
-  // Get the user's rating for the book, if any
-  const userRating = localBook.readingStatus?.rating;
 
   return (
     <Card className={getCardClasses()}>
@@ -210,7 +207,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                 pendingAction={pendingAction}
                 onReadAction={() => handleAction('finished')}
                 size={size}
-                userRating={userRating}
               />
             </div>
             
@@ -258,7 +254,6 @@ export const BookCard: React.FC<BookCardProps> = ({
                   pendingAction={pendingAction}
                   onReadAction={() => handleAction('finished')}
                   size={size}
-                  userRating={userRating}
                 />
               </div>
             </div>

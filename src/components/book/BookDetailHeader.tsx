@@ -1,9 +1,10 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
+import { rateBook } from "@/lib/nostr";
+import { useToast } from "@/hooks/use-toast";
 
 interface BookDetailHeaderProps {
   book: Book;
@@ -54,6 +55,8 @@ const BookCoverSection: React.FC<{
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
+  const [isRating, setIsRating] = useState(false);
+  const { toast } = useToast();
   
   const showActionButtons = !isFinished;
   const showUnmarkButton = isFinished;
@@ -66,7 +69,6 @@ const BookCoverSection: React.FC<{
           isRead={isRead}
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
-          userRating={book.readingStatus?.rating}
         />
         <div className="mt-4 flex gap-2">
           {showActionButtons && (
@@ -121,10 +123,8 @@ const BookCover: React.FC<{
   isRead: boolean;
   pendingAction: string | null;
   handleMarkAsRead: () => void;
-  userRating?: number | null;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead, userRating }) => {
+}> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
   const isFinished = book.readingStatus?.status === 'finished';
-  console.log(`BookDetailHeader BookCover - Book: ${book.title}, isFinished: ${isFinished}, userRating: ${userRating}`);
   
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
@@ -145,22 +145,14 @@ const BookCover: React.FC<{
         />
       )}
       
-      {isFinished && userRating !== undefined && userRating !== null && userRating > 0 ? (
-        <div
-          className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
-          title={`You rated this ${Math.round(userRating * 5)}/5 stars`}
-        >
-          <Star className="h-3 w-3 fill-white" />
-          <span className="text-xs font-medium">{Math.round(userRating * 5)}</span>
-        </div>
-      ) : isFinished ? (
+      {isFinished && (
         <div
           className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
           title="Read"
         >
           <Check className="h-4 w-4" />
         </div>
-      ) : null}
+      )}
     </div>
   );
 };

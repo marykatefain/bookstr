@@ -1,8 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, BookOpen, Loader2, Check, X } from "lucide-react";
+import { PlusCircle, BookOpen, Loader2, Check, X, Star } from "lucide-react";
 import { Book, BookActionType } from "@/lib/nostr/types";
+import { rateBook } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
 interface BookActionButtonsProps {
@@ -26,10 +27,22 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   book,
   onUpdate
 }) => {
+  const [isRating, setIsRating] = useState(false);
+  const [localRating, setLocalRating] = useState(0);
   const { toast } = useToast();
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
+
+  // Initialize local rating from book if available
+  useEffect(() => {
+    if (book?.readingStatus?.rating !== undefined) {
+      // Convert from 0-1 scale to 1-5 scale
+      setLocalRating(Math.round(book.readingStatus.rating * 5));
+    } else {
+      setLocalRating(0);
+    }
+  }, [book?.readingStatus?.rating]);
 
   const handleTbrClick = () => {
     if (isTbr && onRemove) {
@@ -53,10 +66,60 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     }
   };
 
-  // If the book is marked as read, show only the unmark button
+  const handleRating = async (rating: number) => {
+    if (!book || !book.isbn) return;
+    
+    try {
+      setIsRating(true);
+      setLocalRating(rating); // Update local state immediately for better UX
+      
+      // Convert from 1-5 scale to 0-1 scale for storage
+      const normalizedRating = rating / 5;
+      await rateBook(book, normalizedRating);
+      
+      toast({
+        title: "Rating submitted",
+        description: `You've rated "${book.title}" ${rating} stars.`
+      });
+      
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error("Error rating book:", error);
+      toast({
+        title: "Error",
+        description: "Could not submit rating",
+        variant: "destructive"
+      });
+      // Revert to previous rating on failure
+      if (book.readingStatus?.rating !== undefined) {
+        setLocalRating(Math.round(book.readingStatus.rating * 5));
+      }
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  // If the book is marked as read, show rating stars and the unmark button
   if (isFinished) {
     return (
       <div className="pt-2 w-full">
+        <div className="flex justify-center mb-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              onClick={() => !isRating && book && handleRating(star)}
+              className={`h-4 w-4 cursor-pointer ${
+                isRating ? 'opacity-50' : ''
+              } ${
+                star <= localRating
+                  ? "text-yellow-500 fill-yellow-500"
+                  : "text-gray-300"
+              }`}
+            />
+          ))}
+        </div>
         <Button
           size="sm"
           variant="outline"
