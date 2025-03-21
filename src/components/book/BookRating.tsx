@@ -4,9 +4,15 @@ import { Star } from "lucide-react";
 
 interface BookRatingProps {
   rating?: number;
+  readingStatus?: 'tbr' | 'reading' | 'finished';
 }
 
-export const BookRating: React.FC<BookRatingProps> = ({ rating }) => {
+export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus }) => {
+  // Hide rating if the book is finished
+  if (readingStatus === 'finished') {
+    return null;
+  }
+
   if (!rating && rating !== 0) {
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }

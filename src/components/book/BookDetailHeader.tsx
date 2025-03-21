@@ -244,6 +244,17 @@ const BookInfoSection: React.FC<{
   avgRating: number;
   ratingsCount: number;
 }> = ({ book, avgRating, ratingsCount }) => {
+  const readingStatus = book.readingStatus?.status;
+  let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
+  
+  if (readingStatus === 'tbr') {
+    mappedReadingStatus = 'tbr';
+  } else if (readingStatus === 'reading') {
+    mappedReadingStatus = 'reading';
+  } else if (readingStatus === 'finished') {
+    mappedReadingStatus = 'finished';
+  }
+
   return (
     <div className="md:w-2/3">
       <h1 className="text-3xl font-bold text-bookverse-ink">{book.title}</h1>
@@ -252,7 +263,10 @@ const BookInfoSection: React.FC<{
       <div className="flex flex-wrap gap-4 mt-4">
         {avgRating > 0 && (
           <div className="flex items-center gap-1">
-            <BookRating rating={avgRating} />
+            <BookRating 
+              rating={avgRating} 
+              readingStatus={mappedReadingStatus}
+            />
             <span className="ml-1 text-sm">({ratingsCount})</span>
           </div>
         )}

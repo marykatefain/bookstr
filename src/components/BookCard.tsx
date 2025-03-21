@@ -269,7 +269,10 @@ export const BookCard: React.FC<BookCardProps> = ({
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
-                <BookRating rating={localBook.readingStatus?.rating} />
+                <BookRating 
+                  rating={localBook.readingStatus?.rating} 
+                  readingStatus={mappedReadingStatus}
+                />
               )}
               
               {showCategories && size !== "small" && (
@@ -319,7 +322,10 @@ export const BookCard: React.FC<BookCardProps> = ({
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
-                <BookRating rating={localBook.readingStatus?.rating} />
+                <BookRating 
+                  rating={localBook.readingStatus?.rating} 
+                  readingStatus={mappedReadingStatus}
+                />
               )}
               
               {showCategories && (
