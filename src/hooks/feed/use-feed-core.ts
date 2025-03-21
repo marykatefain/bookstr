@@ -14,25 +14,78 @@ interface UseFeedCoreProps {
   type: "followers" | "global";
   maxItems?: number;
   refreshTrigger?: number;
+  onComplete?: () => void;
+  isBackgroundRefresh?: boolean;
 }
 
 export function useFeedCore({
   type,
   maxItems = 15,
   refreshTrigger = 0,
+  onComplete,
+  isBackgroundRefresh = false
 }: UseFeedCoreProps) {
   const [activities, setActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const fetchInProgress = useRef(false);
   const loggedIn = isLoggedIn();
+  const isRefreshingRef = useRef(false);
 
   // Create a cache key based on feed type and max items
   const getCacheKey = useCallback(() => {
     return `${type}-${maxItems}`;
   }, [type, maxItems]);
+
+  // Function to ensure connection to relays
+  const ensureConnection = useCallback(async () => {
+    const connectionStatus = getConnectionStatus();
+    if (connectionStatus !== 'connected') {
+      console.log(`Connection status: ${connectionStatus}, attempting to connect...`);
+      return connectToRelays(undefined, false);
+    }
+    return Promise.resolve();
+  }, []);
+
+  // Function to set the loading state
+  const setLoadingState = useCallback((isLoading: boolean) => {
+    setLoading(isLoading);
+  }, []);
+
+  // Function to handle successful fetch
+  const handleFetchSuccess = useCallback((fetchedActivities: SocialActivity[]) => {
+    setActivities(fetchedActivities);
+    setError(null);
+    setRetryCount(0);
+    
+    // Call the onComplete callback if provided
+    if (onComplete) {
+      onComplete();
+    }
+  }, [onComplete]);
+
+  // Function to handle fetch error
+  const handleFetchError = useCallback((err: any): Error => {
+    console.error(`Error fetching ${type} feed:`, err);
+    const newError = err instanceof Error ? err : new Error(String(err));
+    setError(newError);
+    
+    // Only show toast error if not a background refresh
+    if (!isBackgroundRefresh) {
+      toast({
+        title: "Error loading feed",
+        description: "There was a problem loading the latest posts. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    // Increment retry count
+    setRetryCount(prev => prev + 1);
+    
+    return newError;
+  }, [type, isBackgroundRefresh]);
 
   // Function to fetch the feed with error handling and caching
   const fetchFeed = useCallback(async () => {
@@ -45,11 +98,12 @@ export function useFeedCore({
     if (type === "followers" && !loggedIn) {
       console.log("User not logged in, cannot fetch followers feed");
       setLoading(false);
-      setError("Login required");
+      setError(new Error("Login required"));
       return;
     }
 
     fetchInProgress.current = true;
+    isRefreshingRef.current = true;
     const cacheKey = getCacheKey();
     const now = Date.now();
     const cached = feedCache[cacheKey];
@@ -60,6 +114,7 @@ export function useFeedCore({
       setActivities(cached.activities);
       setLoading(false);
       fetchInProgress.current = false;
+      isRefreshingRef.current = false;
       return;
     }
 
@@ -72,11 +127,7 @@ export function useFeedCore({
       console.log(`Fetching ${type} feed...`);
       
       // Check connection status first
-      const connectionStatus = getConnectionStatus();
-      if (connectionStatus !== 'connected') {
-        console.log(`Connection status: ${connectionStatus}, attempting to connect...`);
-        await connectToRelays(undefined, false);
-      }
+      await ensureConnection();
 
       let results: SocialActivity[] = [];
 
@@ -94,6 +145,10 @@ export function useFeedCore({
       // Update state
       setActivities(results);
       setRetryCount(0); // Reset retry count on success
+      
+      if (onComplete) {
+        onComplete();
+      }
     } catch (err) {
       console.error(`Error fetching ${type} feed:`, err);
       
@@ -102,7 +157,8 @@ export function useFeedCore({
         console.log("Using cached data as fallback after error");
         setActivities(cached.activities);
       } else {
-        setError(`Failed to fetch ${type} feed. Please try again.`);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(new Error(`Failed to fetch ${type} feed: ${errorMessage}`));
       }
       
       // Only show toast error if not a background refresh
@@ -120,8 +176,9 @@ export function useFeedCore({
       setLoading(false);
       setIsBackgroundRefreshing(false);
       fetchInProgress.current = false;
+      isRefreshingRef.current = false;
     }
-  }, [type, maxItems, isBackgroundRefreshing, getCacheKey, loggedIn]);
+  }, [type, maxItems, isBackgroundRefreshing, getCacheKey, loggedIn, ensureConnection, onComplete]);
 
   // Function to manually refresh the feed
   const refreshFeed = useCallback(() => {
@@ -155,6 +212,11 @@ export function useFeedCore({
     error,
     refreshFeed,
     isBackgroundRefreshing,
-    setIsBackgroundRefreshing
+    setIsBackgroundRefreshing,
+    isRefreshingRef,
+    ensureConnection,
+    setLoadingState,
+    handleFetchSuccess,
+    handleFetchError
   };
 }
