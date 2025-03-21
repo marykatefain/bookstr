@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, BookOpen, Loader2, Check, X, Star } from "lucide-react";
@@ -34,10 +33,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
 
-  // Initialize local rating from book if available
   useEffect(() => {
     if (book?.readingStatus?.rating !== undefined) {
-      // Convert from 0-1 scale to 1-5 scale
       setLocalRating(Math.round(book.readingStatus.rating * 5));
     } else {
       setLocalRating(0);
@@ -71,9 +68,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     
     try {
       setIsRating(true);
-      setLocalRating(rating); // Update local state immediately for better UX
+      setLocalRating(rating);
       
-      // Convert from 1-5 scale to 0-1 scale for storage
       const normalizedRating = rating / 5;
       await rateBook(book, normalizedRating);
       
@@ -92,7 +88,6 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         description: "Could not submit rating",
         variant: "destructive"
       });
-      // Revert to previous rating on failure
       if (book.readingStatus?.rating !== undefined) {
         setLocalRating(Math.round(book.readingStatus.rating * 5));
       }
@@ -101,7 +96,6 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     }
   };
 
-  // If the book is marked as read, show rating stars and the unmark button
   if (isFinished) {
     return (
       <div className="pt-2 w-full">
@@ -140,9 +134,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     );
   }
 
-  // For books on TBR or currently reading, show both buttons side by side with full width
   return (
-    <div className="pt-2 grid grid-cols-2 gap-2 w-full">
+    <div className="pt-2 flex flex-col gap-2 w-full">
       <Button
         size="sm"
         variant={isTbr ? "default" : "outline"}
@@ -176,4 +169,4 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
       </Button>
     </div>
   );
-};
+}
