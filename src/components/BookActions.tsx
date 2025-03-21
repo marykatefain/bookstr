@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -132,7 +131,10 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
   };
 
   const handleManualIsbn = (book: Book, isbn: string) => {
-    const updatedBook = { ...book, isbn };
+    const updatedBook: Book = { 
+      ...book, 
+      isbn 
+    };
     
     if (pendingAction) {
       processBookAction(pendingAction, updatedBook);
@@ -150,7 +152,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
       }
       
       const normalizedRating = rating / 5;
-      await rateBook(book.isbn, normalizedRating);
+      await rateBook(book, normalizedRating);
       
       toast({
         title: "Success!",

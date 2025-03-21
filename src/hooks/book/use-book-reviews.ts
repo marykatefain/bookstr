@@ -99,7 +99,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     
     setSubmitting(true);
     try {
-      await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined);
+      await reviewBook(book, reviewText);
       toast({
         title: "Review submitted",
         description: "Your review has been published"

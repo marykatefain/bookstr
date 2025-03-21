@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -191,7 +190,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
 
     try {
-      await rateBook(book.isbn, rating);
+      await rateBook(book, rating);
       
       toast({
         title: "Rating saved",
@@ -235,7 +234,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     mappedReadingStatus = 'finished';
   }
 
-  // Get author display name, ensuring we have something to show
   const authorDisplayName = localBook.author || "Unknown Author";
 
   return (

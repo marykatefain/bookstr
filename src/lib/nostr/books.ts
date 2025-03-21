@@ -463,3 +463,77 @@ export async function fetchEventById(eventId: string) {
     return null;
   }
 }
+
+/**
+ * Reply to a specific content using Nostr events
+ * @param eventId - The ID of the event being replied to
+ * @param authorPubkey - The pubkey of the original event author
+ * @param content - The reply content
+ */
+export async function replyToContent(eventId: string, authorPubkey: string, content: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      throw new Error("User not logged in");
+    }
+
+    // Prepare the reply event tags
+    // 'e' tag for the event we're replying to
+    // 'p' tag for the author of the original event
+    const tags: string[][] = [
+      ["e", eventId],
+      ["p", authorPubkey]
+    ];
+
+    // Determine the kind based on the content (standard note kind 1)
+    const eventData = {
+      kind: NOSTR_KINDS.TEXT_NOTE,
+      content: content,
+      tags: tags
+    };
+
+    return await publishToNostr(eventData);
+  } catch (error) {
+    console.error("Error replying to content:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch replies for a specific event
+ * @param eventId - The ID of the event to fetch replies for
+ */
+export async function fetchReplies(eventId: string): Promise<any[]> {
+  if (!eventId) {
+    return [];
+  }
+
+  try {
+    const relayUrls = getUserRelays();
+    const pool = getSharedPool();
+    const currentUser = getCurrentUser();
+
+    // Create filter to find text notes (kind 1) that reference this event
+    const filter = {
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      '#e': [eventId]
+    };
+
+    const events = await pool.querySync(relayUrls, filter);
+    
+    // Process the replies
+    const replies = events.map(event => {
+      return {
+        id: event.id,
+        pubkey: event.pubkey,
+        content: event.content,
+        createdAt: event.created_at,
+        parentId: eventId
+      };
+    });
+
+    return replies;
+  } catch (error) {
+    console.error(`Error fetching replies for event ${eventId}:`, error);
+    return [];
+  }
+}
