@@ -38,7 +38,7 @@ export function extractISBNFromTags(event: Event): string | null {
  * Supports both 0-1 scale (standard Nostr) and 1-5 scale
  */
 export function extractRatingFromTags(event: Event): number | undefined {
-  console.log(`Extracting rating from event ${event.id}`, event.tags);
+  console.log(`Extracting rating from event ${event.id}, kind ${event.kind}`, event.tags);
   
   // First, directly look for the rating tag
   const ratingTag = event.tags.find(tag => tag[0] === 'rating');
@@ -104,6 +104,7 @@ export function getReadingStatusFromEventKind(eventKind: number): 'tbr' | 'readi
   if (eventKind === NOSTR_KINDS.BOOK_TBR) return 'tbr';
   if (eventKind === NOSTR_KINDS.BOOK_READING) return 'reading';
   if (eventKind === NOSTR_KINDS.BOOK_READ) return 'finished';
+  if (eventKind === NOSTR_KINDS.REVIEW || eventKind === NOSTR_KINDS.BOOK_RATING) return 'finished';
   
   // Default to tbr if not recognized
   return 'tbr';

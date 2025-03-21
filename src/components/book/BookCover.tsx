@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star } from "lucide-react";
@@ -52,15 +53,17 @@ export const BookCover: React.FC<BookCoverProps> = ({
     // Not displaying any button if there's no action handler
     if (!onReadAction && !isRead && !userRating) return null;
     
-    // If the book has a rating and is read, show the rating
+    // If the book is read and has a rating, show the rating
     if (isRead && userRating && userRating > 0) {
+      console.log(`Displaying rating for ${title}: ${userRating}`);
+      const displayRating = Math.round(userRating * 5);
       return (
         <div
           className="absolute top-2 right-2 rounded-full px-2 py-1 bg-yellow-500 text-white flex items-center gap-1"
-          title={`You rated this ${Math.round(userRating * 5)}/5 stars`}
+          title={`You rated this ${displayRating}/5 stars`}
         >
           <Star className="h-3 w-3 fill-white" />
-          <span className="text-xs font-medium">{Math.round(userRating * 5)}</span>
+          <span className="text-xs font-medium">{displayRating}</span>
         </div>
       );
     }

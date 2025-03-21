@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
@@ -123,6 +124,7 @@ const BookCover: React.FC<{
   userRating?: number | null;
 }> = ({ book, isRead, pendingAction, handleMarkAsRead, userRating }) => {
   const isFinished = book.readingStatus?.status === 'finished';
+  console.log(`BookDetailHeader BookCover - Book: ${book.title}, isFinished: ${isFinished}, userRating: ${userRating}`);
   
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">

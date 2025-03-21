@@ -48,6 +48,11 @@ export const useBookData = (isbn: string | undefined) => {
   const userRating = bookInLibrary?.readingStatus?.rating;
 
   console.log(`Book with ISBN ${isbn} has user rating:`, userRating);
+  console.log(`Book in library:`, bookInLibrary);
+  
+  if (bookInLibrary) {
+    console.log(`Rating from readingStatus:`, bookInLibrary.readingStatus?.rating);
+  }
 
   // Update the book object with the reading status and rating
   const enrichedBook = book ? {
