@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -79,6 +78,13 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     // Convert back to array
     const allEvents = Array.from(eventMap.values());
     
+    // Filter out reply posts (those with 'e' tags)
+    const nonReplyEvents = allEvents.filter(event => 
+      !event.tags.some(tag => tag[0] === 'e')
+    );
+    
+    console.log(`Filtered out ${allEvents.length - nonReplyEvents.length} reply posts`);
+    
     // Get all unique pubkeys to fetch profiles
     const uniquePubkeys = [...new Set(allEvents.map(event => event.pubkey))];
     
@@ -125,7 +131,7 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     // Convert events to social activities
     const socialFeed: SocialActivity[] = [];
     
-    for (const event of allEvents) {
+    for (const event of nonReplyEvents) {
       const isbn = extractISBNFromTags(event);
       
       if (!isbn && event.kind !== NOSTR_KINDS.TEXT_NOTE) {

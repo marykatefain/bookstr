@@ -1,4 +1,3 @@
-
 import { type Event } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
 import { extractISBNFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../../utils/eventUtils";
@@ -17,13 +16,20 @@ export async function processFeedEvents(events: Event[], limit: number): Promise
   }
   
   // Filter events to only include valid ones with either k=isbn or t=bookstr
+  // AND exclude posts with 'e' tags (replies to other posts)
   const filteredEvents = events.filter(event => {
+    // Check if it has bookstr-related tags
     const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
     const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
-    return hasIsbnTag || hasBookstrTag;
+    
+    // Check if it's a reply (has 'e' tag)
+    const isReply = event.tags.some(tag => tag[0] === 'e');
+    
+    // Include only non-reply posts with bookstr tags
+    return (hasIsbnTag || hasBookstrTag) && !isReply;
   });
   
-  console.log(`Filtered down to ${filteredEvents.length} valid events`);
+  console.log(`Filtered down to ${filteredEvents.length} valid events (excluding replies)`);
   
   // Limit the number of events to process
   const eventsToProcess = filteredEvents.slice(0, limit);

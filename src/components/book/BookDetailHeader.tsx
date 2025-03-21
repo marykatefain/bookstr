@@ -14,6 +14,7 @@ interface BookDetailHeaderProps {
   pendingAction: string | null;
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
+  handleRemove?: () => void;
 }
 
 export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
@@ -23,7 +24,8 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
   isRead,
   pendingAction,
   handleMarkAsRead,
-  addBookToList
+  addBookToList,
+  handleRemove
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -33,6 +35,7 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
         pendingAction={pendingAction}
         handleMarkAsRead={handleMarkAsRead}
         addBookToList={addBookToList}
+        handleRemove={handleRemove}
       />
       
       <BookInfoSection
@@ -50,7 +53,8 @@ const BookCoverSection: React.FC<{
   pendingAction: string | null;
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList }) => {
+  handleRemove?: () => void;
+}> = ({ book, isRead, pendingAction, handleMarkAsRead, addBookToList, handleRemove }) => {
   const readingStatus = book.readingStatus?.status;
   const isTbr = readingStatus === 'tbr';
   const isReading = readingStatus === 'reading';
@@ -59,7 +63,6 @@ const BookCoverSection: React.FC<{
   const { toast } = useToast();
   
   const showActionButtons = !isFinished;
-  const showUnmarkButton = isFinished;
   
   return (
     <div className="md:w-1/3">
@@ -69,6 +72,8 @@ const BookCoverSection: React.FC<{
           isRead={isRead}
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
+          handleRemove={handleRemove}
+          readingStatus={readingStatus as 'tbr' | 'reading' | 'finished' | null}
         />
         <div className="mt-4 flex gap-2">
           {showActionButtons && (
@@ -101,17 +106,6 @@ const BookCoverSection: React.FC<{
               </Button>
             </>
           )}
-          
-          {showUnmarkButton && (
-            <Button 
-              className="flex-1 bg-bookverse-highlight"
-              onClick={handleMarkAsRead}
-              disabled={pendingAction !== null}
-            >
-              <X className="mr-2 h-4 w-4" />
-              Unmark as Read
-            </Button>
-          )}
         </div>
       </div>
     </div>
@@ -123,8 +117,95 @@ const BookCover: React.FC<{
   isRead: boolean;
   pendingAction: string | null;
   handleMarkAsRead: () => void;
-}> = ({ book, isRead, pendingAction, handleMarkAsRead }) => {
+  handleRemove?: () => void;
+  readingStatus?: 'tbr' | 'reading' | 'finished' | null;
+}> = ({ book, isRead, pendingAction, handleMarkAsRead, handleRemove, readingStatus }) => {
   const isFinished = book.readingStatus?.status === 'finished';
+  const [isRating, setIsRating] = useState(false);
+  const [ratingHover, setRatingHover] = useState<number | null>(null);
+  const { toast } = useToast();
+  const rating = book.readingStatus?.rating;
+  
+  const handleRateBook = async (newRating: number) => {
+    if (!book.isbn) {
+      toast({
+        title: "Cannot rate book",
+        description: "This book is missing an ISBN",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsRating(true);
+    
+    try {
+      await rateBook(book.isbn, newRating);
+      toast({
+        title: "Rating saved",
+        description: "Your rating has been saved and published to Nostr"
+      });
+    } catch (error) {
+      console.error("Error rating book:", error);
+      toast({
+        title: "Rating failed",
+        description: "There was an error saving your rating",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  const renderRatingStars = () => {
+    const starCount = 5;
+    const displayRating = rating ? Math.round(rating * 5) : 0;
+    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
+    
+    return (
+      <div 
+        className="absolute top-2 right-2 p-1 bg-black/50 backdrop-blur-sm rounded-full flex items-center"
+        onMouseLeave={() => setRatingHover(null)}
+      >
+        {[...Array(starCount)].map((_, i) => (
+          <button
+            key={i}
+            className="p-0.5"
+            onClick={() => handleRateBook((i + 1) / 5)}
+            onMouseEnter={() => setRatingHover(i + 1)}
+            disabled={isRating}
+            aria-label={`Rate ${i + 1} stars`}
+          >
+            <Star
+              size={16}
+              className={`
+                ${i < hoverRating ? 'text-bookverse-highlight fill-bookverse-highlight' : 'text-white'}
+                transition-colors
+              `}
+            />
+          </button>
+        ))}
+      </div>
+    );
+  };
+  
+  const removeButton = () => {
+    if (!handleRemove || !readingStatus) return null;
+    
+    return (
+      <button
+        onClick={handleRemove}
+        className="absolute top-2 left-2 rounded-full p-1.5 transition-all duration-200 
+          bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-red-500 hover:border-red-500"
+        title={`Remove from ${readingStatus === 'tbr' ? 'TBR' : readingStatus === 'reading' ? 'reading' : 'finished'} list`}
+      >
+        {pendingAction === readingStatus ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <X className="h-4 w-4" />
+        )}
+      </button>
+    );
+  };
   
   return (
     <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
@@ -137,6 +218,8 @@ const BookCover: React.FC<{
         }} 
       />
       
+      {removeButton()}
+      
       {!isFinished && (
         <BookReadButton 
           isRead={isRead}
@@ -145,14 +228,7 @@ const BookCover: React.FC<{
         />
       )}
       
-      {isFinished && (
-        <div
-          className="absolute top-2 right-2 rounded-full p-1.5 bg-green-500 text-white"
-          title="Read"
-        >
-          <Check className="h-4 w-4" />
-        </div>
-      )}
+      {isFinished && renderRatingStars()}
     </div>
   );
 };
@@ -185,6 +261,17 @@ const BookInfoSection: React.FC<{
   avgRating: number;
   ratingsCount: number;
 }> = ({ book, avgRating, ratingsCount }) => {
+  const readingStatus = book.readingStatus?.status;
+  let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
+  
+  if (readingStatus === 'tbr') {
+    mappedReadingStatus = 'tbr';
+  } else if (readingStatus === 'reading') {
+    mappedReadingStatus = 'reading';
+  } else if (readingStatus === 'finished') {
+    mappedReadingStatus = 'finished';
+  }
+
   return (
     <div className="md:w-2/3">
       <h1 className="text-3xl font-bold text-bookverse-ink">{book.title}</h1>
@@ -193,7 +280,10 @@ const BookInfoSection: React.FC<{
       <div className="flex flex-wrap gap-4 mt-4">
         {avgRating > 0 && (
           <div className="flex items-center gap-1">
-            <BookRating rating={avgRating} />
+            <BookRating 
+              rating={avgRating} 
+              readingStatus={mappedReadingStatus}
+            />
             <span className="ml-1 text-sm">({ratingsCount})</span>
           </div>
         )}

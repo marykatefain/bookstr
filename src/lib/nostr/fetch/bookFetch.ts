@@ -10,19 +10,22 @@ import { getSharedPool } from "../utils/poolManager";
  * Extract all ISBNs from the tags of an event
  */
 export function extractISBNsFromTags(event: Event): string[] {
-  const isbnTags = event.tags.filter(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
-  return isbnTags.map(tag => tag[1].replace('isbn:', ''));
+  const isbnTags = event.tags.filter(([name, value]) => {
+    if (event.kind === NOSTR_KINDS.REVIEW) {
+      return name === 'd' && value?.startsWith('isbn:');
+    } else {
+      return name === 'i' && value?.startsWith('isbn:');
+    }
+  });
+
+  return isbnTags.map(([, isbn]) => isbn.replace(/^isbn:/, ''));
 }
 
 /**
  * Extract a single ISBN from tags (used for backward compatibility)
  */
 export function extractISBNFromTags(event: Event): string | null {
-  const isbnTag = event.tags.find(tag => tag[0] === 'i' && tag[1]?.startsWith('isbn:'));
-  if (isbnTag && isbnTag[1]) {
-    return isbnTag[1].replace('isbn:', '');
-  }
-  return null;
+  return extractISBNsFromTags(event)[0] || null;
 }
 
 /**
@@ -136,7 +139,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     
     // Create a map of ISBN to rating from rating events
     const ratingsMap = new Map<string, number>();
-    
+
     for (const event of ratingEvents) {
       const isbn = extractISBNFromTags(event);
       if (!isbn) continue;
@@ -147,7 +150,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
         console.log(`Added rating ${rating} for ISBN ${isbn} to ratings map`);
       }
     }
-    
+
     // Apply ratings to books
     const applyRatings = (books: Book[]): Book[] => {
       return books.map(book => {

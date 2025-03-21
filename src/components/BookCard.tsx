@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList } from "@/lib/nostr";
+import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
@@ -171,6 +171,52 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
+  const handleRating = async (rating: number) => {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to rate books",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!book.isbn) {
+      toast({
+        title: "Invalid book data",
+        description: "This book is missing an ISBN and cannot be rated",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await rateBook(book.isbn, rating);
+      
+      toast({
+        title: "Rating saved",
+        description: `Your rating for ${book.title} has been saved`
+      });
+      
+      setLocalBook(prev => ({
+        ...prev,
+        readingStatus: {
+          ...prev.readingStatus!,
+          rating
+        }
+      }));
+      
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error("Error rating book:", error);
+      toast({
+        title: "Rating failed",
+        description: "There was an error saving your rating",
+        variant: "destructive"
+      });
+    }
+  };
+
   const coverContainerClasses = variant === "horizontal"
     ? "relative flex-shrink-0" + (size === "small" ? " w-16 h-16" : " w-24 h-24")
     : "relative" + (variant === "vertical" ? " style={{ paddingTop: '150%' }}" : "");
@@ -206,7 +252,11 @@ export const BookCard: React.FC<BookCardProps> = ({
                 isRead={isRead}
                 pendingAction={pendingAction}
                 onReadAction={() => handleAction('finished')}
+                onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
+                readingStatus={mappedReadingStatus}
                 size={size}
+                rating={localBook.readingStatus?.rating}
+                onRatingChange={handleRating}
               />
             </div>
             
@@ -222,22 +272,21 @@ export const BookCard: React.FC<BookCardProps> = ({
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
-                <BookRating rating={localBook.readingStatus?.rating} />
+                <BookRating 
+                  rating={localBook.readingStatus?.rating} 
+                  readingStatus={mappedReadingStatus}
+                />
               )}
               
               {showCategories && size !== "small" && (
                 <BookCategories categories={localBook.categories} />
               )}
               
-              <BookActionButtons
-                size={size}
-                pendingAction={pendingAction}
-                onAddToTbr={() => handleAction('tbr')}
-                onStartReading={() => handleAction('reading')}
-                onRemove={handleRemove}
-                readingStatus={mappedReadingStatus}
+              <BookActions
                 book={localBook}
                 onUpdate={handleBookUpdate}
+                size={size}
+                horizontal={true}
               />
             </div>
           </div>
@@ -253,7 +302,11 @@ export const BookCard: React.FC<BookCardProps> = ({
                   isRead={isRead}
                   pendingAction={pendingAction}
                   onReadAction={() => handleAction('finished')}
+                  onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
+                  readingStatus={mappedReadingStatus}
                   size={size}
+                  rating={localBook.readingStatus?.rating}
+                  onRatingChange={handleRating}
                 />
               </div>
             </div>
@@ -270,7 +323,10 @@ export const BookCard: React.FC<BookCardProps> = ({
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
               {showRating && (
-                <BookRating rating={localBook.readingStatus?.rating} />
+                <BookRating 
+                  rating={localBook.readingStatus?.rating} 
+                  readingStatus={mappedReadingStatus}
+                />
               )}
               
               {showCategories && (

@@ -34,10 +34,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
 
-  // Initialize local rating from book if available
   useEffect(() => {
     if (book?.readingStatus?.rating !== undefined) {
-      // Convert from 0-1 scale to 1-5 scale
       setLocalRating(Math.round(book.readingStatus.rating * 5));
     } else {
       setLocalRating(0);
@@ -71,9 +69,8 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     
     try {
       setIsRating(true);
-      setLocalRating(rating); // Update local state immediately for better UX
+      setLocalRating(rating);
       
-      // Convert from 1-5 scale to 0-1 scale for storage
       const normalizedRating = rating / 5;
       await rateBook(book, normalizedRating);
       
@@ -92,7 +89,6 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
         description: "Could not submit rating",
         variant: "destructive"
       });
-      // Revert to previous rating on failure
       if (book.readingStatus?.rating !== undefined) {
         setLocalRating(Math.round(book.readingStatus.rating * 5));
       }
@@ -101,7 +97,6 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
     }
   };
 
-  // If the book is marked as read, show rating stars and the unmark button
   if (isFinished) {
     return (
       <div className="pt-2 w-full">
@@ -120,58 +115,95 @@ export const BookActionButtons: React.FC<BookActionButtonsProps> = ({
             />
           ))}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full text-xs text-muted-foreground hover:bg-muted/50"
-          onClick={handleUnmarkClick}
-          disabled={!!pendingAction}
-        >
-          {pendingAction === 'finished' ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          ) : (
-            <X className="mr-1 h-3 w-3" />
-          )}
-          Mark Unread
-        </Button>
+        <div className="w-full flex justify-center">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-[200%] text-xs text-muted-foreground hover:bg-muted/50"
+            onClick={handleUnmarkClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'finished' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <X className="mr-1 h-3 w-3" />
+            )}
+            Mark Unread
+          </Button>
+        </div>
       </div>
     );
   }
 
-  // For books on TBR or currently reading, show both buttons side by side with full width
   return (
-    <div className="pt-2 grid grid-cols-2 gap-2 w-full">
-      <Button
-        size="sm"
-        variant={isTbr ? "default" : "outline"}
-        className={`text-xs ${isTbr ? "bg-bookverse-highlight" : ""} w-full`}
-        onClick={handleTbrClick}
-        disabled={!!pendingAction}
-      >
-        {pendingAction === 'tbr' ? (
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-        ) : isTbr ? (
-          <X className="mr-1 h-3 w-3" />
-        ) : (
-          <PlusCircle className="mr-1 h-3 w-3" />
-        )}
-        {isTbr ? "Remove" : "TBR"}
-      </Button>
-      <Button
-        size="sm"
-        className={`text-xs ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"} w-full`}
-        onClick={handleReadingClick}
-        disabled={!!pendingAction}
-      >
-        {pendingAction === 'reading' ? (
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-        ) : isReading ? (
-          <X className="mr-1 h-3 w-3" />
-        ) : (
-          <BookOpen className="mr-1 h-3 w-3" />
-        )}
-        {isReading ? "Stop" : "Start"}
-      </Button>
+    <div className="pt-2 flex flex-col gap-2 w-full">
+      {/* For TBR books, show only Start Reading button */}
+      {isTbr && (
+        <Button
+          size="sm"
+          className="text-xs bg-bookverse-accent hover:bg-bookverse-highlight w-full"
+          onClick={handleReadingClick}
+          disabled={!!pendingAction}
+        >
+          {pendingAction === 'reading' ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <BookOpen className="mr-1 h-3 w-3" />
+          )}
+          Start Reading
+        </Button>
+      )}
+
+      {/* For Reading books, show only Add to TBR button */}
+      {isReading && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs w-full"
+          onClick={handleTbrClick}
+          disabled={!!pendingAction}
+        >
+          {pendingAction === 'tbr' ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <PlusCircle className="mr-1 h-3 w-3" />
+          )}
+          Add to TBR
+        </Button>
+      )}
+
+      {/* For books not in any list, show both buttons */}
+      {!isTbr && !isReading && !isFinished && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs w-full"
+            onClick={handleTbrClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'tbr' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <PlusCircle className="mr-1 h-3 w-3" />
+            )}
+            Add to TBR
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs bg-bookverse-accent hover:bg-bookverse-highlight w-full"
+            onClick={handleReadingClick}
+            disabled={!!pendingAction}
+          >
+            {pendingAction === 'reading' ? (
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            ) : (
+              <BookOpen className="mr-1 h-3 w-3" />
+            )}
+            Start Reading
+          </Button>
+        </>
+      )}
     </div>
   );
-};
+}
