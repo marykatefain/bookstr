@@ -7,6 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { BookCover } from "@/components/book/BookCover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Book } from "@/lib/nostr/types";
+import { ISBNEntryModal } from "@/components/ISBNEntryModal";
 
 interface BookSelectorProps {
   open: boolean;
@@ -20,6 +21,9 @@ interface BookSelectorProps {
   userBooks: Book[];
   loadingUserBooks: boolean;
   handleSelectBook: (book: Book) => void;
+  pendingBook: Book | null;
+  showISBNModal: boolean;
+  setShowISBNModal: (value: boolean) => void;
 }
 
 export function BookSelector({
@@ -33,7 +37,10 @@ export function BookSelector({
   setSelectedBook,
   userBooks,
   loadingUserBooks,
-  handleSelectBook
+  handleSelectBook,
+  pendingBook,
+  showISBNModal,
+  setShowISBNModal
 }: BookSelectorProps) {
   return (
     <>
@@ -151,6 +158,15 @@ export function BookSelector({
             <p className="text-xs text-muted-foreground">{selectedBook.author}</p>
           </div>
         </div>
+      )}
+
+      {pendingBook && (
+        <ISBNEntryModal
+          book={pendingBook}
+          isOpen={showISBNModal}
+          onClose={() => setShowISBNModal(false)}
+          onSubmit={() => {}} // No longer needed but kept for type compatibility
+        />
       )}
     </>
   );
