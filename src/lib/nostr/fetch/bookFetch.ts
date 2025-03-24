@@ -107,13 +107,19 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     
     console.log(`Found ${listEvents.length} book list events and ${ratingEvents.length} rating events`);
     
+    // Deduplicate events based on id to prevent duplicate entries from multiple relays
+    const uniqueListEvents = deduplicateEvents(listEvents);
+    const uniqueRatingEvents = deduplicateEvents(ratingEvents);
+    
+    console.log(`After deduplication: ${uniqueListEvents.length} book list events and ${uniqueRatingEvents.length} rating events`);
+    
     // Group books by reading status
     const tbrBooks: Book[] = [];
     const readingBooks: Book[] = [];
     const readBooks: Book[] = [];
     
     // Process list events first
-    for (const event of listEvents) {
+    for (const event of uniqueListEvents) {
       const isbns = extractISBNsFromTags(event);
       
       if (isbns.length === 0) {
@@ -139,7 +145,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     // Create a map of ISBN to rating from rating events
     const ratingsMap = new Map<string, number>();
 
-    for (const event of ratingEvents) {
+    for (const event of uniqueRatingEvents) {
       const isbn = extractISBNFromTags(event);
       if (!isbn) continue;
       
@@ -172,16 +178,21 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     const readingBooksWithRatings = applyRatings(readingBooks);
     const readBooksWithRatings = applyRatings(readBooks);
     
-    console.log(`Books with ratings: TBR=${tbrBooksWithRatings.length}, Reading=${readingBooksWithRatings.length}, Read=${readBooksWithRatings.length}`);
+    // Deduplicate books within each list by ISBN
+    const uniqueTbrBooks = deduplicateBooksByIsbn(tbrBooksWithRatings);
+    const uniqueReadingBooks = deduplicateBooksByIsbn(readingBooksWithRatings);
+    const uniqueReadBooks = deduplicateBooksByIsbn(readBooksWithRatings);
+    
+    console.log(`Books after internal deduplication: TBR=${uniqueTbrBooks.length}, Reading=${uniqueReadingBooks.length}, Read=${uniqueReadBooks.length}`);
     
     // Deduplicate books across lists - prioritize read > reading > tbr
     const uniqueBooksByList = deduplicateBookLists({
-      tbr: tbrBooksWithRatings,
-      reading: readingBooksWithRatings,
-      read: readBooksWithRatings
+      tbr: uniqueTbrBooks,
+      reading: uniqueReadingBooks,
+      read: uniqueReadBooks
     });
     
-    console.log(`After deduplication: TBR=${uniqueBooksByList.tbr.length}, Reading=${uniqueBooksByList.reading.length}, Read=${uniqueBooksByList.read.length}`);
+    console.log(`After cross-list deduplication: TBR=${uniqueBooksByList.tbr.length}, Reading=${uniqueBooksByList.reading.length}, Read=${uniqueBooksByList.read.length}`);
     
     // Extract all unique ISBNs from all books
     const allBooks = [...uniqueBooksByList.tbr, ...uniqueBooksByList.reading, ...uniqueBooksByList.read];
@@ -258,6 +269,47 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     console.error('Error fetching books from relays:', error);
     return { tbr: [], reading: [], read: [] };
   }
+}
+
+/**
+ * Deduplicate events by id
+ * This prevents duplicate entries when fetching from multiple relays
+ */
+function deduplicateEvents(events: Event[]): Event[] {
+  const uniqueEvents = new Map<string, Event>();
+  
+  events.forEach(event => {
+    // If event doesn't exist in map or current event is newer, add/replace it
+    const existingEvent = uniqueEvents.get(event.id);
+    if (!existingEvent) {
+      uniqueEvents.set(event.id, event);
+    }
+  });
+  
+  return Array.from(uniqueEvents.values());
+}
+
+/**
+ * Deduplicate books by ISBN within a single list
+ * This prevents duplicate entries from the same source 
+ */
+function deduplicateBooksByIsbn(books: Book[]): Book[] {
+  const uniqueBooks = new Map<string, Book>();
+  
+  books.forEach(book => {
+    if (!book.isbn) return; // Skip books without ISBN
+    
+    const existingBook = uniqueBooks.get(book.isbn);
+    
+    // If book doesn't exist in map or current book is newer, add/replace it
+    if (!existingBook || 
+        (book.readingStatus?.dateAdded && existingBook.readingStatus?.dateAdded && 
+         book.readingStatus.dateAdded > existingBook.readingStatus.dateAdded)) {
+      uniqueBooks.set(book.isbn, book);
+    }
+  });
+  
+  return Array.from(uniqueBooks.values());
 }
 
 /**

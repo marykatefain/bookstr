@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Book, Post, BookReview } from "@/lib/nostr/types";
@@ -31,8 +30,11 @@ export const useLibraryData = () => {
         const userBooks = await fetchUserBooks(user.pubkey);
         console.log("User books data fetched:", userBooks);
         
-        // Deduplicate books across lists
-        const dedupedBooks = deduplicateBookLists(userBooks);
+        // First deduplicate books within the same lists
+        const deduplicatedWithinLists = deduplicateBooksWithinLists(userBooks);
+        
+        // Then deduplicate books across lists
+        const dedupedBooks = deduplicateBookLists(deduplicatedWithinLists);
         return dedupedBooks;
       } catch (error) {
         console.error("Error fetching user books:", error);
@@ -44,6 +46,40 @@ export const useLibraryData = () => {
     refetchOnWindowFocus: true,
     refetchOnMount: true
   });
+  
+  // Deduplicate books within the same list using ISBN as the unique identifier
+  const deduplicateBooksWithinLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+    const uniqueTbr = deduplicateListByIsbn(books.tbr);
+    const uniqueReading = deduplicateListByIsbn(books.reading);
+    const uniqueRead = deduplicateListByIsbn(books.read);
+    
+    return {
+      tbr: uniqueTbr,
+      reading: uniqueReading,
+      read: uniqueRead
+    };
+  };
+  
+  // Helper function to deduplicate a single list by ISBN
+  const deduplicateListByIsbn = (books: Book[]): Book[] => {
+    const uniqueBooks = new Map<string, Book>();
+    
+    // Process books, keeping only the most recent entry for each ISBN
+    books.forEach(book => {
+      if (!book.isbn) return; // Skip books without ISBN
+      
+      const existingBook = uniqueBooks.get(book.isbn);
+      
+      // If book doesn't exist in map or current book is newer, add/replace it
+      if (!existingBook || 
+          (book.readingStatus?.dateAdded && existingBook.readingStatus?.dateAdded && 
+           book.readingStatus.dateAdded > existingBook.readingStatus.dateAdded)) {
+        uniqueBooks.set(book.isbn, book);
+      }
+    });
+    
+    return Array.from(uniqueBooks.values());
+  };
   
   // Deduplicate books across lists - prioritize finished > reading > tbr
   const deduplicateBookLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {

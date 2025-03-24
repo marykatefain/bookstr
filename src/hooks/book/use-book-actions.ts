@@ -60,13 +60,13 @@ export const useBookActions = () => {
     // Remove from each list sequentially
     for (const listType of otherLists) {
       try {
-        // Only attempt removal if book is known to be in this list
-        if (book.readingStatus?.status === listType) {
-          console.log(`Removing book ${book.title} (${book.isbn}) from ${listType} list before adding to ${targetList} list`);
-          await removeBookFromList(book, listType);
-        }
+        // Attempt removal from all lists regardless of current status
+        // This helps clean up any potential duplicates
+        console.log(`Removing book ${book.title} (${book.isbn}) from ${listType} list before adding to ${targetList} list`);
+        await removeBookFromList(book, listType);
       } catch (error) {
         console.error(`Error removing book from ${listType} list:`, error);
+        // Continue with other lists even if one fails
       }
     }
   };
