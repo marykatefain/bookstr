@@ -52,7 +52,10 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
       return "";
     }
     
-    const response = await fetch(`${BASE_URL}/books/${editionKey}.json`, {
+    // Normalize the edition key format
+    const normalizedKey = editionKey.startsWith('/books/') ? editionKey : `/books/${editionKey}`;
+    
+    const response = await fetch(`${BASE_URL}${normalizedKey}.json`, {
       // Add timeout and better fetch options
       headers: { 'Accept': 'application/json' },
       cache: 'no-store',
@@ -66,12 +69,27 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
     
     const data = await response.json();
     
-    // Try to extract ISBN from various fields
-    const isbn = 
-      data.isbn_13?.[0] || 
-      data.isbn_10?.[0] || 
-      (data.identifiers?.isbn_13?.[0] || data.identifiers?.isbn_10?.[0] || "");
+    // Try to extract ISBN from various fields (prioritize ISBN-13 over ISBN-10)
+    let isbn = "";
     
+    // Check for ISBN-13 first (preferred)
+    if (data.isbn_13 && Array.isArray(data.isbn_13) && data.isbn_13.length > 0) {
+      isbn = data.isbn_13[0];
+    }
+    // If no ISBN-13, try ISBN-10
+    else if (data.isbn_10 && Array.isArray(data.isbn_10) && data.isbn_10.length > 0) {
+      isbn = data.isbn_10[0];
+    }
+    // Check if ISBN exists in identifiers object
+    else if (data.identifiers) {
+      if (data.identifiers.isbn_13 && data.identifiers.isbn_13.length > 0) {
+        isbn = data.identifiers.isbn_13[0];
+      } else if (data.identifiers.isbn_10 && data.identifiers.isbn_10.length > 0) {
+        isbn = data.identifiers.isbn_10[0];
+      }
+    }
+    
+    console.log(`Found ISBN ${isbn} for edition ${editionKey}`);
     return isbn;
   } catch (error) {
     console.error("Error fetching ISBN from edition key:", error);
