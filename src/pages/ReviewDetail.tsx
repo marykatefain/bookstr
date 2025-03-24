@@ -179,7 +179,7 @@ const ReviewDetail = () => {
   }
 
   const displayRating = review.rating !== undefined && review.rating !== null 
-    ? Math.round(review.rating * 5) 
+    ? Math.max(1, Math.round(review.rating * 5)) 
     : undefined;
 
   return (
@@ -279,4 +279,3 @@ const ReviewDetail = () => {
 };
 
 export default ReviewDetail;
-
