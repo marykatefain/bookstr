@@ -70,6 +70,40 @@ const BookCoverSection: React.FC<{
   useEffect(() => {
     if (!book.isbn || !affiliateButtonRef.current) return;
     
+    // Add custom CSS to style the Bookshop.org button
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      /* Styling for Bookshop.org button */
+      .bookshop-book-button {
+        width: 100% !important;
+        font-family: 'Inter', sans-serif !important;
+        border-radius: 0.375rem !important;
+        height: 40px !important;
+        font-size: 0.875rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: rgb(238, 242, 255) !important;
+        color: rgb(79, 70, 229) !important;
+        border: 1px solid rgb(165, 180, 252) !important;
+      }
+      
+      .dark .bookshop-book-button {
+        background-color: rgba(79, 70, 229, 0.1) !important;
+        color: rgb(165, 180, 252) !important;
+        border-color: rgb(79, 70, 229) !important;
+      }
+      
+      .bookshop-book-button:hover {
+        background-color: rgb(224, 231, 255) !important;
+      }
+      
+      .dark .bookshop-book-button:hover {
+        background-color: rgba(79, 70, 229, 0.2) !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
     const script = document.createElement('script');
     script.src = 'https://bookshop.org/widgets.js';
     script.setAttribute('data-type', 'book-button');
@@ -89,6 +123,9 @@ const BookCoverSection: React.FC<{
     return () => {
       if (container && container.contains(script)) {
         container.removeChild(script);
+      }
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
       }
     };
   }, [book.isbn]);
@@ -139,11 +176,11 @@ const BookCoverSection: React.FC<{
           {/* Bookshop.org Affiliate Button */}
           <div 
             ref={affiliateButtonRef}
-            className="w-full min-h-10 flex justify-center items-center border border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/50 rounded-md"
+            className="w-full h-10"
           >
             {/* Affiliate button will be inserted here by the script */}
             {!book.isbn && (
-              <div className="flex items-center justify-center py-2 text-indigo-700 dark:text-indigo-300 text-sm">
+              <div className="flex items-center justify-center w-full h-10 py-2 text-indigo-700 dark:text-indigo-300 text-sm border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/30 rounded-md">
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 ISBN Required for Affiliate Link
               </div>
