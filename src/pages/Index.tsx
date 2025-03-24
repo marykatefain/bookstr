@@ -5,6 +5,7 @@ import { HeroSection } from "@/components/homepage/HeroSection";
 import { SocialSection } from "@/components/homepage/SocialSection";
 import { JoinCommunitySection } from "@/components/homepage/JoinCommunitySection";
 import { StatsSidebar } from "@/components/homepage/StatsSidebar";
+import { WelcomeModal } from "@/components/WelcomeModal";
 import { isLoggedIn } from "@/lib/nostr";
 
 const Index = () => {
@@ -14,6 +15,7 @@ const Index = () => {
 
   return (
     <Layout rightSidebar={rightSidebar}>
+      <WelcomeModal />
       <HeroSection />
       
       <div className="container px-4 md:px-6 max-w-screen-xl mx-auto">

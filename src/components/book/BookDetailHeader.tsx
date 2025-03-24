@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Star, Calendar, Clock, Check, Loader2, X } from "lucide-react";
+import { BookOpen, Star, Calendar, Clock, Check, Loader2, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookRating } from "@/components/book/BookRating";
 import { rateBook } from "@/lib/nostr";
@@ -64,6 +64,22 @@ const BookCoverSection: React.FC<{
   
   const showActionButtons = !isFinished;
   
+  const handleBuyOnBookshop = () => {
+    if (!book.title) {
+      toast({
+        title: "Cannot find book",
+        description: "Book title is missing",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const searchQuery = encodeURIComponent(`${book.title} ${book.author || ''}`);
+    const bookshopUrl = `https://bookshop.org/search?keywords=${searchQuery}`;
+    
+    window.open(bookshopUrl, '_blank', 'noopener,noreferrer');
+  };
+  
   return (
     <div className="md:w-1/3">
       <div className="sticky top-20">
@@ -75,9 +91,9 @@ const BookCoverSection: React.FC<{
           handleRemove={handleRemove}
           readingStatus={readingStatus as 'tbr' | 'reading' | 'finished' | null}
         />
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-col gap-2">
           {showActionButtons && (
-            <>
+            <div className="flex gap-2">
               <Button 
                 className={`flex-1 ${isTbr ? "bg-bookverse-highlight" : ""}`}
                 variant={isTbr ? "default" : "outline"}
@@ -104,8 +120,17 @@ const BookCoverSection: React.FC<{
                 )}
                 {isReading ? "Currently Reading" : "Start Reading"}
               </Button>
-            </>
+            </div>
           )}
+          
+          <Button 
+            variant="outline"
+            onClick={handleBuyOnBookshop}
+            className="w-full border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200"
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Buy on Bookshop.org
+          </Button>
         </div>
       </div>
     </div>

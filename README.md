@@ -12,7 +12,7 @@ Bookstr is a Goodreads or Storygraph alternative built on Nostr built with Lovab
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone git@github.com:marykatefain/bookverse-nostr.git
 
 # Step 2: Navigate to the project directory.
 cd bookverse-nostr
@@ -27,7 +27,7 @@ npm run dev
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:  
 
 - Vite
 - TypeScript
