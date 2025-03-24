@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Layout } from "@/components/layout/Layout";
-import { ExternalLink, Book, Shield, Users, Database, Library } from "lucide-react";
+import { ExternalLink, Book, Shield, Users, Database, Library, Github } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -26,13 +26,24 @@ const About = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <p className="mb-4">
-                  Bookstr is a decentralized social reading platform that allows readers to track their reading progress, 
+                  Bookstr is an open source, decentralized social reading platform that allows readers to track their reading progress, 
                   discover new books, and connect with other book lovers in a censorship-resistant environment.
                 </p>
                 <p>
                   Unlike traditional corporate-owned reading platforms, Bookstr puts you in control of your data and 
                   your reading experience. We believe that what you read and how you discuss books should remain private 
                   and free from algorithmic manipulation or corporate oversight.
+                </p>
+                <p className="mt-4 flex items-center">
+                  <Github className="h-4 w-4 mr-2" />
+                  <a 
+                    href="https://github.com/marykatefain/bookverse-nostr" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-bookverse-accent hover:underline"
+                  >
+                    View our open source code on GitHub
+                  </a>
                 </p>
               </div>
               <div className="flex items-center justify-center">
@@ -95,7 +106,14 @@ const About = () => {
               <div>
                 <p className="mb-4">
                   Nostr (Notes and Other Stuff Transmitted by Relays) is a simple, open protocol that enables global,
-                  decentralized, and censorship-resistant social media.
+                  <a 
+                    href="https://soapbox.pub/blog/comparing-protocols/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-1 text-bookverse-accent hover:underline"
+                  >
+                    decentralized, and censorship-resistant social media
+                  </a>.
                 </p>
                 
                 <div className="space-y-2 mb-4">
@@ -119,12 +137,12 @@ const About = () => {
                 <p className="flex items-center">
                   Learn more:
                   <a 
-                    href="https://nostr.com" 
+                    href="https://soapbox.pub/blog/nostr101/" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center ml-2 text-bookverse-accent hover:text-bookverse-highlight"
                   >
-                    nostr.com <ExternalLink className="h-4 w-4 ml-1" />
+                    Nostr 101 <ExternalLink className="h-4 w-4 ml-1" />
                   </a>
                 </p>
               </div>
@@ -198,7 +216,7 @@ const About = () => {
               </Button>
               <Button variant="outline" asChild>
                 <a 
-                  href="https://nostr.how" 
+                  href="https://soapbox.pub/blog/nostr101/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center"
