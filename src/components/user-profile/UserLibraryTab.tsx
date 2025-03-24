@@ -34,7 +34,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         {userBooks.reading.length === 0 ? (
           <p className="text-muted-foreground">No books currently being read.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {userBooks.reading.map(book => (
               <BookCard 
                 key={book.id} 
@@ -54,7 +54,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         {userBooks.read.length === 0 ? (
           <p className="text-muted-foreground">No finished books yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {userBooks.read.map(book => (
               <BookCard 
                 key={book.id} 
@@ -74,7 +74,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         {userBooks.tbr.length === 0 ? (
           <p className="text-muted-foreground">No books on the TBR list yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {userBooks.tbr.map(book => (
               <BookCard 
                 key={book.id} 
