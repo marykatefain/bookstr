@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AlertTriangle, ImageIcon, VideoIcon } from "lucide-react";
 import { Book } from "@/lib/nostr/types";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface PostToolbarProps {
   mediaType: "image" | "video" | null;
@@ -28,6 +28,8 @@ export function PostToolbar({
   selectedBook,
   handleSubmit
 }: PostToolbarProps) {
+  const { toast } = useToast();
+  
   const handleMediaButtonClick = () => {
     // Show toast notification instead of opening file input
     toast({
