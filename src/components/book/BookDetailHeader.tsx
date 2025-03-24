@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock, Check, Loader2, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,36 +61,24 @@ const BookCoverSection: React.FC<{
   const isFinished = readingStatus === 'finished';
   const [isRating, setIsRating] = useState(false);
   const { toast } = useToast();
-  const affiliateButtonRef = useRef<HTMLDivElement>(null);
   
   const showActionButtons = !isFinished;
   
-  // Load the Bookshop.org script and initialize the affiliate button
-  useEffect(() => {
-    if (!book.isbn || !affiliateButtonRef.current) return;
-    
-    const script = document.createElement('script');
-    script.src = 'https://bookshop.org/widgets.js';
-    script.setAttribute('data-type', 'book-button');
-    script.setAttribute('data-affiliate-id', '112275');
-    script.setAttribute('data-sku', book.isbn);
-    
-    // Remove any existing script first
-    const container = affiliateButtonRef.current;
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
+  const handleBuyOnBookshop = () => {
+    if (!book.title) {
+      toast({
+        title: "Cannot find book",
+        description: "Book title is missing",
+        variant: "destructive"
+      });
+      return;
     }
     
-    // Add the new script
-    container.appendChild(script);
+    const searchQuery = encodeURIComponent(`${book.title} ${book.author || ''}`);
+    const bookshopUrl = `https://bookshop.org/search?keywords=${searchQuery}`;
     
-    // Cleanup function
-    return () => {
-      if (container && container.contains(script)) {
-        container.removeChild(script);
-      }
-    };
-  }, [book.isbn]);
+    window.open(bookshopUrl, '_blank', 'noopener,noreferrer');
+  };
   
   return (
     <div className="md:w-1/3">
@@ -136,19 +123,14 @@ const BookCoverSection: React.FC<{
             </div>
           )}
           
-          {/* Bookshop.org Affiliate Button */}
-          <div 
-            ref={affiliateButtonRef}
-            className="w-full min-h-10 flex justify-center items-center border border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/50 rounded-md"
+          <Button 
+            variant="outline"
+            onClick={handleBuyOnBookshop}
+            className="w-full border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200"
           >
-            {/* Affiliate button will be inserted here by the script */}
-            {!book.isbn && (
-              <div className="flex items-center justify-center py-2 text-indigo-700 dark:text-indigo-300 text-sm">
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                ISBN Required for Affiliate Link
-              </div>
-            )}
-          </div>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Buy on Bookshop.org
+          </Button>
         </div>
       </div>
     </div>
