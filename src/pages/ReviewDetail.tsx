@@ -178,7 +178,9 @@ const ReviewDetail = () => {
     );
   }
 
-  const displayRating = review.rating ? Math.round(review.rating * 5) : undefined;
+  const displayRating = review.rating !== undefined && review.rating !== null 
+    ? Math.round(review.rating * 5) 
+    : undefined;
 
   return (
     <Layout>
@@ -277,3 +279,4 @@ const ReviewDetail = () => {
 };
 
 export default ReviewDetail;
+
