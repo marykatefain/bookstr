@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AlertTriangle, ImageIcon, VideoIcon } from "lucide-react";
 import { Book } from "@/lib/nostr/types";
+import { toast } from "@/hooks/use-toast";
 
 interface PostToolbarProps {
   mediaType: "image" | "video" | null;
@@ -27,6 +28,15 @@ export function PostToolbar({
   selectedBook,
   handleSubmit
 }: PostToolbarProps) {
+  const handleMediaButtonClick = () => {
+    // Show toast notification instead of opening file input
+    toast({
+      title: "Feature not available",
+      description: "Media uploads are not yet supported on Bookstr",
+      variant: "warning"
+    });
+  };
+
   return (
     <>
       <div className="flex items-center gap-2 flex-1 flex-wrap">
@@ -41,7 +51,7 @@ export function PostToolbar({
           variant="outline" 
           size="sm" 
           className="h-8"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleMediaButtonClick}
         >
           {mediaType === 'video' ? (
             <VideoIcon className="mr-2 h-4 w-4" />
