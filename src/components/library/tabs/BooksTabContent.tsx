@@ -24,9 +24,9 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-[300px]"></div>
+          <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-[250px]"></div>
         ))}
       </div>
     );
@@ -40,7 +40,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.reading.length === 0 ? (
           <EmptyState type="reading" />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {books.reading.map((book) => (
               <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
@@ -57,7 +57,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.tbr.length === 0 ? (
           <EmptyState type="want-to-read" />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {books.tbr.map((book) => (
               <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
             ))}
@@ -74,7 +74,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.read.length === 0 ? (
           <EmptyState type="read" />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {books.read.map((book) => (
               <BookCard 
                 key={book.id} 
