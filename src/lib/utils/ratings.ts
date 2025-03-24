@@ -1,15 +1,17 @@
 
 /**
  * Converts a raw rating (0-1 scale) to a display rating (1-5 scale)
- * Ensures the rating is at least 1 star and at most 5 stars
+ * Always converts from the 0-1 scale to 1-5 scale, regardless of input value
  */
 export function convertRawRatingToDisplayRating(rawRating: number | null | undefined): number | undefined {
   if (rawRating === null || rawRating === undefined) {
     return undefined;
   }
   
-  // Scale from 0-1 to 1-5, ensuring minimum 1 star
-  return Math.min(5, Math.max(1, Math.round(rawRating * 5)));
+  // Always convert from 0-1 scale to 1-5 scale
+  const scaledRating = Math.round(rawRating * 5);
+  // Ensure minimum 1 star and maximum 5 stars
+  return Math.min(5, Math.max(1, scaledRating));
 }
 
 /**

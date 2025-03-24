@@ -181,6 +181,7 @@ const ReviewDetail = () => {
   }
 
   const displayRating = convertRawRatingToDisplayRating(review.rating);
+  console.log("Raw rating:", review.rating, "Display rating:", displayRating);
 
   return (
     <Layout>
