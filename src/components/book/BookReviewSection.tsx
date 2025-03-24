@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
@@ -169,6 +169,9 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
                 </div>
               </div>
             </div>
+            <Link to={`/review/${review.id}`} className="text-muted-foreground hover:text-bookverse-accent" title="View full review">
+              <ExternalLink className="h-4 w-4" />
+            </Link>
           </div>
         </CardHeader>
         <CardContent className="py-2">
