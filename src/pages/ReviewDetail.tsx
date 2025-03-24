@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
-import { fetchEventById, reactToContent } from "@/lib/nostr";
+import { fetchEventById, reactToContent, fetchUserProfile } from "@/lib/nostr";
 import { NOSTR_KINDS, BookReview } from "@/lib/nostr/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
@@ -13,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchReplies } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { getBookByISBN } from "@/lib/openlibrary";
-import { fetchUserProfile } from "@/lib/nostr/profile";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ReviewDetail = () => {
@@ -42,7 +40,6 @@ const ReviewDetail = () => {
           return;
         }
         
-        // Extract ISBN from the event tags
         let isbn = null;
         for (const tag of event.tags) {
           if ((tag[0] === 'd' || tag[0] === 'i') && tag[1]?.startsWith('isbn:')) {
@@ -57,7 +54,6 @@ const ReviewDetail = () => {
           return;
         }
         
-        // Extract rating from tags
         let rating = null;
         const ratingTag = event.tags.find(tag => tag[0] === 'rating');
         if (ratingTag && ratingTag[1]) {
@@ -68,13 +64,10 @@ const ReviewDetail = () => {
           }
         }
         
-        // Fetch replies
         const replies = await fetchReplies(event.id);
         
-        // Fetch book details
         const bookDetails = await getBookByISBN(isbn);
         
-        // Fetch author profile
         const authorProfile = await fetchUserProfile(event.pubkey);
         
         const reviewData: BookReview = {
