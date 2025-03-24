@@ -17,6 +17,7 @@ export interface OpenLibraryDoc {
   isbn?: string[];
   cover_i?: number;
   cover_edition_key?: string;
+  edition_key?: string[]; // Added this property
   publish_date?: string[];
   first_publish_year?: number;
   number_of_pages_median?: number;
