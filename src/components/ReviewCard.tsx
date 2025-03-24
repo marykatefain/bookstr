@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { BookReview } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
@@ -85,20 +85,29 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               </Link>
             </div>
           )}
-          {starRating !== undefined && (
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < starRating
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-muted-foreground"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            {starRating !== undefined && (
+              <div className="flex mr-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${
+                      i < starRating
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            <Link 
+              to={`/review/${review.id}`} 
+              className="text-muted-foreground hover:text-bookverse-accent" 
+              title="View full review"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pb-2 flex-grow">

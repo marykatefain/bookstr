@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Star } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 
 interface BookReviewActivityProps {
   userName: string;
@@ -11,6 +11,7 @@ interface BookReviewActivityProps {
   bookCover?: string;
   rating?: number;
   content?: string;
+  reviewId?: string;
 }
 
 export function BookReviewActivity({ 
@@ -20,7 +21,8 @@ export function BookReviewActivity({
   bookIsbn, 
   bookCover,
   rating, 
-  content 
+  content,
+  reviewId
 }: BookReviewActivityProps) {
   const [imageError, setImageError] = useState(false);
   
@@ -40,16 +42,27 @@ export function BookReviewActivity({
           />
         </Link>
       )}
-      <div>
-        <p>
-          <Link to={`/user/${userPubkey}`} className="font-medium hover:underline">
-            {userName}
-          </Link>{' '}
-          reviewed{' '}
-          <Link to={`/book/${bookIsbn}`} className="font-medium hover:underline">
-            {bookTitle}
-          </Link>
-        </p>
+      <div className="w-full">
+        <div className="flex justify-between items-start">
+          <p>
+            <Link to={`/user/${userPubkey}`} className="font-medium hover:underline">
+              {userName}
+            </Link>{' '}
+            reviewed{' '}
+            <Link to={`/book/${bookIsbn}`} className="font-medium hover:underline">
+              {bookTitle}
+            </Link>
+          </p>
+          {reviewId && (
+            <Link 
+              to={`/review/${reviewId}`} 
+              className="text-muted-foreground hover:text-bookverse-accent ml-2" 
+              title="View full review"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
         {displayRating && (
           <div className="flex items-center mt-1">
             {Array(5).fill(0).map((_, index) => (
