@@ -64,20 +64,18 @@ const BookCoverSection: React.FC<{
   
   const showActionButtons = !isFinished;
   
-  const handleBuyOnBookshop = () => {
-    if (!book.title) {
-      toast({
-        title: "Cannot find book",
-        description: "Book title is missing",
-        variant: "destructive"
-      });
-      return;
+  const handleBookshopLink = () => {
+    const affiliateId = "112275";
+    
+    if (book.isbn) {
+      const bookUrl = `https://bookshop.org/a/${affiliateId}/${book.isbn}`;
+      window.open(bookUrl, '_blank', 'noopener,noreferrer');
+    } 
+    else {
+      const searchQuery = encodeURIComponent(`${book.title || ''} ${book.author || ''}`);
+      const searchUrl = `https://bookshop.org/beta-search?keywords=${searchQuery}&affiliate=${affiliateId}`;
+      window.open(searchUrl, '_blank', 'noopener,noreferrer');
     }
-    
-    const searchQuery = encodeURIComponent(`${book.title} ${book.author || ''}`);
-    const bookshopUrl = `https://bookshop.org/search?keywords=${searchQuery}`;
-    
-    window.open(bookshopUrl, '_blank', 'noopener,noreferrer');
   };
   
   return (
@@ -125,11 +123,11 @@ const BookCoverSection: React.FC<{
           
           <Button 
             variant="outline"
-            onClick={handleBuyOnBookshop}
+            onClick={handleBookshopLink}
             className="w-full border-indigo-200 dark:border-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-200"
           >
             <ShoppingCart className="mr-2 h-4 w-4" />
-            Buy on Bookshop.org
+            {book.isbn ? "Buy on Bookshop.org" : "Search on Bookshop.org"}
           </Button>
         </div>
       </div>
