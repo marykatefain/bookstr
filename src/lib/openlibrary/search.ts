@@ -85,7 +85,7 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
           return [];
         }
         
-        // Process results in parallel but with a smaller batch size
+        // Process results in parallel but with a smaller batch size for better reliability
         const processedBooks: Book[] = [];
         const batchSize = 5;
         
@@ -95,14 +95,45 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
             batch.map(async (doc) => {
               const book = docToBook(doc);
               
-              // Only fetch ISBN if needed and if we have a cover_edition_key
-              if (!book.isbn && doc.cover_edition_key) {
+              // Only fetch ISBN if we don't already have one
+              if (!book.isbn) {
                 try {
-                  const isbn = await fetchISBNFromEditionKey(doc.cover_edition_key);
-                  if (isbn) {
-                    book.isbn = isbn;
+                  // First check if we have an ISBN in the doc's isbn array
+                  if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+                    book.isbn = doc.isbn[0];
                     if (!doc.cover_i) {
-                      book.coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+                      book.coverUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`;
+                    }
+                  } 
+                  // If no ISBN yet and we have a cover_edition_key, try to fetch ISBN from that
+                  else if (doc.cover_edition_key) {
+                    try {
+                      const isbn = await fetchISBNFromEditionKey(doc.cover_edition_key);
+                      if (isbn) {
+                        book.isbn = isbn;
+                        if (!doc.cover_i) {
+                          book.coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+                        }
+                      }
+                    } catch (err) {
+                      console.warn(`Failed to fetch ISBN for ${book.title} from cover_edition_key:`, err);
+                    }
+                  }
+                  
+                  // Last resort - check if we have edition_key array to try
+                  if (!book.isbn && doc.edition_key && Array.isArray(doc.edition_key) && doc.edition_key.length > 0) {
+                    // Try the first edition key
+                    try {
+                      const editionKey = doc.edition_key[0];
+                      const isbn = await fetchISBNFromEditionKey(editionKey);
+                      if (isbn) {
+                        book.isbn = isbn;
+                        if (!doc.cover_i) {
+                          book.coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+                        }
+                      }
+                    } catch (err) {
+                      console.warn(`Failed to fetch ISBN for ${book.title} from edition_key:`, err);
                     }
                   }
                 } catch (err) {
