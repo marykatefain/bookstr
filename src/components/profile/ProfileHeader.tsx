@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Book, Link, Settings, Share2 } from "lucide-react";
+import { Book, Link, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProfileHeaderProps {
@@ -10,6 +10,7 @@ interface ProfileHeaderProps {
     name?: string;
     display_name?: string;
     npub?: string;
+    pubkey?: string;
     about?: string;
   } | null;
   toggleRelaySettings: () => void;
@@ -19,7 +20,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelayS
   const { toast } = useToast();
 
   const copyProfileLink = () => {
-    navigator.clipboard.writeText(`https://bookverse.app/profile/${user?.npub}`);
+    // Use the pubkey instead of npub for the URL, and change the domain to bookstr.xyz
+    // Also change /profile to /user in the path
+    const pubkey = user?.pubkey || "";
+    navigator.clipboard.writeText(`https://bookstr.xyz/user/${pubkey}`);
     toast({
       title: "Link copied!",
       description: "Your profile link has been copied to clipboard"
@@ -47,10 +51,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelayS
           <Button variant="outline" size="sm" onClick={copyProfileLink}>
             <Link className="h-4 w-4 mr-2" />
             Copy Profile Link
-          </Button>
-          <Button variant="outline" size="sm">
-            <Share2 className="h-4 w-4 mr-2" />
-            Share Profile
           </Button>
           <Button size="sm" className="bg-bookverse-accent hover:bg-bookverse-highlight">
             <Book className="h-4 w-4 mr-2" />

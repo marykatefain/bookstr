@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Book, BookActionType } from '@/lib/nostr/types';
@@ -266,8 +265,11 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
       <ISBNEntryModal
         book={book}
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleManualIsbn}
+        onClose={() => {
+          setShowModal(false);
+          setPendingAction(null);
+        }}
+        onSubmit={() => {}}
       />
     </>
   );
