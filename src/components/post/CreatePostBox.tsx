@@ -37,7 +37,10 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
     handleMediaUpload,
     clearMedia,
     handleSubmit,
-    user
+    user,
+    pendingBook,
+    showISBNModal,
+    setShowISBNModal
   } = usePostBox({ onPostSuccess });
 
   if (!isLoggedIn()) {
@@ -81,6 +84,9 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
               userBooks={userBooks}
               loadingUserBooks={loadingUserBooks}
               handleSelectBook={handleSelectBook}
+              pendingBook={pendingBook}
+              showISBNModal={showISBNModal}
+              setShowISBNModal={setShowISBNModal}
             />
             
             <PostMediaPreview
