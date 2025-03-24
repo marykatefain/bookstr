@@ -1,4 +1,3 @@
-
 import { type Filter, type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
@@ -175,8 +174,17 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     
     console.log(`Books with ratings: TBR=${tbrBooksWithRatings.length}, Reading=${readingBooksWithRatings.length}, Read=${readBooksWithRatings.length}`);
     
+    // Deduplicate books across lists - prioritize read > reading > tbr
+    const uniqueBooksByList = deduplicateBookLists({
+      tbr: tbrBooksWithRatings,
+      reading: readingBooksWithRatings,
+      read: readBooksWithRatings
+    });
+    
+    console.log(`After deduplication: TBR=${uniqueBooksByList.tbr.length}, Reading=${uniqueBooksByList.reading.length}, Read=${uniqueBooksByList.read.length}`);
+    
     // Extract all unique ISBNs from all books
-    const allBooks = [...tbrBooksWithRatings, ...readingBooksWithRatings, ...readBooksWithRatings];
+    const allBooks = [...uniqueBooksByList.tbr, ...uniqueBooksByList.reading, ...uniqueBooksByList.read];
     const isbns = allBooks.map(book => book.isbn).filter(isbn => isbn && isbn.length > 0) as string[];
     const uniqueIsbns = [...new Set(isbns)];
     
@@ -250,6 +258,43 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     console.error('Error fetching books from relays:', error);
     return { tbr: [], reading: [], read: [] };
   }
+}
+
+/**
+ * Deduplicate books across different reading lists
+ * Prioritize: read > reading > tbr
+ */
+function deduplicateBookLists(books: { 
+  tbr: Book[], 
+  reading: Book[], 
+  read: Book[] 
+}): { 
+  tbr: Book[], 
+  reading: Book[], 
+  read: Book[] 
+} {
+  // Create sets of ISBNs for each list to track what's already been processed
+  const readIsbns = new Set(books.read.map(book => book.isbn));
+  const readingIsbns = new Set(books.reading.map(book => book.isbn));
+  
+  // Filter reading list to remove books that are already in read list
+  const dedupedReading = books.reading.filter(book => {
+    return book.isbn && !readIsbns.has(book.isbn);
+  });
+  
+  // Update the reading ISBNs set after deduplication
+  const updatedReadingIsbns = new Set(dedupedReading.map(book => book.isbn));
+  
+  // Filter tbr list to remove books that are in read or deduped reading lists
+  const dedupedTbr = books.tbr.filter(book => {
+    return book.isbn && !readIsbns.has(book.isbn) && !updatedReadingIsbns.has(book.isbn);
+  });
+  
+  return {
+    read: books.read,
+    reading: dedupedReading,
+    tbr: dedupedTbr
+  };
 }
 
 /**
