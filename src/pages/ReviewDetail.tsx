@@ -6,13 +6,14 @@ import { NOSTR_KINDS, BookReview } from "@/lib/nostr/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { fetchReplies } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { getBookByISBN } from "@/lib/openlibrary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 const ReviewDetail = () => {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -179,6 +180,8 @@ const ReviewDetail = () => {
     );
   }
 
+  const displayRating = convertRawRatingToDisplayRating(review.rating);
+
   return (
     <Layout>
       <div className="container px-4 py-8">
@@ -213,6 +216,21 @@ const ReviewDetail = () => {
                   </div>
                 </div>
               </div>
+              
+              {displayRating !== undefined && (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${
+                        i < displayRating
+                          ? "text-bookverse-highlight fill-bookverse-highlight"
+                          : "text-muted-foreground"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </CardHeader>
           
