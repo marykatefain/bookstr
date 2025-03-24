@@ -77,6 +77,8 @@ export const useBookReviews = (isbn: string | undefined) => {
     
     setSubmitting(true);
     try {
+      console.log(`Submitting review with rating: ${userRating}`);
+      
       // Submit both the review text and rating together
       await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined);
       toast({

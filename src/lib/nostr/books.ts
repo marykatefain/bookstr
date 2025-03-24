@@ -258,10 +258,9 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
     ["k", "isbn"]
   ];
   
-  // Add rating tag if provided, convert from 1-5 scale to 0-1 scale
-  if (rating !== undefined && rating >= 1 && rating <= 5) {
-    const normalizedRating = (rating / 5).toFixed(2);
-    tags.push(["rating", normalizedRating]);
+  // Add rating tag if provided
+  if (rating !== undefined) {
+    tags.push(["rating", rating.toString()]);
   }
   
   const event = {
@@ -719,4 +718,3 @@ export async function removeBookFromList(book: Book, listType: BookActionType): 
     throw error;
   }
 }
-
