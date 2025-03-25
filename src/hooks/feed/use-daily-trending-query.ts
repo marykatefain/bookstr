@@ -39,7 +39,18 @@ export function useDailyTrendingQuery(limit: number = 20) {
           throw new Error(`API error: ${response.status}`);
         }
         
-        const data = await response.json();
+        // First check if we can parse as JSON
+        const text = await response.text();
+        let data;
+        
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Failed to parse JSON response:", parseError);
+          console.log("Response starts with:", text.substring(0, 100));
+          throw new Error("Invalid JSON response from API");
+        }
+        
         console.log(`Got daily trending data:`, data);
         
         // Handle empty response
@@ -89,7 +100,17 @@ export function useDailyTrendingQuery(limit: number = 20) {
             return [];
           }
           
-          const fallbackData = await fallbackResponse.json();
+          // Safely parse JSON
+          const fallbackText = await fallbackResponse.text();
+          let fallbackData;
+          
+          try {
+            fallbackData = JSON.parse(fallbackText);
+          } catch (parseError) {
+            console.error("Failed to parse fallback JSON:", parseError);
+            return [];
+          }
+          
           console.log("Using fiction subject as fallback for trending books");
           
           if (!fallbackData.works || fallbackData.works.length === 0) {
@@ -114,7 +135,52 @@ export function useDailyTrendingQuery(limit: number = 20) {
           }));
         } catch (fallbackError) {
           console.error("Fallback also failed:", fallbackError);
-          return [];
+          
+          // Last resort - try a direct search via the main search API
+          try {
+            const lastResortResponse = await fetch(`${API_BASE_URL}?q=popular&limit=${limit}`, {
+              headers: { 'Accept': 'application/json' },
+              cache: 'default'
+            });
+            
+            if (!lastResortResponse.ok) {
+              return [];
+            }
+            
+            const lastResortText = await lastResortResponse.text();
+            let lastResortData;
+            
+            try {
+              lastResortData = JSON.parse(lastResortText);
+            } catch (parseError) {
+              console.error("Failed to parse last resort JSON:", parseError);
+              return [];
+            }
+            
+            console.log("Using popular search as last resort fallback");
+            
+            if (!lastResortData.docs || lastResortData.docs.length === 0) {
+              return [];
+            }
+            
+            return lastResortData.docs.map((doc: any) => ({
+              id: doc.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+              title: doc.title || "Unknown Title",
+              author: doc.author_name?.[0] || "Unknown Author",
+              isbn: doc.isbn?.[0] || "",
+              coverUrl: doc.cover_i
+                ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+                : "",
+              description: "",
+              pubDate: doc.first_publish_year?.toString() || "",
+              pageCount: doc.number_of_pages_median || 0,
+              categories: ["Popular Books"],
+              author_name: doc.author_name || []
+            }));
+          } catch (lastResortError) {
+            console.error("All fallbacks failed:", lastResortError);
+            return [];
+          }
         }
       }
     },
