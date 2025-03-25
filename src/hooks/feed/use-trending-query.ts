@@ -15,26 +15,96 @@ const queryCache: {
 const CACHE_TTL = 10 * 60 * 1000;
 
 /**
- * Custom hook for fetching popular books with a specified query
+ * Custom hook for fetching trending books from OpenLibrary's daily trending API
  */
 export function useTrendingQuery(limit: number = 20) {
   const { toast } = useToast();
   
   const fetchTrendingQuery = useCallback(async (): Promise<Book[]> => {
-    console.log(`Fetching popular books sorted by rating, limit: ${limit}`);
+    console.log(`Fetching daily trending books, limit: ${limit}`);
     
     // Check cache first
-    const cacheKey = `popular_${limit}`;
+    const cacheKey = `trending_daily_${limit}`;
     const now = Date.now();
     const cached = queryCache[cacheKey];
     
     if (cached && (now - cached.timestamp < CACHE_TTL)) {
-      console.log("Using cached trending query results");
+      console.log("Using cached daily trending results");
       return cached.data;
     }
     
     try {
-      // Build the query URL with minimal parameters needed
+      // Use the trending/daily API
+      const response = await fetch(`https://openlibrary.org/trending/daily.json?limit=${limit}`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Got daily trending data: ${data.works?.length || 0} results`);
+      
+      // Only extract necessary fields to reduce transformation overhead
+      const books = data.works?.map((work: any) => {
+        // Determine the best cover URL
+        let coverUrl = work.cover_id 
+          ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+          : "";
+          
+        // Get ISBN if available
+        let isbn = "";
+        if (work.availability?.isbn) {
+          isbn = work.availability.isbn;
+        }
+        
+        return {
+          id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+          title: work.title || "Unknown Title",
+          author: work.authors?.[0]?.name || "Unknown Author",
+          isbn: isbn,
+          coverUrl: coverUrl,
+          description: work.description?.value || "",
+          pubDate: work.first_publish_year?.toString() || "",
+          pageCount: 0,
+          categories: ["Trending Today"],
+          author_name: work.authors?.map((a: any) => a.name) || []
+        };
+      }) || [];
+      
+      // Cache the results
+      queryCache[cacheKey] = {
+        timestamp: now,
+        data: books
+      };
+      
+      return books;
+    } catch (error) {
+      console.error("Error fetching daily trending books:", error);
+      toast({
+        title: "Error loading books",
+        description: "There was a problem fetching trending books.",
+        variant: "destructive"
+      });
+      
+      // If we have cached data even if expired, return it as fallback
+      if (cached) {
+        console.log("Using expired cache as fallback after error");
+        return cached.data;
+      }
+      
+      // Try fallback to popular search if daily trending fails
+      return fetchPopularFallback(limit);
+    }
+  }, [limit, toast]);
+  
+  // Fallback function to use the previous popular books search method
+  const fetchPopularFallback = useCallback(async (limit: number): Promise<Book[]> => {
+    console.log(`Using fallback popular books search, limit: ${limit}`);
+    
+    try {
       const response = await fetch(`https://openlibrary.org/search.json?q=popular&sort=rating&limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
         cache: 'no-store'
@@ -45,9 +115,7 @@ export function useTrendingQuery(limit: number = 20) {
       }
       
       const data = await response.json();
-      console.log(`Got trending query data: ${data.docs?.length || 0} results`);
       
-      // Only extract necessary fields to reduce transformation overhead
       const books = data.docs?.map((doc: any) => {
         // Get the best available cover URL
         const coverUrl = doc.cover_i 
@@ -76,30 +144,12 @@ export function useTrendingQuery(limit: number = 20) {
         };
       }) || [];
       
-      // Cache the results
-      queryCache[cacheKey] = {
-        timestamp: now,
-        data: books
-      };
-      
       return books;
     } catch (error) {
-      console.error("Error fetching trending query books:", error);
-      toast({
-        title: "Error loading books",
-        description: "There was a problem fetching popular books.",
-        variant: "destructive"
-      });
-      
-      // If we have cached data even if expired, return it as fallback
-      if (cached) {
-        console.log("Using expired cache as fallback after error");
-        return cached.data;
-      }
-      
+      console.error("Error in fallback fetch:", error);
       return [];
     }
-  }, [limit, toast]);
+  }, []);
   
   return {
     fetchTrendingQuery
