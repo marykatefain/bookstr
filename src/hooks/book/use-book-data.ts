@@ -14,7 +14,8 @@ export const useBookData = (isbn: string | undefined) => {
   const { 
     data: book = null, 
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery({
     queryKey: ['book', isbn],
     queryFn: async () => {
@@ -25,12 +26,27 @@ export const useBookData = (isbn: string | undefined) => {
       const cachedBook = getCachedBookByISBN(isbn);
       if (cachedBook) {
         console.log(`Using cached book data for ISBN: ${isbn}`);
-        return cachedBook;
+        // Ensure the cached book has all required fields
+        if (cachedBook.title && cachedBook.author) {
+          return cachedBook;
+        } else {
+          console.log("Cached book data is incomplete, fetching fresh data");
+        }
       }
       
       try {
         const result = await fetchBookByISBN(isbn);
-        console.log(`Book data loaded successfully for ISBN: ${isbn}`);
+        if (!result) {
+          console.error(`No data returned for ISBN: ${isbn}`);
+          toast({
+            title: "Error",
+            description: "Could not load book details. Book not found.",
+            variant: "destructive"
+          });
+          return null;
+        }
+        
+        console.log(`Book data loaded successfully for ISBN: ${isbn}:`, result);
         return result;
       } catch (err) {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
@@ -45,7 +61,7 @@ export const useBookData = (isbn: string | undefined) => {
     enabled: !!isbn,
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
-    retry: 2, // Increased retries to handle potential API issues
+    retry: 3, // Increased retries to handle potential API issues
   });
 
   // Get the reading status from the user's library
@@ -82,6 +98,14 @@ export const useBookData = (isbn: string | undefined) => {
     } : book.readingStatus
   } : null;
 
+  // Force a refetch if we have an ISBN but no book details after loading
+  useEffect(() => {
+    if (!isLoading && isbn && !book) {
+      console.log(`No book data for ISBN ${isbn}, triggering a refetch`);
+      refetch();
+    }
+  }, [isbn, isLoading, book, refetch]);
+
   // Set read status when book data is available
   useEffect(() => {
     if (enrichedBook) {
@@ -89,10 +113,19 @@ export const useBookData = (isbn: string | undefined) => {
     }
   }, [enrichedBook]);
 
+  // Log the final enriched book for debugging
+  useEffect(() => {
+    if (enrichedBook) {
+      console.log("Final enriched book data:", enrichedBook);
+    }
+  }, [enrichedBook]);
+
   return {
     book: enrichedBook,
     loading: isLoading,
     isRead,
-    setIsRead
+    setIsRead,
+    error,
+    refetch
   };
 };

@@ -32,7 +32,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
   try {
     console.log(`Fetching book details from OpenLibrary for ISBN: ${isbn}`);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     // FIX: Use the correct path structure for ISBN endpoint
     const response = await fetch(`${API_BASE_URL}/isbn/${isbn}.json`, {
@@ -44,6 +44,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     clearTimeout(timeoutId);
     
     if (!response.ok) {
+      console.error(`API error: ${response.status} for ISBN ${isbn}`);
       throw new Error(`API error: ${response.status}`);
     }
     
@@ -56,7 +57,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     if (workKey) {
       try {
         console.log(`Fetching work data for ${workKey}`);
-        const workTimeoutId = setTimeout(() => controller.abort(), 8000);
+        const workTimeoutId = setTimeout(() => controller.abort(), 10000);
         // FIX: Use the correct path structure for works endpoint
         const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`, {
           signal: controller.signal,
@@ -69,6 +70,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
         if (workResponse.ok) {
           workData = await workResponse.json();
           console.log(`Got work data:`, workData);
+        } else {
+          console.error(`Work API error: ${workResponse.status} for ${workKey}`);
         }
       } catch (workError) {
         console.error("Error fetching work data:", workError);
@@ -118,7 +121,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
 
-    console.log(`Successfully processed book data for ISBN ${isbn}`);
+    console.log(`Successfully processed book data for ISBN ${isbn}`, book);
 
     // Cache the result
     bookCache[isbn] = { data: book, timestamp: now };
