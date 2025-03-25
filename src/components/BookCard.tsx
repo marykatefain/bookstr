@@ -99,7 +99,7 @@ export const BookCard: React.FC<BookCardProps> = ({
       }
 
       if (result) {
-        let statusText = action === 'tbr' ? 'TBR' : action === 'reading' ? 'currently reading' : 'read';
+        const statusText = action === 'tbr' ? 'TBR' : action === 'reading' ? 'currently reading' : 'read';
         toast({
           title: `Added to your ${statusText} list`,
           description: `${book.title} has been added to your library and published to Nostr`
@@ -142,7 +142,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       await removeBookFromList(book, listType);
       
-      let statusText = listType === 'tbr' ? 'TBR' : listType === 'reading' ? 'currently reading' : 'read';
+      const statusText = listType === 'tbr' ? 'TBR' : listType === 'reading' ? 'currently reading' : 'read';
       toast({
         title: `Removed from your ${statusText} list`,
         description: `${book.title} has been removed from your ${statusText} list`
