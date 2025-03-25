@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Books from "./pages/Books";
 import BookDetail from "./pages/BookDetail";
+import ReviewDetail from "./pages/ReviewDetail";
 import Library from "./pages/Library";
 import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
@@ -37,6 +38,7 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/books" element={<Books />} />
             <Route path="/book/:isbn" element={<BookDetail />} />
+            <Route path="/review/:reviewId" element={<ReviewDetail />} />
             <Route path="/library" element={<Library />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/social" element={<Index />} />

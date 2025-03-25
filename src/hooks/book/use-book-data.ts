@@ -4,6 +4,7 @@ import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
+import { getCachedBookByISBN } from "@/lib/cache/libraryCache";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
@@ -19,6 +20,14 @@ export const useBookData = (isbn: string | undefined) => {
     queryFn: async () => {
       if (!isbn) return null;
       console.log(`Fetching book details for ISBN: ${isbn}`);
+      
+      // Try to get from library cache first
+      const cachedBook = getCachedBookByISBN(isbn);
+      if (cachedBook) {
+        console.log(`Using cached book data for ISBN: ${isbn}`);
+        return cachedBook;
+      }
+      
       try {
         const result = await fetchBookByISBN(isbn);
         console.log(`Book data loaded successfully for ISBN: ${isbn}`);
@@ -35,6 +44,7 @@ export const useBookData = (isbn: string | undefined) => {
     },
     enabled: !!isbn,
     staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
     retry: 1
   });
 

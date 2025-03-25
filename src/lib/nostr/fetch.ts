@@ -30,6 +30,9 @@ import {
   fetchBookActivity
 } from './fetch/social';
 
+// Event fetch function
+import { fetchEventById } from './fetch/social/fetchEvent';
+
 export {
   // Book functions
   fetchUserBooks,
@@ -50,5 +53,8 @@ export {
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchBookPosts,
-  fetchBookActivity
+  fetchBookActivity,
+  
+  // Event function
+  fetchEventById
 };

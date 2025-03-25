@@ -51,9 +51,10 @@ export const BookCard: React.FC<BookCardProps> = ({
       : "flex flex-col";
     
     let sizeClasses = "";
-    if (size === "small") sizeClasses = "max-w-[220px] w-full";
-    else if (size === "large") sizeClasses = "max-w-[280px] w-full";
-    else sizeClasses = "w-full"; // medium size - no max width, full responsive width
+    // Modified size classes to make cards smaller on large screens
+    if (size === "small") sizeClasses = "max-w-[180px] w-full";
+    else if (size === "large") sizeClasses = "max-w-[240px] w-full";
+    else sizeClasses = "max-w-[210px] w-full"; // medium size - reduced from no max-width
     
     return `${baseClasses} ${layoutClasses} ${sizeClasses} ${className}`;
   };
@@ -61,7 +62,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const getTitleClasses = () => {
     const baseClasses = "font-bold font-serif truncate";
     if (size === "small") return `${baseClasses} text-xs`;
-    if (size === "large") return `${baseClasses} text-lg`;
+    if (size === "large") return `${baseClasses} text-base`; // reduced from text-lg
     return `${baseClasses} text-sm`; // medium size
   };
 

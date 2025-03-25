@@ -56,7 +56,8 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
           `limit=${limit}`,
           {
             headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
+            // Use browser cache
+            cache: 'default',
             signal: controller.signal
           }
         );

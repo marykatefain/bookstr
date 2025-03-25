@@ -54,6 +54,7 @@ export function ActivityContent({ activity }: ActivityContentProps) {
           bookCover={activity.book.coverUrl}
           rating={activity.rating}
           content={activity.content}
+          reviewId={activity.id}
         />
       );
     case 'post':

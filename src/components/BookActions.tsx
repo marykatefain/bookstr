@@ -55,9 +55,11 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
     
     for (const listType of otherLists) {
       try {
+        // Check if the book is currently in this list by looking at its reading status
+        // or via a direct API call if needed
         if (bookWithIsbn.readingStatus?.status === listType) {
+          console.log(`Removing book ${bookWithIsbn.title} from ${listType} list before adding to ${targetList} list`);
           await removeBookFromList(bookWithIsbn, listType);
-          console.log(`Removed book from ${listType} list before adding to ${targetList} list`);
         }
       } catch (error) {
         console.error(`Error removing book from ${listType} list:`, error);
@@ -73,6 +75,7 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
         throw new Error("ISBN is required");
       }
       
+      // First, remove the book from other lists to avoid duplication
       await removeFromOtherLists(bookWithIsbn, action);
       
       const updated = await updateBookInList(bookWithIsbn, action);
@@ -266,8 +269,11 @@ export function BookActions({ book, onUpdate, size = 'medium', horizontal = fals
       <ISBNEntryModal
         book={book}
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleManualIsbn}
+        onClose={() => {
+          setShowModal(false);
+          setPendingAction(null);
+        }}
+        onSubmit={() => {}}
       />
     </>
   );

@@ -47,7 +47,6 @@ export {
   replyToContent,
   fetchReplies,
   fetchReactions,
-  fetchEventById,
   followUser,
   addBookToList,
   updateBookInList,
@@ -67,7 +66,8 @@ export {
   fetchGlobalSocialFeed,
   fetchUserReviews,
   ensureBookMetadata,
-  fetchBookActivity
+  fetchBookActivity,
+  fetchEventById
 } from "./fetch";
 
 // Export mock data

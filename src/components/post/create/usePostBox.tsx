@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +24,10 @@ interface UsePostBoxResult {
   userBooks: Book[];
   loadingUserBooks: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
+  showISBNModal: boolean;
+  setShowISBNModal: (value: boolean) => void;
+  pendingBook: Book | null;
+  setPendingBook: (book: Book | null) => void;
   handleSearch: () => Promise<void>;
   handleSelectBook: (book: Book) => void;
   handleMediaUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -40,6 +43,7 @@ interface UsePostBoxProps {
 export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult {
   const [content, setContent] = useState("#bookstr ");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [pendingBook, setPendingBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [searching, setSearching] = useState(false);
@@ -49,6 +53,7 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [posting, setPosting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showISBNModal, setShowISBNModal] = useState(false);
   const [userBooks, setUserBooks] = useState<Book[]>([]);
   const [loadingUserBooks, setLoadingUserBooks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,8 +127,13 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
 
   const handleSelectBook = (book: Book) => {
     console.log("Selected book:", book);
-    setSelectedBook(book);
-    setOpen(false);
+    if (!book.isbn) {
+      setPendingBook(book);
+      setShowISBNModal(true);
+    } else {
+      setSelectedBook(book);
+      setOpen(false);
+    }
   };
 
   const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,6 +237,8 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
     setContent,
     selectedBook,
     setSelectedBook,
+    pendingBook,
+    setPendingBook,
     searchQuery,
     setSearchQuery,
     searchResults,
@@ -239,6 +251,8 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
     posting,
     open,
     setOpen,
+    showISBNModal,
+    setShowISBNModal,
     userBooks,
     loadingUserBooks,
     fileInputRef,

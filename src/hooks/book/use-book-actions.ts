@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -25,6 +26,7 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
+      // First, remove from other lists to avoid duplication
       await removeFromOtherLists(book, 'finished');
       
       const success = await updateBookInList(book, 'finished');
@@ -48,19 +50,23 @@ export const useBookActions = () => {
     }
   };
 
+  // Remove book from lists other than the target list
   const removeFromOtherLists = async (book: Book, targetList: BookActionType) => {
     if (!book || !book.isbn) return;
     
+    // Determine which lists to remove the book from
     const otherLists = ['tbr', 'reading', 'finished'].filter(list => list !== targetList) as BookActionType[];
     
+    // Remove from each list sequentially
     for (const listType of otherLists) {
       try {
-        if (book.readingStatus?.status === listType) {
-          await removeBookFromList(book, listType);
-          console.log(`Removed book from ${listType} list before adding to ${targetList} list`);
-        }
+        // Attempt removal from all lists regardless of current status
+        // This helps clean up any potential duplicates
+        console.log(`Removing book ${book.title} (${book.isbn}) from ${listType} list before adding to ${targetList} list`);
+        await removeBookFromList(book, listType);
       } catch (error) {
         console.error(`Error removing book from ${listType} list:`, error);
+        // Continue with other lists even if one fails
       }
     }
   };
@@ -70,6 +76,7 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
+      // First, remove from other lists to avoid duplication
       await removeFromOtherLists(book, listType);
       
       const success = await updateBookInList(book, listType);

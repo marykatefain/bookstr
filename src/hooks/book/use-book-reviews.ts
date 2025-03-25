@@ -64,34 +64,12 @@ export const useBookReviews = (isbn: string | undefined) => {
     fetchReviewsData();
   }, [isbn, currentUser]);
 
+  // This function now only updates the local state without submitting to the network
   const handleRateBook = async (book: Book | null, rating: number) => {
     if (!book || !isLoggedIn()) return;
     
-    setSubmitting(true);
-    try {
-      // Rating is expected to be in 0-1 scale when passed from BookReviewSection
-      await rateBook(book, rating);
-      setUserRating(rating);
-      
-      // For display purposes, convert from 0-1 scale to 1-5 scale
-      const displayRating = Math.round(rating * 5);
-      toast({
-        title: "Rating submitted",
-        description: `You rated "${book.title}" ${displayRating} stars`
-      });
-      
-      const updatedRatings = await fetchBookRatings(isbn || "");
-      setRatings(updatedRatings);
-    } catch (error) {
-      console.error("Error rating book:", error);
-      toast({
-        title: "Error",
-        description: "Could not submit rating",
-        variant: "destructive"
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    // Just update the local state
+    setUserRating(rating);
   };
 
   const handleSubmitReview = async (book: Book | null) => {
@@ -99,6 +77,9 @@ export const useBookReviews = (isbn: string | undefined) => {
     
     setSubmitting(true);
     try {
+      console.log(`Submitting review with rating: ${userRating}`);
+      
+      // Submit both the review text and rating together
       await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined);
       toast({
         title: "Review submitted",
@@ -106,7 +87,9 @@ export const useBookReviews = (isbn: string | undefined) => {
       });
       setReviewText("");
       
+      // Update both reviews and ratings after submission
       const updatedReviews = await fetchBookReviews(isbn || "");
+      const updatedRatings = await fetchBookRatings(isbn || "");
       
       // Fetch replies for the updated reviews
       const reviewsWithReplies = await Promise.all(
@@ -125,6 +108,7 @@ export const useBookReviews = (isbn: string | undefined) => {
       );
       
       setReviews(reviewsWithReplies);
+      setRatings(updatedRatings);
     } catch (error) {
       console.error("Error submitting review:", error);
       toast({
