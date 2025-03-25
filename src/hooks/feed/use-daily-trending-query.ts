@@ -69,7 +69,7 @@ export function useDailyTrendingQuery(limit: number = 20) {
       }
     },
     staleTime: CACHE_TTL, // Cache valid for 10 minutes
-    gcTime: CACHE_TTL * 2, // Keep in cache for 20 minutes (previously cacheTime)
+    gcTime: CACHE_TTL * 2, // Keep in cache for 20 minutes
     retry: 1, // Only retry once to avoid rate limiting
     refetchOnWindowFocus: false
   });

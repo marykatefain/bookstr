@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +22,7 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
-  // Get trending books data from the hook
+  // We'll still keep the hook but won't use its data for the All tab
   const {
     books: trendingBooks,
     isLoading: trendingLoading,
@@ -36,9 +35,6 @@ const Books = () => {
   const initialRenderRef = useRef(true);
   const previousSearchRef = useRef({ query: "", category: "All" });
   const searchInProgressRef = useRef(false);
-  const [popularBooksLoaded, setPopularBooksLoaded] = useState(false);
-  const popularBooksLoadedRef = useRef(false);
-  const trendingBookProcessingRef = useRef(false);
 
   // Clear debounce timer on unmount
   useEffect(() => {
@@ -88,41 +84,20 @@ const Books = () => {
     }) as Book[];
   }, [getBookReadingStatus]);
 
-  // Make sure we track when trending books are loaded
-  useEffect(() => {
-    if (trendingBooks && trendingBooks.length > 0 && !trendingBookProcessingRef.current) {
-      console.log(`Setting trending books from hook: ${trendingBooks.length}`);
-      trendingBookProcessingRef.current = true;
-      
-      const enrichedTrendingBooks = enrichBooksWithReadingStatus(trendingBooks);
-      
-      // Only update the books state if we're on the All tab with no search
-      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoadedRef.current) {
-        setBooks(enrichedTrendingBooks);
-        setPopularBooksLoaded(true);
-        popularBooksLoadedRef.current = true;
-      }
-      
-      trendingBookProcessingRef.current = false;
-    }
-  }, [trendingBooks, activeCategory, debouncedSearch, enrichBooksWithReadingStatus]);
-
   // Handle category change
   const handleCategoryChange = useCallback((category: string) => {
     setActiveCategory(category);
     setSearchQuery("");
     setDebouncedSearch("");
     
-    // Reset the popular books loaded flag when switching to All category
-    if (category === "All") {
-      setPopularBooksLoaded(false);
-      popularBooksLoadedRef.current = false;
+    // For All category with no search, we'll keep the books array empty
+    if (category === "All" && !debouncedSearch) {
+      setBooks([]);
     }
-  }, []);
+  }, [debouncedSearch]);
 
-  // Determine what books to show
-  const displayedBooks = books.length > 0 ? books : 
-    (activeCategory === "All" && !debouncedSearch ? trendingBooks : []);
+  // Determine what books to show - modified to not show trending books on All tab
+  const displayedBooks = books;
 
   // Handle search operations
   useEffect(() => {
@@ -142,12 +117,14 @@ const Books = () => {
         return;
       }
 
-      // If on All tab with no search, let the dedicated effect handle loading popular books
+      // If on All tab with no search, don't fetch any books
       if (!debouncedSearch && activeCategory === "All") {
         if (isSearching) {
           setIsSearching(false);
         }
-
+        
+        // Clear books if we're switching to All with no search
+        setBooks([]);
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         return;
       }
@@ -221,7 +198,7 @@ const Books = () => {
     }
   };
 
-  const shouldShowLoadingSkeleton = (isLoading || trendingLoading) &&
+  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory !== "All")) &&
     (displayedBooks.length === 0 || (isSearching && books.length === 0));
 
   return (
@@ -290,7 +267,9 @@ const Books = () => {
                   <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">No books found</h3>
                   <p className="text-muted-foreground">
-                    Try adjusting your search or filters to find what you're looking for.
+                    {activeCategory === "All" && !debouncedSearch 
+                      ? "Select a category or search for books to browse our collection." 
+                      : "Try adjusting your search or filters to find what you're looking for."}
                   </p>
                 </div>
               )}
