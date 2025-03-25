@@ -52,9 +52,8 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
         // Use the search API with subject, ISBN filter, and rating sort via Cloudflare Worker
-        // Include fields for editions and isbn explicitly
         const response = await fetch(
-          `${API_BASE_URL}?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}&fields=key,title,author_name,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description,editions,editions.isbn`,
+          `${API_BASE_URL}?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}`,
           {
             headers: { 'Accept': 'application/json' },
             // Use browser cache
@@ -91,8 +90,7 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         }
         
         // Pre-filter docs to reduce processing on empty results
-        const filteredDocs = data.docs.filter(doc => doc.isbn || doc.cover_i || doc.cover_edition_key || 
-          (doc.editions && doc.editions.isbn && doc.editions.isbn.length > 0));
+        const filteredDocs = data.docs.filter(doc => doc.isbn || doc.cover_i || doc.cover_edition_key);
         if (filteredDocs.length === 0) {
           console.log(`No valid results for genre "${genre}", using fallback`);
           const fallbackResults = await searchBooks(genre, limit);
@@ -113,8 +111,6 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
               // Try to get ISBN from various possible sources
               if (doc.isbn && doc.isbn.length > 0) {
                 isbn = doc.isbn[0];
-              } else if (doc.editions && doc.editions.isbn && Array.isArray(doc.editions.isbn) && doc.editions.isbn.length > 0) {
-                isbn = doc.editions.isbn[0];
               } else if (doc.cover_edition_key) {
                 try {
                   const fetchedIsbn = await fetchISBNFromEditionKey(doc.cover_edition_key);
