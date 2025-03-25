@@ -9,11 +9,16 @@ interface BookCoverPreviewProps {
 }
 
 export function BookCoverPreview({ isbn, title, coverUrl }: BookCoverPreviewProps) {
+  // Generate a fallback route that will work even if ISBN is missing
+  const bookRoute = isbn 
+    ? `/book/${isbn}` 
+    : `/book/unknown?title=${encodeURIComponent(title)}`;
+
   return (
-    <Link to={`/book/${isbn}`} className="shrink-0">
+    <Link to={bookRoute} className="shrink-0">
       <div className="w-16 h-24 rounded overflow-hidden shadow-sm bg-gray-100">
         <img 
-          src={coverUrl} 
+          src={coverUrl || '/placeholder.svg'} 
           alt={title}
           className="w-full h-full object-cover"
           onError={(e) => {

@@ -1,4 +1,3 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
@@ -50,52 +49,61 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
       throw new Error(`API error: ${response.status}`);
     }
     
-    const data = await response.json();
-    console.log(`Got daily trending books data:`, data);
-    const works = data.works || [];
+    // First get response as text to debug potential JSON parsing issues
+    const responseText = await response.text();
     
-    if (works.length === 0) {
-      console.warn("Daily trending API returned no works, falling back to alternative method");
-      return getTrendingBooks(limit);
-    }
-    
-    const books = await Promise.all(
-      works
-        .filter((work: any) => work.cover_id || work.cover_edition_key)
-        .map(async (work: any) => {
-          let isbn = work.availability?.isbn || "";
-          
-          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
-          if (!isbn && work.cover_edition_key) {
-            console.log(`Fetching ISBN for trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
-            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
-            if (isbn) {
-              console.log(`Found ISBN for trending book ${work.title}: ${isbn}`);
+    try {
+      // Parse the JSON (after validating it's actually JSON)
+      const data = JSON.parse(responseText);
+      console.log(`Got daily trending books data:`, data);
+      const works = data.works || [];
+      
+      if (works.length === 0) {
+        console.warn("Daily trending API returned no works, falling back to alternative method");
+        return getTrendingBooks(limit);
+      }
+      
+      const books = await Promise.all(
+        works
+          .filter((work: any) => work.cover_id || work.cover_edition_key)
+          .map(async (work: any) => {
+            let isbn = work.availability?.isbn || "";
+            
+            // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
+            if (!isbn && work.cover_edition_key) {
+              console.log(`Fetching ISBN for trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
+              isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+              if (isbn) {
+                console.log(`Found ISBN for trending book ${work.title}: ${isbn}`);
+              }
             }
-          }
-          
-          return {
-            id: work.key,
-            title: work.title,
-            author: work.authors?.[0]?.name || "Unknown Author",
-            isbn: isbn,
-            coverUrl: getCoverUrl(isbn, work.cover_id),
-            description: work.description?.value || "",
-            pubDate: work.first_publish_year?.toString() || "",
-            pageCount: 0,
-            categories: ["Trending"],
-            author_name: work.authors?.map((a: any) => a.name) || []
-          };
-        })
-    );
-    
-    console.log(`Processed ${books.length} daily trending books`);
-    
-    // Update cache
-    dailyTrendingCache.books = books;
-    dailyTrendingCache.timestamp = now;
-    
-    return books;
+            
+            return {
+              id: work.key,
+              title: work.title,
+              author: work.authors?.[0]?.name || work.author_name?.[0] || "Unknown Author",
+              isbn: isbn,
+              coverUrl: getCoverUrl(isbn, work.cover_id),
+              description: work.description?.value || work.description || "",
+              pubDate: work.first_publish_year?.toString() || "",
+              pageCount: 0,
+              categories: ["Trending"],
+              author_name: work.author_name || work.authors?.map((a: any) => a.name).filter(Boolean) || []
+            };
+          })
+      );
+      
+      console.log(`Processed ${books.length} daily trending books`);
+      
+      // Update cache
+      dailyTrendingCache.books = books;
+      dailyTrendingCache.timestamp = now;
+      
+      return books;
+    } catch (jsonError) {
+      console.error("Error parsing JSON response:", jsonError, "Raw response:", responseText.substring(0, 200));
+      throw new Error(`JSON parse error: ${jsonError.message}`);
+    }
   } catch (error) {
     console.error("Error fetching daily trending books:", error);
     // Fallback to the older trending books method if the daily API fails
