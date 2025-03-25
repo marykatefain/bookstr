@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +13,8 @@ import { BookNotFound } from "@/components/book/BookNotFound";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
+  
+  // Use the hook with the ISBN from params
   const {
     book,
     loading,
@@ -37,6 +39,11 @@ const BookDetail = () => {
     handleAddBookToList
   } = useBookDetail(isbn);
 
+  // Calculate average rating 
+  const avgRating = ratings.length > 0
+    ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
+    : 0;
+
   if (loading) {
     return (
       <Layout>
@@ -52,10 +59,6 @@ const BookDetail = () => {
       </Layout>
     );
   }
-
-  const avgRating = ratings.length > 0
-    ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
-    : 0;
 
   return (
     <Layout>
