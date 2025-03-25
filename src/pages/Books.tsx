@@ -22,7 +22,6 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
-  // We'll still keep the hook but won't use its data for the All tab
   const {
     books: trendingBooks,
     isLoading: trendingLoading,
@@ -36,7 +35,6 @@ const Books = () => {
   const previousSearchRef = useRef({ query: "", category: "All" });
   const searchInProgressRef = useRef(false);
 
-  // Clear debounce timer on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -45,7 +43,6 @@ const Books = () => {
     };
   }, []);
 
-  // Handle search input with debouncing
   const handleSearchInput = useCallback((value: string) => {
     setSearchQuery(value);
     if (debounceTimerRef.current) {
@@ -64,7 +61,6 @@ const Books = () => {
     };
   }, []);
 
-  // Enrich books with reading status
   const enrichBooksWithReadingStatus = useCallback((bookList: Book[]): Book[] => {
     return bookList.map(book => {
       if (book.isbn) {
@@ -84,25 +80,20 @@ const Books = () => {
     }) as Book[];
   }, [getBookReadingStatus]);
 
-  // Handle category change
   const handleCategoryChange = useCallback((category: string) => {
     setActiveCategory(category);
     setSearchQuery("");
     setDebouncedSearch("");
     
-    // For All category with no search, we'll keep the books array empty
     if (category === "All" && !debouncedSearch) {
       setBooks([]);
     }
   }, [debouncedSearch]);
 
-  // Determine what books to show - modified to not show trending books on All tab
   const displayedBooks = books;
 
-  // Handle search operations
   useEffect(() => {
     const performSearch = async () => {
-      // Skip search if it's the same as the previous one
       if (
         debouncedSearch === previousSearchRef.current.query &&
         activeCategory === previousSearchRef.current.category
@@ -111,26 +102,22 @@ const Books = () => {
         return;
       }
 
-      // Prevent concurrent searches
       if (searchInProgressRef.current) {
         console.log("Search already in progress, skipping");
         return;
       }
 
-      // If on All tab with no search, don't fetch any books
       if (!debouncedSearch && activeCategory === "All") {
         if (isSearching) {
           setIsSearching(false);
         }
         
-        // Clear books if we're switching to All with no search
         setBooks([]);
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         return;
       }
 
       setIsSearching(true);
-      // Only show loading if we don't already have books to display
       if (books.length === 0) {
         setIsLoading(true);
       }
@@ -150,7 +137,6 @@ const Books = () => {
 
         console.log(`Search returned ${results.length} results`);
 
-        // Update previous search reference
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
 
         if (results.length > 0) {
@@ -176,25 +162,17 @@ const Books = () => {
     performSearch();
   }, [debouncedSearch, activeCategory, toast, enrichBooksWithReadingStatus]);
 
-  // Handle book updates
   const handleBookUpdate = () => {
     console.log("Book updated, refreshing search results");
     refetchUserBooks();
 
     if (debouncedSearch || activeCategory !== "All") {
-      // Only trigger a new search if we need to refresh the current results
       const currentSearch = debouncedSearch;
-      // Force a refresh by briefly changing the state
       setDebouncedSearch("");
       setTimeout(() => {
-        // Simulating a "force refresh" but prevent unnecessary searches
         previousSearchRef.current = { query: "", category: "" };
         setDebouncedSearch(currentSearch);
       }, 10);
-    } else {
-      // If we're on the All tab with no search, reset popular books loaded state to trigger reload
-      setPopularBooksLoaded(false);
-      popularBooksLoadedRef.current = false;
     }
   };
 
@@ -282,3 +260,4 @@ const Books = () => {
 };
 
 export default Books;
+
