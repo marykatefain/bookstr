@@ -27,7 +27,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
       
       try {
         // Use the updated endpoint pattern with the Cloudflare Worker
-        const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
+        // Request specific fields including isbn
+        const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}&fields=key,title,author_name,authors,cover_id,cover_edition_key,first_publish_year,description,availability,isbn`, {
           headers: { 
             'Accept': 'application/json'
           },
@@ -49,23 +50,33 @@ export function useDailyTrendingQuery(limit: number = 20) {
         }
         
         // Transform the data into our Book type
-        const books = data.works.map((work: any) => ({
-          id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
-          title: work.title || "Unknown Title",
-          author: work.author_name?.[0] || work.authors?.[0]?.name || "Unknown Author",
-          isbn: work.availability?.isbn || "",
-          // Fixed cover URL generation
-          coverUrl: work.cover_id 
-            ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
-            : (work.cover_edition_key 
-              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
-              : ""),
-          description: work.description?.value || work.description || "",
-          pubDate: work.first_publish_year?.toString() || "",
-          pageCount: 0,
-          categories: ["Trending Today"],
-          author_name: work.author_name || [work.authors?.[0]?.name].filter(Boolean)
-        }));
+        const books = data.works.map((work: any) => {
+          // Extract ISBN if available from various possible locations
+          let isbn = "";
+          if (work.isbn && Array.isArray(work.isbn) && work.isbn.length > 0) {
+            isbn = work.isbn[0];
+          } else if (work.availability?.isbn) {
+            isbn = work.availability.isbn;
+          }
+          
+          return {
+            id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+            title: work.title || "Unknown Title",
+            author: work.author_name?.[0] || work.authors?.[0]?.name || "Unknown Author",
+            isbn: isbn,
+            // Fixed cover URL generation
+            coverUrl: work.cover_id 
+              ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+              : (work.cover_edition_key 
+                ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                : (isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` : "")),
+            description: work.description?.value || work.description || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: ["Trending Today"],
+            author_name: work.author_name || [work.authors?.[0]?.name].filter(Boolean)
+          };
+        });
         
         return books || [];
       } catch (error) {
@@ -80,7 +91,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
         // Try a fallback approach
         try {
           // Fallback to subject search if trending fails
-          const fallbackResponse = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}`, {
+          // Request specific fields including isbn and edition data
+          const fallbackResponse = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}&fields=key,title,author_name,authors,cover_id,cover_edition_key,first_publish_year,description,availability,isbn,editions`, {
             headers: { 'Accept': 'application/json' },
             cache: 'default'
           });
@@ -96,22 +108,34 @@ export function useDailyTrendingQuery(limit: number = 20) {
             return [];
           }
           
-          return fallbackData.works.map((work: any) => ({
-            id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
-            title: work.title || "Unknown Title",
-            author: work.authors?.[0]?.name || "Unknown Author",
-            isbn: work.availability?.isbn || "",
-            coverUrl: work.cover_id 
-              ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
-              : (work.cover_edition_key 
-                ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
-                : ""),
-            description: work.description?.value || work.description || "",
-            pubDate: work.first_publish_year?.toString() || "",
-            pageCount: 0,
-            categories: ["Popular Fiction"],
-            author_name: [work.authors?.[0]?.name].filter(Boolean)
-          }));
+          return fallbackData.works.map((work: any) => {
+            // Extract ISBN if available from various possible locations
+            let isbn = "";
+            if (work.isbn && Array.isArray(work.isbn) && work.isbn.length > 0) {
+              isbn = work.isbn[0];
+            } else if (work.availability?.isbn) {
+              isbn = work.availability.isbn;
+            } else if (work.editions && work.editions.isbn && Array.isArray(work.editions.isbn)) {
+              isbn = work.editions.isbn[0];
+            }
+            
+            return {
+              id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+              title: work.title || "Unknown Title",
+              author: work.authors?.[0]?.name || "Unknown Author",
+              isbn: isbn,
+              coverUrl: work.cover_id 
+                ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+                : (work.cover_edition_key 
+                  ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                  : (isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` : "")),
+              description: work.description?.value || work.description || "",
+              pubDate: work.first_publish_year?.toString() || "",
+              pageCount: 0,
+              categories: ["Popular Fiction"],
+              author_name: [work.authors?.[0]?.name].filter(Boolean)
+            };
+          });
         } catch (fallbackError) {
           console.error("Fallback also failed:", fallbackError);
           return [];

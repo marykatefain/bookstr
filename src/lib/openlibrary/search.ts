@@ -47,11 +47,12 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     const requestPromise = (async () => {
       try {
         // Use the OpenLibrary search API via Cloudflare Worker with proper parameters
+        // Including editions and ISBN fields explicitly
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
         const response = await fetch(
-          `${API_BASE_URL}?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
+          `${API_BASE_URL}?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description,editions,editions.isbn`,
           {
             headers: { 'Accept': 'application/json' },
             // Use browser cache with a default strategy for search
@@ -109,6 +110,13 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
                       book.coverUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`;
                     }
                   } 
+                  // Check if we have editions with ISBNs
+                  else if (doc.editions && doc.editions.isbn && Array.isArray(doc.editions.isbn) && doc.editions.isbn.length > 0) {
+                    book.isbn = doc.editions.isbn[0];
+                    if (!doc.cover_i) {
+                      book.coverUrl = `https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`;
+                    }
+                  }
                   // If no ISBN yet and we have a cover_edition_key, try to fetch ISBN from that
                   else if (doc.cover_edition_key) {
                     try {

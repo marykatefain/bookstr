@@ -32,7 +32,8 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
     // Convert OL12345M to just 12345 if needed
     const key = editionKey.startsWith('OL') ? editionKey : `OL${editionKey}`;
     
-    const response = await fetch(`${API_BASE_URL}?books/${key}.json`, {
+    // Request edition data with specific fields including isbn_13 and isbn_10
+    const response = await fetch(`${API_BASE_URL}?books/${key}.json&fields=isbn_13,isbn_10,identifiers`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
     });
@@ -104,16 +105,18 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
  * Convert an OpenLibrary doc to a Book object
  */
 export function docToBook(doc: any) {
-  // Get the best available cover URL
-  const coverUrl = doc.cover_i 
-    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
-    : "";
-  
   // Extract the first available ISBN
   let isbn = "";
   if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
     isbn = doc.isbn[0];
+  } else if (doc.editions && doc.editions.isbn && Array.isArray(doc.editions.isbn) && doc.editions.isbn.length > 0) {
+    isbn = doc.editions.isbn[0];
   }
+  
+  // Get the best available cover URL
+  const coverUrl = doc.cover_i 
+    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
+    : (isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` : "");
   
   return {
     id: doc.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
