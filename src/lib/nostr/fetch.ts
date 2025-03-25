@@ -7,7 +7,7 @@ import {
   fetchBooksByISBN, 
   fetchBookByISBN,
   ensureBookMetadata
-} from './fetch/bookFetch';
+} from './fetch/book';
 
 // Review fetch functions
 import {
