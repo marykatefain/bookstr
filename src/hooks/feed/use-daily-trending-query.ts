@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { Book } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { fetchISBNFromEditionKey } from "@/lib/openlibrary/utils";
+import { fetchISBNFromEditionKey, fetchISBNByTitleAuthor } from "@/lib/openlibrary/utils";
 
 // Cache TTL in milliseconds (10 minutes)
 const CACHE_TTL = 10 * 60 * 1000;
@@ -63,13 +63,23 @@ export function useDailyTrendingQuery(limit: number = 20) {
               isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
               console.log(`ISBN fetch result for ${work.title}: ${isbn}`);
             }
+
+            // If we still don't have an ISBN, try to fetch it by title and author
+            if (!isbn && work.title) {
+              const authorName = work.author_name?.[0] || "";
+              console.log(`Fetching ISBN for trending book: ${work.title} by ${authorName} using title/author search`);
+              isbn = await fetchISBNByTitleAuthor(work.title, authorName);
+              console.log(`ISBN search result for ${work.title}: ${isbn}`);
+            }
             
             // Generate the best cover URL
             const coverUrl = work.cover_id 
               ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
               : (work.cover_edition_key 
                 ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
-                : "");
+                : (isbn 
+                  ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
+                  : ""));
             
             return {
               id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
@@ -126,6 +136,12 @@ export function useDailyTrendingQuery(limit: number = 20) {
             if (!isbn && work.cover_edition_key) {
               isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
             }
+
+            // Try title/author search as a last resort
+            if (!isbn && work.title) {
+              const authorName = work.author_name?.[0] || work.authors?.[0]?.name || "";
+              isbn = await fetchISBNByTitleAuthor(work.title, authorName);
+            }
             
             return {
               id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
@@ -136,7 +152,9 @@ export function useDailyTrendingQuery(limit: number = 20) {
                 ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
                 : (work.cover_edition_key 
                   ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
-                  : ""),
+                  : (isbn 
+                    ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` 
+                    : "")),
               description: work.description?.value || work.description || "",
               pubDate: work.first_publish_year?.toString() || "",
               pageCount: 0,
