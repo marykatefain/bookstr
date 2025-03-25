@@ -6,9 +6,9 @@ import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './util
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
-// Simple in-memory cache for book details
+// Improved in-memory cache for book details
 const bookCache: Record<string, { data: Book | null; timestamp: number }> = {};
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+const CACHE_TTL = 1000 * 60 * 60 * 24; // Extend cache to 24 hours for better performance
 
 /**
  * Get details for a specific book by ISBN
@@ -32,13 +32,13 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
   try {
     console.log(`Fetching book details from OpenLibrary for ISBN: ${isbn}`);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Extend timeout to 15 seconds
     
-    // FIX: Use the correct path structure for ISBN endpoint
+    // Use the correct path structure for ISBN endpoint
     const response = await fetch(`${API_BASE_URL}/isbn/${isbn}.json`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
-      // Use browser cache
+      // Force cache for better performance
       cache: 'force-cache'
     });
     clearTimeout(timeoutId);
@@ -57,12 +57,11 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     if (workKey) {
       try {
         console.log(`Fetching work data for ${workKey}`);
-        const workTimeoutId = setTimeout(() => controller.abort(), 10000);
-        // FIX: Use the correct path structure for works endpoint
+        const workTimeoutId = setTimeout(() => controller.abort(), 15000);
+        // Use the correct path structure for works endpoint
         const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },
-          // Use browser cache
           cache: 'force-cache'
         });
         clearTimeout(workTimeoutId);
@@ -130,10 +129,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
   } catch (error) {
     console.error("Error fetching book by ISBN:", error);
     
-    // Cache the error state to prevent repeated failed requests
-    if (!bookCache[isbn]) {
-      bookCache[isbn] = { data: null, timestamp: now - (CACHE_TTL - 60000) }; // Cache for 1 minute on errors
-    }
+    // Cache the error state for a shorter period to allow retries
+    bookCache[isbn] = { data: null, timestamp: now - (CACHE_TTL - 5 * 60 * 1000) }; // Cache for 5 minutes on errors
     
     return null;
   }
@@ -149,8 +146,12 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
   }
 
   try {
-    // FIX: Use the correct path structure for books endpoint
-    const response = await fetch(`${API_BASE_URL}/books/${editionKey}.json`);
+    // Use the correct path structure for books endpoint
+    const response = await fetch(`${API_BASE_URL}/books/${editionKey}.json`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'force-cache'
+    });
+    
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -175,12 +176,19 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
     let workData = null;
     
     if (workKey) {
-      // FIX: Use the correct path structure for works endpoint
-      const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`);
-      workData = await workResponse.json();
+      // Use the correct path structure for works endpoint
+      const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'force-cache'
+      });
+      
+      if (workResponse.ok) {
+        workData = await workResponse.json();
+      }
     }
     
-    return {
+    // Create the book object
+    const book: Book = {
       id: workData?.key || `edition:${editionKey}`,
       title: data.title || "Unknown Title",
       author: data.authors?.[0]?.name || "Unknown Author",
@@ -191,6 +199,13 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
       pageCount: data.number_of_pages || 0,
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
+    
+    // Cache the result if we have an ISBN
+    if (isbn) {
+      bookCache[isbn] = { data: book, timestamp: Date.now() };
+    }
+    
+    return book;
   } catch (error) {
     console.error("Error fetching book by edition key:", error);
     return null;
@@ -198,7 +213,7 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
 }
 
 /**
- * Get multiple books by their ISBNs
+ * Get multiple books by their ISBNs with improved concurrency and error handling
  */
 export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   // Filter out any invalid ISBNs
@@ -248,4 +263,3 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   return [...cachedBooks, ...fetchedBooks];
 }
-

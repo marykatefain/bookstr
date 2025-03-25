@@ -10,14 +10,17 @@ import { BookReviewSection } from "@/components/book/BookReviewSection";
 import { BookActivitySection } from "@/components/book/BookActivitySection";
 import { BookDetailSkeleton } from "@/components/book/BookDetailSkeleton";
 import { BookNotFound } from "@/components/book/BookNotFound";
+import { useToast } from "@/hooks/use-toast";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
+  const { toast } = useToast();
   
   // Use the hook with the ISBN from params
   const {
     book,
     loading,
+    error,
     reviews,
     ratings,
     userRating,
@@ -38,6 +41,17 @@ const BookDetail = () => {
     handleReactToActivity,
     handleAddBookToList
   } = useBookDetail(isbn);
+
+  // Show error toast when we have an error
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading book details",
+        description: "Please try again later or search for another book",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
 
   // Calculate average rating 
   const avgRating = ratings.length > 0

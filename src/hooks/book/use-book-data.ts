@@ -38,12 +38,7 @@ export const useBookData = (isbn: string | undefined) => {
         const result = await fetchBookByISBN(isbn);
         if (!result) {
           console.error(`No data returned for ISBN: ${isbn}`);
-          toast({
-            title: "Error",
-            description: "Could not load book details. Book not found.",
-            variant: "destructive"
-          });
-          return null;
+          throw new Error("Book not found");
         }
         
         console.log(`Book data loaded successfully for ISBN: ${isbn}:`, result);
@@ -52,7 +47,7 @@ export const useBookData = (isbn: string | undefined) => {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
         toast({
           title: "Error",
-          description: "Could not load book details",
+          description: "Could not load book details. Please try again later.",
           variant: "destructive"
         });
         throw err;
@@ -62,6 +57,7 @@ export const useBookData = (isbn: string | undefined) => {
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
     retry: 3, // Increased retries to handle potential API issues
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 
   // Get the reading status from the user's library
