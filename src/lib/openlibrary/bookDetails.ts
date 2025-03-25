@@ -3,6 +3,9 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Simple in-memory cache for book details
 const bookCache: Record<string, { data: Book | null; timestamp: number }> = {};
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
@@ -31,7 +34,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
-    const response = await fetch(`${BASE_URL}/isbn/${isbn}.json`, {
+    const response = await fetch(`${API_BASE_URL}?isbn/${isbn}.json`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
       // Use browser cache
@@ -53,7 +56,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       try {
         console.log(`Fetching work data for ${workKey}`);
         const workTimeoutId = setTimeout(() => controller.abort(), 8000);
-        const workResponse = await fetch(`${BASE_URL}${workKey}.json`, {
+        const workResponse = await fetch(`${API_BASE_URL}?${workKey.substring(1)}.json`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },
           // Use browser cache
@@ -141,7 +144,7 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/books/${editionKey}.json`);
+    const response = await fetch(`${API_BASE_URL}?books/${editionKey}.json`);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -166,7 +169,7 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
     let workData = null;
     
     if (workKey) {
-      const workResponse = await fetch(`${BASE_URL}${workKey}.json`);
+      const workResponse = await fetch(`${API_BASE_URL}?${workKey.substring(1)}.json`);
       workData = await workResponse.json();
     }
     

@@ -3,6 +3,9 @@ import { useCallback } from "react";
 import { Book } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Cache for storing query results to avoid repeated requests
 const queryCache: {
   [key: string]: {
@@ -34,10 +37,10 @@ export function useTrendingQuery(limit: number = 20) {
     }
     
     try {
-      // Use the trending/daily API
-      const response = await fetch(`https://openlibrary.org/trending/daily.json?limit=${limit}`, {
+      // Use the trending/daily API via Cloudflare Worker
+      const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
-        cache: 'no-store'
+        cache: 'default'
       });
       
       if (!response.ok) {
@@ -52,7 +55,9 @@ export function useTrendingQuery(limit: number = 20) {
         // Determine the best cover URL
         let coverUrl = work.cover_id 
           ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
-          : "";
+          : (work.cover_edition_key 
+            ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+            : "");
           
         // Get ISBN if available
         let isbn = "";
@@ -105,9 +110,9 @@ export function useTrendingQuery(limit: number = 20) {
     console.log(`Using fallback popular books search, limit: ${limit}`);
     
     try {
-      const response = await fetch(`https://openlibrary.org/search.json?q=popular&sort=rating&limit=${limit}`, {
+      const response = await fetch(`${API_BASE_URL}?q=popular&sort=rating&limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
-        cache: 'no-store'
+        cache: 'default'
       });
       
       if (!response.ok) {

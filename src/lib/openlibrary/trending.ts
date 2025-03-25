@@ -3,6 +3,9 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Cache for weekly trending books
 const weeklyTrendingCache: {
   timestamp: number;
@@ -35,8 +38,8 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
   }
 
   try {
-    console.log(`Fetching daily trending books from OpenLibrary API`);
-    const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`, {
+    console.log(`Fetching daily trending books from Cloudflare Worker`);
+    const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       // Use browser cache
       cache: 'default'
@@ -113,14 +116,14 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
   }
 
   try {
-    console.log(`Fetching weekly trending books from OpenLibrary API`);
+    console.log(`Fetching weekly trending books from Cloudflare Worker`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}?trending/weekly.json&limit=${limit}`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     clearTimeout(timeoutId);
     
@@ -228,11 +231,11 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
   }
 
   try {
-    console.log(`Fetching trending books using subject API`);
+    console.log(`Fetching trending books using subject API via Cloudflare Worker`);
     // Using subjects that typically have popular books
-    const response = await fetch(`${BASE_URL}/subjects/fiction.json?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {
@@ -295,15 +298,15 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
  */
 async function getAlternativeTrendingBooks(limit: number = 10): Promise<Book[]> {
   try {
-    console.log(`Using alternative trending books method`);
+    console.log(`Using alternative trending books method via Cloudflare Worker`);
     // Try a different genre that's popular
     const subjects = ["fantasy", "science_fiction", "thriller", "romance"];
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}?subjects/${randomSubject}.json&limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {
@@ -368,11 +371,11 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
   }
 
   try {
-    console.log(`Fetching recent books from OpenLibrary API`);
+    console.log(`Fetching recent books from Cloudflare Worker`);
     // Using the new subjects/new.json endpoint as specified
-    const response = await fetch(`${BASE_URL}/subjects/new.json?limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}?subjects/new.json&limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     // If the endpoint fails, use alternative method
@@ -438,15 +441,15 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
  */
 async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
   try {
-    console.log(`Using alternative recent books method`);
+    console.log(`Using alternative recent books method via Cloudflare Worker`);
     // Try a different genre/subject that's less common than fiction
     const subjects = ["literature", "fantasy", "mystery", "biography"];
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`, {
+    const response = await fetch(`${API_BASE_URL}?subjects/${randomSubject}.json&limit=${limit}&sort=new`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {

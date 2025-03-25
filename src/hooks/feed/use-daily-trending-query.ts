@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 
 // Cache TTL in milliseconds (10 minutes)
 const CACHE_TTL = 10 * 60 * 1000;
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
 /**
  * Custom hook for fetching daily trending books with proper caching
@@ -24,12 +26,10 @@ export function useDailyTrendingQuery(limit: number = 20) {
       console.log(`Fetching daily trending books, limit: ${limit}`);
       
       try {
-        const response = await fetch(`https://openlibrary.org/trending/daily.json?limit=${limit}`, {
+        const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
           headers: { 
             'Accept': 'application/json'
           },
-          // Use proper fetch options, not headers
-          mode: 'cors',
           // Use browser cache with a standard strategy
           cache: 'default'
         });
