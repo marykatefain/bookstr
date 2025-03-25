@@ -26,9 +26,10 @@ export function useDailyTrendingQuery(limit: number = 20) {
       try {
         const response = await fetch(`https://openlibrary.org/trending/daily.json?limit=${limit}`, {
           headers: { 
-            'Accept': 'application/json',
-            'mode': 'no-cors'  // Handle CORS issues
+            'Accept': 'application/json'
           },
+          // Use proper fetch options, not headers
+          mode: 'cors',
           // Use browser cache with a standard strategy
           cache: 'default'
         });
