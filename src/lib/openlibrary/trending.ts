@@ -39,7 +39,8 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
 
   try {
     console.log(`Fetching daily trending books from Cloudflare Worker`);
-    const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/trending/daily.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       // Use browser cache
       cache: 'default'
@@ -120,7 +121,8 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`${API_BASE_URL}?trending/weekly.json&limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/trending/weekly.json?limit=${limit}`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
       cache: 'default'
@@ -233,7 +235,8 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
   try {
     console.log(`Fetching trending books using subject API via Cloudflare Worker`);
     // Using subjects that typically have popular books
-    const response = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/fiction.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
     });
@@ -304,7 +307,8 @@ async function getAlternativeTrendingBooks(limit: number = 10): Promise<Book[]> 
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${API_BASE_URL}?subjects/${randomSubject}.json&limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
     });
@@ -373,7 +377,8 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
   try {
     console.log(`Fetching recent books from Cloudflare Worker`);
     // Using the new subjects/new.json endpoint as specified
-    const response = await fetch(`${API_BASE_URL}?subjects/new.json&limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/new.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
     });
@@ -447,7 +452,8 @@ async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${API_BASE_URL}?subjects/${randomSubject}.json&limit=${limit}&sort=new`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
     });

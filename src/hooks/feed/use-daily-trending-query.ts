@@ -26,8 +26,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
       console.log(`Fetching daily trending books, limit: ${limit}`);
       
       try {
-        // Use the updated endpoint pattern with the Cloudflare Worker
-        const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
+        // Fix the URL format to use the correct path structure and query parameters
+        const response = await fetch(`${API_BASE_URL}/trending/daily.json?limit=${limit}`, {
           headers: { 
             'Accept': 'application/json'
           },
@@ -79,8 +79,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
         
         // Try a fallback approach
         try {
-          // Fallback to subject search if trending fails
-          const fallbackResponse = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}`, {
+          // Correct the URL format for the fallback as well
+          const fallbackResponse = await fetch(`${API_BASE_URL}/subjects/fiction.json?limit=${limit}`, {
             headers: { 'Accept': 'application/json' },
             cache: 'default'
           });

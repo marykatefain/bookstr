@@ -37,8 +37,8 @@ export function useTrendingQuery(limit: number = 20) {
     }
     
     try {
-      // Use the trending/daily API via Cloudflare Worker
-      const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
+      // Use the trending/daily API via Cloudflare Worker with fixed URL format
+      const response = await fetch(`${API_BASE_URL}/trending/daily.json?limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
         cache: 'default'
       });
@@ -110,7 +110,8 @@ export function useTrendingQuery(limit: number = 20) {
     console.log(`Using fallback popular books search, limit: ${limit}`);
     
     try {
-      const response = await fetch(`${API_BASE_URL}?q=popular&sort=rating&limit=${limit}`, {
+      // Fix URL format for the query as well
+      const response = await fetch(`${API_BASE_URL}/search.json?q=popular&sort=rating&limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
         cache: 'default'
       });
