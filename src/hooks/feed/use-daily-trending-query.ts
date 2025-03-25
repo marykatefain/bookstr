@@ -47,9 +47,12 @@ export function useDailyTrendingQuery(limit: number = 20) {
           title: work.title || "Unknown Title",
           author: work.author_name?.[0] || work.authors?.[0]?.name || "Unknown Author",
           isbn: work.availability?.isbn || "",
+          // Fixed cover URL generation
           coverUrl: work.cover_id 
             ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
-            : "",
+            : (work.cover_edition_key 
+              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+              : ""),
           description: work.description?.value || "",
           pubDate: work.first_publish_year?.toString() || "",
           pageCount: 0,
