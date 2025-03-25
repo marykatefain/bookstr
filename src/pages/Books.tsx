@@ -11,6 +11,7 @@ import { BookCard } from "@/components/BookCard";
 import { useWeeklyTrendingBooks } from "@/hooks/use-weekly-trending-books";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTrendingQuery } from "@/hooks/feed";
 
 const categories = [
   "All",
@@ -33,12 +34,14 @@ const Books = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
   const { books: userBooks, getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
+  const { fetchTrendingQuery } = useTrendingQuery(20);
   
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimerRef = useRef<number | null>(null);
   const initialRenderRef = useRef(true);
   const previousSearchRef = useRef({ query: "", category: "All" });
   const searchInProgressRef = useRef(false);
+  const [popularBooksLoaded, setPopularBooksLoaded] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -85,9 +88,43 @@ const Books = () => {
     }) as Book[];
   }, [getBookReadingStatus]);
 
+  // Load popular books for the All tab on initial load
   useEffect(() => {
-    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching) {
-      console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
+    const loadPopularBooks = async () => {
+      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoaded && !isSearching) {
+        console.log("Loading popular books for All tab");
+        setIsLoading(true);
+        
+        try {
+          const results = await fetchTrendingQuery();
+          if (results.length > 0) {
+            const enrichedResults = enrichBooksWithReadingStatus(results);
+            setBooks(enrichedResults);
+            setPopularBooksLoaded(true);
+          } else if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+            // Fall back to weekly trending if popular query fails
+            const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+            setBooks(enrichedBooks);
+          }
+        } catch (error) {
+          console.error("Error loading popular books:", error);
+          // Fall back to weekly trending if popular query fails
+          if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
+            const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+            setBooks(enrichedBooks);
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadPopularBooks();
+  }, [activeCategory, debouncedSearch, popularBooksLoaded, isSearching, fetchTrendingQuery, enrichBooksWithReadingStatus, weeklyTrendingBooks, loadingTrending]);
+
+  useEffect(() => {
+    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching && !popularBooksLoaded && activeCategory === "All" && !debouncedSearch) {
+      console.log("Setting trending books from hook as fallback:", weeklyTrendingBooks.length);
       const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
       setBooks(enrichedBooks);
       setIsLoading(false);
@@ -96,7 +133,7 @@ const Books = () => {
       refreshBooks();
       initialRenderRef.current = false;
     }
-  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, enrichBooksWithReadingStatus, isSearching]);
+  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, enrichBooksWithReadingStatus, isSearching, popularBooksLoaded, activeCategory, debouncedSearch]);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -120,12 +157,7 @@ const Books = () => {
           setIsSearching(false);
         }
         
-        if (weeklyTrendingBooks.length > 0) {
-          console.log("Using trending books as no search or category is active");
-          const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
-          setBooks(enrichedBooks);
-          setIsLoading(false);
-        }
+        // Don't reset books here, let the dedicated effect handle loading popular books
         
         // Update previous search reference
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
@@ -194,6 +226,10 @@ const Books = () => {
     
     console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
+    // Reset popular books loaded state when changing categories
+    if (category === "All") {
+      setPopularBooksLoaded(false);
+    }
     if (searchQuery) {
       setSearchQuery("");
       setDebouncedSearch("");
@@ -216,7 +252,8 @@ const Books = () => {
         setDebouncedSearch(currentSearch);
       }, 10);
     } else {
-      refreshBooks();
+      // If we're on the All tab with no search, reset popular books loaded state to trigger reload
+      setPopularBooksLoaded(false);
     }
   };
 
