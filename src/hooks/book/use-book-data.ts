@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
@@ -9,7 +9,13 @@ import { getCachedBookByISBN } from "@/lib/cache/libraryCache";
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
-  const { getBookReadingStatus, books } = useLibraryData();
+  const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
+
+  // First try to get the book from the user's library which might have more data
+  const libraryBook = useCallback(() => {
+    if (!isbn) return null;
+    return getBookByISBN(isbn);
+  }, [isbn, getBookByISBN]);
 
   const { 
     data: book = null, 
@@ -22,10 +28,17 @@ export const useBookData = (isbn: string | undefined) => {
       if (!isbn) return null;
       console.log(`Fetching book details for ISBN: ${isbn}`);
       
-      // Try to get from library cache first
+      // First check if the book is in the user's library
+      const userBook = libraryBook();
+      if (userBook && userBook.title && userBook.author) {
+        console.log(`Using user's library book data for ISBN: ${isbn}`);
+        return userBook;
+      }
+      
+      // Then try to get from library cache
       const cachedBook = getCachedBookByISBN(isbn);
       if (cachedBook) {
-        console.log(`Using cached book data for ISBN: ${isbn}`);
+        console.log(`Using cached book data for ISBN: ${isbn}`, cachedBook);
         // Ensure the cached book has all required fields
         if (cachedBook.title && cachedBook.author) {
           return cachedBook;
@@ -64,7 +77,7 @@ export const useBookData = (isbn: string | undefined) => {
   const readingStatus = getBookReadingStatus(isbn);
 
   // Find the book in user's library to get its rating
-  const findBookWithRating = () => {
+  const findBookWithRating = useCallback(() => {
     if (!isbn || !books) return null;
     
     // Check each list for the book with matching ISBN
@@ -78,7 +91,7 @@ export const useBookData = (isbn: string | undefined) => {
     if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
     
     return null;
-  };
+  }, [isbn, books]);
 
   // Get user's rating from their library if available
   const bookWithRating = findBookWithRating();

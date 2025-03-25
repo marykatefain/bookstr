@@ -53,6 +53,15 @@ const BookDetail = () => {
     }
   }, [error, toast]);
 
+  // Log debug data about the book
+  useEffect(() => {
+    if (book) {
+      console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
+    } else if (!loading && isbn) {
+      console.warn(`No book data found for ISBN: ${isbn}`);
+    }
+  }, [book, loading, isbn]);
+
   // Calculate average rating 
   const avgRating = ratings.length > 0
     ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
@@ -72,6 +81,11 @@ const BookDetail = () => {
         <BookNotFound />
       </Layout>
     );
+  }
+
+  // Validate book has minimum required data
+  if (!book.title || !book.author) {
+    console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
   }
 
   return (

@@ -38,6 +38,13 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
   const [localBook, setLocalBook] = useState<Book>(book);
 
+  // Log warning if book data is incomplete
+  useEffect(() => {
+    if (!book.title || !book.author) {
+      console.warn(`BookCard received incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
+    }
+  }, [book]);
+
   useEffect(() => {
     setLocalBook(book);
     setIsRead(book.readingStatus?.status === 'finished');
@@ -236,7 +243,8 @@ export const BookCard: React.FC<BookCardProps> = ({
     mappedReadingStatus = 'finished';
   }
 
-  // Get author display name, ensuring we have something to show
+  // Get display values with fallbacks for missing data
+  const bookTitle = localBook.title || `Book (ISBN: ${localBook.isbn || "Unknown"})`;
   const authorDisplayName = localBook.author || "Unknown Author";
 
   return (
@@ -247,7 +255,7 @@ export const BookCard: React.FC<BookCardProps> = ({
             <div className={coverContainerClasses}>
               <BookCover 
                 isbn={localBook.isbn}
-                title={localBook.title}
+                title={bookTitle}
                 author={authorDisplayName}
                 coverUrl={localBook.coverUrl}
                 isRead={isRead}
@@ -263,12 +271,16 @@ export const BookCard: React.FC<BookCardProps> = ({
             
             <div className={contentContainerClasses}>
               <h3 className={getTitleClasses()}>
-                <Link 
-                  to={`/book/${localBook.isbn}`}
-                  className="hover:text-bookverse-accent transition-colors"
-                >
-                  {localBook.title}
-                </Link>
+                {localBook.isbn ? (
+                  <Link 
+                    to={`/book/${localBook.isbn}`}
+                    className="hover:text-bookverse-accent transition-colors"
+                  >
+                    {bookTitle}
+                  </Link>
+                ) : (
+                  <span>{bookTitle}</span>
+                )}
               </h3>
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
@@ -297,7 +309,7 @@ export const BookCard: React.FC<BookCardProps> = ({
               <div className="absolute inset-0">
                 <BookCover 
                   isbn={localBook.isbn}
-                  title={localBook.title}
+                  title={bookTitle}
                   author={authorDisplayName}
                   coverUrl={localBook.coverUrl}
                   isRead={isRead}
@@ -314,12 +326,16 @@ export const BookCard: React.FC<BookCardProps> = ({
             
             <div className={contentContainerClasses}>
               <h3 className={getTitleClasses()}>
-                <Link 
-                  to={`/book/${localBook.isbn}`}
-                  className="hover:text-bookverse-accent transition-colors"
-                >
-                  {localBook.title}
-                </Link>
+                {localBook.isbn ? (
+                  <Link 
+                    to={`/book/${localBook.isbn}`}
+                    className="hover:text-bookverse-accent transition-colors"
+                  >
+                    {bookTitle}
+                  </Link>
+                ) : (
+                  <span>{bookTitle}</span>
+                )}
               </h3>
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               

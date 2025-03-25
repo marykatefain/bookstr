@@ -32,18 +32,25 @@ interface BookDetailsCache {
  */
 export function cacheLibraryBooks(books: { tbr: Book[]; reading: Book[]; read: Book[] }): void {
   try {
+    // Filter out books without titles to prevent caching incomplete data
+    const filteredBooks = {
+      tbr: books.tbr.filter(book => book.title && book.author),
+      reading: books.reading.filter(book => book.title && book.author),
+      read: books.read.filter(book => book.title && book.author),
+    };
+    
     const cacheData: LibraryCache = {
-      ...books,
+      ...filteredBooks,
       timestamp: Date.now(),
     };
     
     localStorage.setItem(LIBRARY_CACHE_KEY, JSON.stringify(cacheData));
     localStorage.setItem(LIBRARY_CACHE_TIMESTAMP_KEY, cacheData.timestamp.toString());
     
-    console.log(`Cached ${books.tbr.length + books.reading.length + books.read.length} library books`);
+    console.log(`Cached ${filteredBooks.tbr.length + filteredBooks.reading.length + filteredBooks.read.length} library books`);
     
     // Also cache individual book details
-    cacheBookDetails([...books.tbr, ...books.reading, ...books.read]);
+    cacheBookDetails([...filteredBooks.tbr, ...filteredBooks.reading, ...filteredBooks.read]);
   } catch (error) {
     console.error("Error caching library books:", error);
   }
@@ -62,12 +69,12 @@ export function cacheBookDetails(books: Book[]): void {
       bookDetailsCache = JSON.parse(existingCache);
     }
     
-    // Add new books to cache
+    // Add new books to cache, but only if they have title and author
     const now = Date.now();
     let updatedCount = 0;
     
     books.forEach(book => {
-      if (book && book.isbn) {
+      if (book && book.isbn && book.title && book.author) {
         bookDetailsCache[book.isbn] = {
           book: book,
           timestamp: now
@@ -88,6 +95,12 @@ export function cacheBookDetails(books: Book[]): void {
  */
 export function cacheBookDetail(book: Book): void {
   if (!book || !book.isbn) return;
+  
+  // Don't cache books without title or author
+  if (!book.title || !book.author) {
+    console.warn(`Skipping cache for incomplete book data: ISBN=${book.isbn}`);
+    return;
+  }
   
   try {
     let bookDetailsCache: BookDetailsCache = {};
@@ -128,12 +141,15 @@ export function getCachedLibraryBooks(): { tbr: Book[]; reading: Book[]; read: B
       return null;
     }
     
-    console.log(`Using cached library data with ${cachedData.tbr.length + cachedData.reading.length + cachedData.read.length} books`);
-    return {
-      tbr: cachedData.tbr,
-      reading: cachedData.reading,
-      read: cachedData.read
+    // Validate the books have title and author
+    const validBooks = {
+      tbr: cachedData.tbr.filter(book => book.title && book.author),
+      reading: cachedData.reading.filter(book => book.title && book.author),
+      read: cachedData.read.filter(book => book.title && book.author)
     };
+    
+    console.log(`Using cached library data with ${validBooks.tbr.length + validBooks.reading.length + validBooks.read.length} valid books`);
+    return validBooks;
   } catch (error) {
     console.error("Error retrieving cached library books:", error);
     return null;
@@ -154,8 +170,14 @@ export function getCachedBookByISBN(isbn: string): Book | null {
       const cachedBook = detailsCache[isbn];
       
       if (cachedBook && Date.now() - cachedBook.timestamp < CACHE_TTL) {
-        console.log(`Found book ${isbn} in book details cache`);
-        return cachedBook.book;
+        const book = cachedBook.book;
+        // Verify the book has title and author
+        if (book.title && book.author) {
+          console.log(`Found valid book ${isbn} in book details cache: ${book.title} by ${book.author}`);
+          return book;
+        } else {
+          console.log(`Found book ${isbn} in cache but it had incomplete data`);
+        }
       }
     }
     
@@ -165,15 +187,15 @@ export function getCachedBookByISBN(isbn: string): Book | null {
     
     // Check in read books first (priority order)
     const readBook = cachedBooks.read.find(book => book.isbn === isbn);
-    if (readBook) return readBook;
+    if (readBook && readBook.title && readBook.author) return readBook;
     
     // Then in reading books
     const readingBook = cachedBooks.reading.find(book => book.isbn === isbn);
-    if (readingBook) return readingBook;
+    if (readingBook && readingBook.title && readingBook.author) return readingBook;
     
     // Finally in tbr books
     const tbrBook = cachedBooks.tbr.find(book => book.isbn === isbn);
-    if (tbrBook) return tbrBook;
+    if (tbrBook && tbrBook.title && tbrBook.author) return tbrBook;
     
     return null;
   } catch (error) {
