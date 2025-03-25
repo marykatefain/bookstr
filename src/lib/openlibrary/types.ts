@@ -38,5 +38,11 @@ export interface OpenLibraryDoc {
     isbn_13?: string[];
     [key: string]: string[] | undefined;
   };
+  
+  // Add editions field for ISBN extraction from editions
+  editions?: {
+    isbn?: string[];
+    [key: string]: any;
+  };
 }
 
