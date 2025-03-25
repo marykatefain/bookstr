@@ -3,9 +3,9 @@ import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Book as BookIcon, Search, Loader2 } from "lucide-react";
+import { Book as BookIcon, Search, Loader2, TrendingUp } from "lucide-react";
 import { Book } from "@/lib/nostr";
-import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
+import { searchBooks, searchBooksByGenre, getDailyTrendingBooks } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { BookCard } from "@/components/BookCard";
 import { useDailyTrendingQuery } from "@/hooks/feed";
@@ -23,6 +23,7 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
+  // Use the trending books hook
   const {
     books: trendingBooks,
     isLoading: trendingLoading,
@@ -91,7 +92,10 @@ const Books = () => {
     }
   }, [debouncedSearch]);
 
-  const displayedBooks = books;
+  // Determine which books to display - either search results or trending books
+  const displayedBooks = debouncedSearch || activeCategory !== "All" 
+    ? books 
+    : enrichBooksWithReadingStatus(trendingBooks);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -177,8 +181,8 @@ const Books = () => {
     }
   };
 
-  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory !== "All")) &&
-    (displayedBooks.length === 0 || (isSearching && books.length === 0));
+  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory === "All")) &&
+    (displayedBooks.length === 0);
 
   return (
     <Layout>
@@ -243,13 +247,23 @@ const Books = () => {
                 ))
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                  <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No books found</h3>
-                  <p className="text-muted-foreground">
-                    {activeCategory === "All" && !debouncedSearch 
-                      ? "Select a category or search for books to browse our collection." 
-                      : "Try adjusting your search or filters to find what you're looking for."}
-                  </p>
+                  {activeCategory === "All" && !debouncedSearch ? (
+                    <div className="animate-pulse flex flex-col items-center">
+                      <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Loading trending books</h3>
+                      <p className="text-muted-foreground">Please wait while we fetch popular books...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No books found</h3>
+                      <p className="text-muted-foreground">
+                        {activeCategory === "All" && !debouncedSearch 
+                          ? "Select a category or search for books to browse our collection." 
+                          : "Try adjusting your search or filters to find what you're looking for."}
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </div>
