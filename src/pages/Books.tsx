@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,10 +22,14 @@ const Books = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Get trending books data from the hook
   const {
-    books: trendingBooks = [],
-    isLoading: trendingLoading
+    books: trendingBooks,
+    isLoading: trendingLoading,
+    isError: trendingError
   } = useDailyTrendingQuery(20);
+  
   const { getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimerRef = useRef<number | null>(null);
@@ -83,46 +88,41 @@ const Books = () => {
     }) as Book[];
   }, [getBookReadingStatus]);
 
-  // Load popular books for the All tab, with better caching behavior
+  // Make sure we track when trending books are loaded
   useEffect(() => {
-    const loadPopularBooks = async () => {
-      // Only load popular books if on All tab with no search and not already loaded
-      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoadedRef.current && !isSearching) {
-        console.log("Loading popular books for All tab");
-        setIsLoading(true);
-
-        try {
-          if (trendingBooks.length > 0) {
-            const enrichedResults = enrichBooksWithReadingStatus(trendingBooks);
-            setBooks(enrichedResults);
-            setPopularBooksLoaded(true);
-            popularBooksLoadedRef.current = true;
-          }
-        } catch (error) {
-          console.error("Error loading popular books:", error);
-        } finally {
-          setIsLoading(false);
-        }
+    if (trendingBooks && trendingBooks.length > 0 && !trendingBookProcessingRef.current) {
+      console.log(`Setting trending books from hook: ${trendingBooks.length}`);
+      trendingBookProcessingRef.current = true;
+      
+      const enrichedTrendingBooks = enrichBooksWithReadingStatus(trendingBooks);
+      
+      // Only update the books state if we're on the All tab with no search
+      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoadedRef.current) {
+        setBooks(enrichedTrendingBooks);
+        setPopularBooksLoaded(true);
+        popularBooksLoadedRef.current = true;
       }
-    };
-
-    loadPopularBooks();
-  }, [activeCategory, debouncedSearch, isSearching, trendingBooks, enrichBooksWithReadingStatus]);
+      
+      trendingBookProcessingRef.current = false;
+    }
+  }, [trendingBooks, activeCategory, debouncedSearch, enrichBooksWithReadingStatus]);
 
   // Handle category change
   const handleCategoryChange = useCallback((category: string) => {
     setActiveCategory(category);
     setSearchQuery("");
     setDebouncedSearch("");
+    
+    // Reset the popular books loaded flag when switching to All category
+    if (category === "All") {
+      setPopularBooksLoaded(false);
+      popularBooksLoadedRef.current = false;
+    }
   }, []);
 
   // Determine what books to show
-  const displayedBooks = useCallback(() => {
-    if (debouncedSearch || activeCategory !== "All") {
-      return books;
-    }
-    return trendingBooks;
-  }, [books, trendingBooks, debouncedSearch, activeCategory]);
+  const displayedBooks = books.length > 0 ? books : 
+    (activeCategory === "All" && !debouncedSearch ? trendingBooks : []);
 
   // Handle search operations
   useEffect(() => {
@@ -179,6 +179,8 @@ const Books = () => {
         if (results.length > 0) {
           const enrichedResults = enrichBooksWithReadingStatus(results);
           setBooks(enrichedResults);
+        } else {
+          setBooks([]);
         }
       } catch (error) {
         console.error("Error searching books:", error);
@@ -187,6 +189,7 @@ const Books = () => {
           description: "There was a problem with your search. Please try again.",
           variant: "destructive"
         });
+        setBooks([]);
       } finally {
         setIsLoading(false);
         searchInProgressRef.current = false;
@@ -219,7 +222,7 @@ const Books = () => {
   };
 
   const shouldShowLoadingSkeleton = (isLoading || trendingLoading) &&
-    (books.length === 0 || (isSearching && books.length === 0));
+    (displayedBooks.length === 0 || (isSearching && books.length === 0));
 
   return (
     <Layout>
@@ -272,8 +275,8 @@ const Books = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-              {books.length > 0 ? (
-                books.map((book) => (
+              {displayedBooks.length > 0 ? (
+                displayedBooks.map((book) => (
                   <BookCard
                     key={book.id}
                     book={book}

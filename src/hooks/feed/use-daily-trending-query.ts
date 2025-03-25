@@ -16,7 +16,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
   const {
     data: books = [],
     isLoading,
-    error
+    error,
+    isError
   } = useQuery({
     queryKey: ['dailyTrending', limit],
     queryFn: async (): Promise<Book[]> => {
@@ -73,9 +74,13 @@ export function useDailyTrendingQuery(limit: number = 20) {
     refetchOnWindowFocus: false
   });
 
+  // Add debugging to track what's happening with trending books
+  console.log(`Trending books from query hook: ${books?.length || 0}`);
+
   return {
     books,
     isLoading,
+    isError,
     error
   };
 }
