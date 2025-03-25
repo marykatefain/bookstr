@@ -29,9 +29,8 @@ export function useDailyTrendingQuery(limit: number = 20) {
             'Accept': 'application/json',
             'mode': 'no-cors'  // Handle CORS issues
           },
-          // Use browser cache with a stale-while-revalidate strategy
-          cache: 'default',
-          next: { revalidate: 600 } // 10 minutes cache in seconds
+          // Use browser cache with a standard strategy
+          cache: 'default'
         });
         
         if (!response.ok) {
