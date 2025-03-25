@@ -26,6 +26,7 @@ export function useDailyTrendingQuery(limit: number = 20) {
       console.log(`Fetching daily trending books, limit: ${limit}`);
       
       try {
+        // Use the updated endpoint pattern with the Cloudflare Worker
         const response = await fetch(`${API_BASE_URL}?trending/daily.json&limit=${limit}`, {
           headers: { 
             'Accept': 'application/json'
@@ -39,10 +40,16 @@ export function useDailyTrendingQuery(limit: number = 20) {
         }
         
         const data = await response.json();
-        console.log(`Got daily trending data: ${data.works?.length || 0} results`);
+        console.log(`Got daily trending data:`, data);
+        
+        // Handle empty response
+        if (!data.works || data.works.length === 0) {
+          console.log("No trending books returned from API");
+          return [];
+        }
         
         // Transform the data into our Book type
-        const books = data.works?.map((work: any) => ({
+        const books = data.works.map((work: any) => ({
           id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
           title: work.title || "Unknown Title",
           author: work.author_name?.[0] || work.authors?.[0]?.name || "Unknown Author",
@@ -53,7 +60,7 @@ export function useDailyTrendingQuery(limit: number = 20) {
             : (work.cover_edition_key 
               ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
               : ""),
-          description: work.description?.value || "",
+          description: work.description?.value || work.description || "",
           pubDate: work.first_publish_year?.toString() || "",
           pageCount: 0,
           categories: ["Trending Today"],
@@ -70,7 +77,45 @@ export function useDailyTrendingQuery(limit: number = 20) {
           variant: "destructive"
         });
         
-        return [];
+        // Try a fallback approach
+        try {
+          // Fallback to subject search if trending fails
+          const fallbackResponse = await fetch(`${API_BASE_URL}?subjects/fiction.json&limit=${limit}`, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'default'
+          });
+          
+          if (!fallbackResponse.ok) {
+            return [];
+          }
+          
+          const fallbackData = await fallbackResponse.json();
+          console.log("Using fiction subject as fallback for trending books");
+          
+          if (!fallbackData.works || fallbackData.works.length === 0) {
+            return [];
+          }
+          
+          return fallbackData.works.map((work: any) => ({
+            id: work.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+            title: work.title || "Unknown Title",
+            author: work.authors?.[0]?.name || "Unknown Author",
+            isbn: work.availability?.isbn || "",
+            coverUrl: work.cover_id 
+              ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+              : (work.cover_edition_key 
+                ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                : ""),
+            description: work.description?.value || work.description || "",
+            pubDate: work.first_publish_year?.toString() || "",
+            pageCount: 0,
+            categories: ["Popular Fiction"],
+            author_name: [work.authors?.[0]?.name].filter(Boolean)
+          }));
+        } catch (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+          return [];
+        }
       }
     },
     staleTime: CACHE_TTL, // Cache valid for 10 minutes

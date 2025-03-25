@@ -1,11 +1,10 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Book as BookIcon, Search, Loader2, TrendingUp } from "lucide-react";
 import { Book } from "@/lib/nostr";
-import { searchBooks, searchBooksByGenre, getDailyTrendingBooks } from "@/lib/openlibrary";
+import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
 import { useToast } from "@/components/ui/use-toast";
 import { BookCard } from "@/components/BookCard";
 import { useDailyTrendingQuery } from "@/hooks/feed";
@@ -23,7 +22,6 @@ const Books = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
-  // Use the trending books hook
   const {
     books: trendingBooks,
     isLoading: trendingLoading,
@@ -92,7 +90,6 @@ const Books = () => {
     }
   }, [debouncedSearch]);
 
-  // Determine which books to display - either search results or trending books
   const displayedBooks = debouncedSearch || activeCategory !== "All" 
     ? books 
     : enrichBooksWithReadingStatus(trendingBooks);
@@ -181,7 +178,7 @@ const Books = () => {
     }
   };
 
-  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory === "All")) &&
+  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory === "All" && !debouncedSearch)) &&
     (displayedBooks.length === 0);
 
   return (
@@ -248,11 +245,21 @@ const Books = () => {
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                   {activeCategory === "All" && !debouncedSearch ? (
-                    <div className="animate-pulse flex flex-col items-center">
-                      <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">Loading trending books</h3>
-                      <p className="text-muted-foreground">Please wait while we fetch popular books...</p>
-                    </div>
+                    trendingError ? (
+                      <>
+                        <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Couldn't load trending books</h3>
+                        <p className="text-muted-foreground">
+                          There was a problem fetching trending books. Please try again later.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="animate-pulse flex flex-col items-center">
+                        <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Loading trending books</h3>
+                        <p className="text-muted-foreground">Please wait while we fetch popular books...</p>
+                      </div>
+                    )
                   ) : (
                     <>
                       <BookIcon className="h-12 w-12 text-muted-foreground mb-4" />
