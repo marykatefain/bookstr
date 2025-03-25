@@ -57,10 +57,20 @@ const BookDetail = () => {
   useEffect(() => {
     if (book) {
       console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
+      
+      // Check for incomplete data
+      if (!book.title || !book.author) {
+        console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
+        toast({
+          title: "Limited book information",
+          description: "We could only find partial details for this book",
+          variant: "warning"
+        });
+      }
     } else if (!loading && isbn) {
       console.warn(`No book data found for ISBN: ${isbn}`);
     }
-  }, [book, loading, isbn]);
+  }, [book, loading, isbn, toast]);
 
   // Calculate average rating 
   const avgRating = ratings.length > 0
@@ -83,16 +93,19 @@ const BookDetail = () => {
     );
   }
 
-  // Validate book has minimum required data
-  if (!book.title || !book.author) {
-    console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
-  }
+  // Use fallback title/author if missing
+  const displayTitle = book.title || `Book (ISBN: ${book.isbn || "Unknown"})`;
+  const displayAuthor = book.author || "Unknown Author";
 
   return (
     <Layout>
       <div className="container px-4 py-8">
         <BookDetailHeader
-          book={book}
+          book={{
+            ...book,
+            title: displayTitle,
+            author: displayAuthor
+          }}
           avgRating={avgRating}
           ratingsCount={ratings.length}
           isRead={isRead}

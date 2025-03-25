@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
 import { getCachedBookByISBN } from "@/lib/cache/libraryCache";
+import { getBookByISBN } from "@/lib/openlibrary";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
@@ -37,25 +38,34 @@ export const useBookData = (isbn: string | undefined) => {
       
       // Then try to get from library cache
       const cachedBook = getCachedBookByISBN(isbn);
-      if (cachedBook) {
+      if (cachedBook && cachedBook.title && cachedBook.author) {
         console.log(`Using cached book data for ISBN: ${isbn}`, cachedBook);
-        // Ensure the cached book has all required fields
-        if (cachedBook.title && cachedBook.author) {
-          return cachedBook;
-        } else {
-          console.log("Cached book data is incomplete, fetching fresh data");
-        }
+        return cachedBook;
+      } else {
+        console.log("Cached book data is missing or incomplete, fetching fresh data");
       }
       
       try {
-        const result = await fetchBookByISBN(isbn);
-        if (!result) {
-          console.error(`No data returned for ISBN: ${isbn}`);
-          throw new Error("Book not found");
+        // First try with fetchBookByISBN from Nostr
+        const nostrResult = await fetchBookByISBN(isbn);
+        
+        // If we get a complete result from Nostr, use it
+        if (nostrResult && nostrResult.title && nostrResult.author) {
+          console.log(`Book data loaded successfully from Nostr for ISBN: ${isbn}:`, nostrResult);
+          return nostrResult;
         }
         
-        console.log(`Book data loaded successfully for ISBN: ${isbn}:`, result);
-        return result;
+        // If Nostr data is incomplete, try fetching directly from OpenLibrary
+        console.log(`Nostr data incomplete or missing for ISBN: ${isbn}, fetching directly from OpenLibrary`);
+        const openLibraryResult = await getBookByISBN(isbn);
+        
+        if (!openLibraryResult || (!openLibraryResult.title && !openLibraryResult.author)) {
+          console.error(`No complete data returned for ISBN: ${isbn} from any source`);
+          throw new Error("Book details not found");
+        }
+        
+        console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, openLibraryResult);
+        return openLibraryResult;
       } catch (err) {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
         toast({
