@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,8 +31,8 @@ const Books = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const { books: weeklyTrendingBooks, loading: loadingTrending, refreshBooks } = useWeeklyTrendingBooks(20);
-  const { books: userBooks, getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
+  const { books: weeklyTrendingBooks, loading: loadingTrending } = useWeeklyTrendingBooks(20);
+  const { getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
   const { fetchTrendingQuery } = useTrendingQuery(20);
   
   const [isSearching, setIsSearching] = useState(false);
@@ -42,7 +41,9 @@ const Books = () => {
   const previousSearchRef = useRef({ query: "", category: "All" });
   const searchInProgressRef = useRef(false);
   const [popularBooksLoaded, setPopularBooksLoaded] = useState(false);
+  const popularBooksLoadedRef = useRef(false);
 
+  // Clear debounce timer on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -51,16 +52,16 @@ const Books = () => {
     };
   }, []);
 
+  // Handle search query debouncing
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Increase debounce time to reduce flickering
     debounceTimerRef.current = window.setTimeout(() => {
       setDebouncedSearch(searchQuery);
       debounceTimerRef.current = null;
-    }, 1000); // Increased from 800ms to 1000ms
+    }, 1000);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -69,6 +70,7 @@ const Books = () => {
     };
   }, [searchQuery]);
 
+  // Enrich books with reading status
   const enrichBooksWithReadingStatus = useCallback((bookList: Book[]): Book[] => {
     return bookList.map(book => {
       if (book.isbn) {
@@ -88,10 +90,11 @@ const Books = () => {
     }) as Book[];
   }, [getBookReadingStatus]);
 
-  // Load popular books for the All tab on initial load
+  // Load popular books for the All tab, with better caching behavior
   useEffect(() => {
     const loadPopularBooks = async () => {
-      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoaded && !isSearching) {
+      // Only load popular books if on All tab with no search and not already loaded
+      if (activeCategory === "All" && !debouncedSearch && !popularBooksLoadedRef.current && !isSearching) {
         console.log("Loading popular books for All tab");
         setIsLoading(true);
         
@@ -101,17 +104,21 @@ const Books = () => {
             const enrichedResults = enrichBooksWithReadingStatus(results);
             setBooks(enrichedResults);
             setPopularBooksLoaded(true);
+            popularBooksLoadedRef.current = true;
           } else if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
             // Fall back to weekly trending if popular query fails
             const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
             setBooks(enrichedBooks);
+            setPopularBooksLoaded(true);
+            popularBooksLoadedRef.current = true;
           }
         } catch (error) {
           console.error("Error loading popular books:", error);
-          // Fall back to weekly trending if popular query fails
           if (weeklyTrendingBooks.length > 0 && !loadingTrending) {
             const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
             setBooks(enrichedBooks);
+            setPopularBooksLoaded(true);
+            popularBooksLoadedRef.current = true;
           }
         } finally {
           setIsLoading(false);
@@ -120,24 +127,24 @@ const Books = () => {
     };
     
     loadPopularBooks();
-  }, [activeCategory, debouncedSearch, popularBooksLoaded, isSearching, fetchTrendingQuery, enrichBooksWithReadingStatus, weeklyTrendingBooks, loadingTrending]);
+  }, [activeCategory, debouncedSearch, isSearching, fetchTrendingQuery, enrichBooksWithReadingStatus, weeklyTrendingBooks, loadingTrending]);
 
+  // Handle weekly trending books as fallback
   useEffect(() => {
-    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching && !popularBooksLoaded && activeCategory === "All" && !debouncedSearch) {
+    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching && !popularBooksLoadedRef.current && activeCategory === "All" && !debouncedSearch) {
       console.log("Setting trending books from hook as fallback:", weeklyTrendingBooks.length);
       const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
       setBooks(enrichedBooks);
       setIsLoading(false);
-    } else if (!loadingTrending && weeklyTrendingBooks.length === 0 && initialRenderRef.current) {
-      console.log("No trending books loaded, attempting to refresh");
-      refreshBooks();
-      initialRenderRef.current = false;
+      setPopularBooksLoaded(true);
+      popularBooksLoadedRef.current = true;
     }
-  }, [weeklyTrendingBooks, loadingTrending, refreshBooks, enrichBooksWithReadingStatus, isSearching, popularBooksLoaded, activeCategory, debouncedSearch]);
+  }, [weeklyTrendingBooks, loadingTrending, enrichBooksWithReadingStatus, isSearching, activeCategory, debouncedSearch]);
 
+  // Handle search operations
   useEffect(() => {
     const performSearch = async () => {
-      // Skip search if it's the same as the previous one to prevent flickering
+      // Skip search if it's the same as the previous one
       if (
         debouncedSearch === previousSearchRef.current.query && 
         activeCategory === previousSearchRef.current.category
@@ -152,14 +159,12 @@ const Books = () => {
         return;
       }
 
+      // If on All tab with no search, let the dedicated effect handle loading popular books
       if (!debouncedSearch && activeCategory === "All") {
         if (isSearching) {
           setIsSearching(false);
         }
         
-        // Don't reset books here, let the dedicated effect handle loading popular books
-        
-        // Update previous search reference
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         return;
       }
@@ -217,8 +222,9 @@ const Books = () => {
     performSearch();
   }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, books, enrichBooksWithReadingStatus]);
 
+  // Handle category changes
   const handleCategoryChange = (category: string) => {
-    // Skip if it's already the active category to prevent flickering
+    // Skip if it's already the active category
     if (category === activeCategory) {
       console.log(`Category ${category} already active, skipping change`);
       return;
@@ -226,16 +232,20 @@ const Books = () => {
     
     console.log(`Changing category to: ${category}`);
     setActiveCategory(category);
+    
     // Reset popular books loaded state when changing categories
     if (category === "All") {
       setPopularBooksLoaded(false);
+      popularBooksLoadedRef.current = false;
     }
+    
     if (searchQuery) {
       setSearchQuery("");
       setDebouncedSearch("");
     }
   };
 
+  // Handle book updates
   const handleBookUpdate = () => {
     console.log("Book updated, refreshing search results");
     refetchUserBooks();
@@ -243,7 +253,6 @@ const Books = () => {
     if (debouncedSearch || activeCategory !== "All") {
       // Only trigger a new search if we need to refresh the current results
       const currentSearch = debouncedSearch;
-      const currentCategory = activeCategory;
       // Force a refresh by briefly changing the state
       setDebouncedSearch("");
       setTimeout(() => {
@@ -254,6 +263,7 @@ const Books = () => {
     } else {
       // If we're on the All tab with no search, reset popular books loaded state to trigger reload
       setPopularBooksLoaded(false);
+      popularBooksLoadedRef.current = false;
     }
   };
 
