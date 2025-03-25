@@ -243,7 +243,7 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
   try {
     console.log(`Fetching trending books using subject API via Cloudflare Worker`);
     // Using subjects that typically have popular books
-    // Fix the URL format to use the correct path structure
+    // FIX: Use the correct path format for subjects
     const response = await fetch(`${API_BASE_URL}/subjects/fiction.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
@@ -315,7 +315,7 @@ async function getAlternativeTrendingBooks(limit: number = 10): Promise<Book[]> 
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    // Fix the URL format to use the correct path structure
+    // FIX: Keep the correct path format for alternative subjects
     const response = await fetch(`${API_BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'

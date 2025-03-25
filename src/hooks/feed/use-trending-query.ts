@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 import { Book } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
@@ -131,7 +130,7 @@ export function useTrendingQuery(limit: number = 20) {
     console.log(`Using fallback popular books search, limit: ${limit}`);
     
     try {
-      // Fix URL format for the query as well
+      // FIX: Use the correct path format for search
       const response = await fetch(`${API_BASE_URL}/search.json?q=popular&sort=rating&limit=${limit}`, {
         headers: { 'Accept': 'application/json' },
         cache: 'default'

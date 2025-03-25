@@ -51,9 +51,9 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
-        // Use the search API with subject, ISBN filter, and rating sort via Cloudflare Worker
+        // FIX: Use /search.json in the path when searching by subject
         const response = await fetch(
-          `${API_BASE_URL}?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}`,
+          `${API_BASE_URL}/search.json?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}`,
           {
             headers: { 'Accept': 'application/json' },
             // Use browser cache
