@@ -1,7 +1,7 @@
 
 import { type Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../../types";
-import { getReadingStatusFromEventKind, extractRatingFromTags } from "../../utils/eventUtils";
+import { getReadingStatusFromEventKind, extractRatingFromTags as extractRatingFromTagsUtil } from "../../utils/eventUtils";
 
 /**
  * Extract all ISBNs from the tags of an event
@@ -23,6 +23,14 @@ export function extractISBNsFromTags(event: Event): string[] {
  */
 export function extractISBNFromTags(event: Event): string | null {
   return extractISBNsFromTags(event)[0] || null;
+}
+
+/**
+ * Extract rating from tags
+ * Re-exported from utils/eventUtils for convenience
+ */
+export function extractRatingFromTags(event: Event): number | undefined {
+  return extractRatingFromTagsUtil(event);
 }
 
 /**
