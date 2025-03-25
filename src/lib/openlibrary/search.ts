@@ -51,7 +51,8 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
           `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
           {
             headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
+            // Use browser cache with a default strategy for search
+            cache: 'default',
             signal: controller.signal
           }
         );

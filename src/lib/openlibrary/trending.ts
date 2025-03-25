@@ -1,3 +1,4 @@
+
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
@@ -37,7 +38,8 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
     console.log(`Fetching daily trending books from OpenLibrary API`);
     const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      // Use browser cache
+      cache: 'default'
     });
     
     if (!response.ok) {

@@ -35,6 +35,7 @@ export const useBookData = (isbn: string | undefined) => {
     },
     enabled: !!isbn,
     staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
     retry: 1
   });
 

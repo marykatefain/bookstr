@@ -34,7 +34,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     const response = await fetch(`${BASE_URL}/isbn/${isbn}.json`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      // Use browser cache
+      cache: 'force-cache'
     });
     clearTimeout(timeoutId);
     
@@ -55,7 +56,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
         const workResponse = await fetch(`${BASE_URL}${workKey}.json`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },
-          cache: 'no-store'
+          // Use browser cache
+          cache: 'force-cache'
         });
         clearTimeout(workTimeoutId);
         
