@@ -35,7 +35,7 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
     // Convert OL12345M to just 12345 if needed
     const key = editionKey.startsWith('OL') ? editionKey : `OL${editionKey}`;
     
-    // Fix the URL format to use the correct path structure
+    // FIX: Use the correct path structure for books endpoint
     const response = await fetch(`${API_BASE_URL}/books/${key}.json`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
@@ -99,7 +99,7 @@ export async function fetchISBNByTitleAuthor(title: string, author?: string): Pr
     const searchTerms = author ? `${title} ${author}` : title;
     const encodedQuery = encodeURIComponent(searchTerms);
     
-    // Use the search endpoint to find matching books with edition details
+    // FIX: Ensure search.json is in the path
     const response = await fetch(
       `${API_BASE_URL}/search.json?q=${encodedQuery}&fields=key,title,author_name,editions,editions.key,editions.title,editions.ebook_access,editions.isbn`, 
       {
@@ -175,7 +175,7 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
       authorKey = `/${authorKey}`;
     }
     
-    // Fix the URL format to use the correct path structure
+    // FIX: Ensure authorKey path is correct and ends with .json
     const response = await fetch(`${API_BASE_URL}${authorKey}.json`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'

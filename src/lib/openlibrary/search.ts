@@ -50,8 +50,9 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
+        // FIX: Ensure search.json is explicitly in the path
         const response = await fetch(
-          `${API_BASE_URL}?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
+          `${API_BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
           {
             headers: { 'Accept': 'application/json' },
             // Use browser cache with a default strategy for search
