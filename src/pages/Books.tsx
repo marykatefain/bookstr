@@ -42,6 +42,7 @@ const Books = () => {
   const searchInProgressRef = useRef(false);
   const [popularBooksLoaded, setPopularBooksLoaded] = useState(false);
   const popularBooksLoadedRef = useRef(false);
+  const trendingBookProcessingRef = useRef(false);
 
   // Clear debounce timer on unmount
   useEffect(() => {
@@ -127,19 +128,35 @@ const Books = () => {
     };
     
     loadPopularBooks();
-  }, [activeCategory, debouncedSearch, isSearching, fetchTrendingQuery, enrichBooksWithReadingStatus, weeklyTrendingBooks, loadingTrending]);
+  }, [activeCategory, debouncedSearch, isSearching, fetchTrendingQuery, enrichBooksWithReadingStatus]);
 
   // Handle weekly trending books as fallback
   useEffect(() => {
-    if (weeklyTrendingBooks.length > 0 && !loadingTrending && !isSearching && !popularBooksLoadedRef.current && activeCategory === "All" && !debouncedSearch) {
-      console.log("Setting trending books from hook as fallback:", weeklyTrendingBooks.length);
-      const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
-      setBooks(enrichedBooks);
-      setIsLoading(false);
-      setPopularBooksLoaded(true);
-      popularBooksLoadedRef.current = true;
+    if (
+      trendingBookProcessingRef.current || 
+      popularBooksLoadedRef.current || 
+      isSearching || 
+      activeCategory !== "All" || 
+      debouncedSearch || 
+      weeklyTrendingBooks.length === 0 || 
+      loadingTrending
+    ) {
+      return;
     }
-  }, [weeklyTrendingBooks, loadingTrending, enrichBooksWithReadingStatus, isSearching, activeCategory, debouncedSearch]);
+
+    trendingBookProcessingRef.current = true;
+    
+    console.log("Setting trending books from hook:", weeklyTrendingBooks.length);
+    const enrichedBooks = enrichBooksWithReadingStatus(weeklyTrendingBooks);
+    setBooks(enrichedBooks);
+    setIsLoading(false);
+    setPopularBooksLoaded(true);
+    popularBooksLoadedRef.current = true;
+    
+    setTimeout(() => {
+      trendingBookProcessingRef.current = false;
+    }, 50);
+  }, [weeklyTrendingBooks, loadingTrending, enrichBooksWithReadingStatus]);
 
   // Handle search operations
   useEffect(() => {
@@ -220,7 +237,7 @@ const Books = () => {
     };
 
     performSearch();
-  }, [debouncedSearch, activeCategory, toast, weeklyTrendingBooks, books, enrichBooksWithReadingStatus]);
+  }, [debouncedSearch, activeCategory, toast, enrichBooksWithReadingStatus]);
 
   // Handle category changes
   const handleCategoryChange = (category: string) => {
