@@ -6,7 +6,8 @@ import { getSharedPool } from "../../utils/poolManager";
 import { 
   eventToBook, 
   extractISBNsFromTags, 
-  extractISBNFromTags 
+  extractISBNFromTags,
+  extractRatingFromTags 
 } from "./eventUtils";
 import { 
   deduplicateEvents, 
