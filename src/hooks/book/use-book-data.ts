@@ -45,7 +45,7 @@ export const useBookData = (isbn: string | undefined) => {
     enabled: !!isbn,
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
-    retry: 1
+    retry: 2, // Increased retries to handle potential API issues
   });
 
   // Get the reading status from the user's library

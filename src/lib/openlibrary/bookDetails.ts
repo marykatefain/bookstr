@@ -34,7 +34,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
-    const response = await fetch(`${API_BASE_URL}?isbn/${isbn}.json`, {
+    // FIX: Use the correct path structure for ISBN endpoint
+    const response = await fetch(`${API_BASE_URL}/isbn/${isbn}.json`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
       // Use browser cache
@@ -56,7 +57,8 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       try {
         console.log(`Fetching work data for ${workKey}`);
         const workTimeoutId = setTimeout(() => controller.abort(), 8000);
-        const workResponse = await fetch(`${API_BASE_URL}?${workKey.substring(1)}.json`, {
+        // FIX: Use the correct path structure for works endpoint
+        const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`, {
           signal: controller.signal,
           headers: { 'Accept': 'application/json' },
           // Use browser cache
@@ -144,7 +146,8 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}?books/${editionKey}.json`);
+    // FIX: Use the correct path structure for books endpoint
+    const response = await fetch(`${API_BASE_URL}/books/${editionKey}.json`);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -169,7 +172,8 @@ export async function getBookByEditionKey(editionKey: string): Promise<Book | nu
     let workData = null;
     
     if (workKey) {
-      const workResponse = await fetch(`${API_BASE_URL}?${workKey.substring(1)}.json`);
+      // FIX: Use the correct path structure for works endpoint
+      const workResponse = await fetch(`${API_BASE_URL}${workKey}.json`);
       workData = await workResponse.json();
     }
     
@@ -241,3 +245,4 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   return [...cachedBooks, ...fetchedBooks];
 }
+
