@@ -1,7 +1,6 @@
 
 import { SocialActivity } from "../types";
-import { batchFetchReactions } from "../fetch/reactions";
-import { batchFetchReplies } from "../fetch/replies";
+import { fetchReplies, fetchReactions } from "../";
 
 /**
  * Helper function to batch fetch reactions and replies for activities
@@ -10,18 +9,44 @@ export async function enrichActivitiesWithData(activities: SocialActivity[]): Pr
   // Get all activity IDs first
   const activityIds = activities.map(activity => activity.id);
   
-  // Batch fetch reactions and replies
-  const [reactionsMap, repliesMap] = await Promise.all([
-    batchFetchReactions(activityIds),
-    batchFetchReplies(activityIds)
-  ]);
+  // Batch fetching in groups of 5 to avoid too many parallel requests
+  const batchSize = 5;
+  const batches = [];
   
-  // Enrich activities with the fetched data
-  return activities.map(activity => ({
-    ...activity,
-    reactions: reactionsMap[activity.id] || { count: 0, userReacted: false },
-    replies: repliesMap[activity.id] || []
-  }));
+  for (let i = 0; i < activityIds.length; i += batchSize) {
+    batches.push(activityIds.slice(i, i + batchSize));
+  }
+  
+  // Process each batch sequentially
+  const enrichedActivities = [...activities];
+  
+  for (const batch of batches) {
+    await Promise.all(
+      batch.map(async (activityId) => {
+        try {
+          const [replies, reactions] = await Promise.all([
+            fetchReplies(activityId),
+            fetchReactions(activityId)
+          ]);
+          
+          // Find the activity in our array and enrich it
+          const activityIndex = enrichedActivities.findIndex(a => a.id === activityId);
+          if (activityIndex !== -1) {
+            enrichedActivities[activityIndex] = {
+              ...enrichedActivities[activityIndex],
+              replies,
+              reactions
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching data for activity ${activityId}:`, error);
+          // Continue with other activities
+        }
+      })
+    );
+  }
+  
+  return enrichedActivities;
 }
 
 // Global refresh state tracker
@@ -50,3 +75,4 @@ export function getGlobalRefreshCooldownRemaining(): number {
   const now = Date.now();
   return Math.max(0, Math.round((GLOBAL_REFRESH_COOLDOWN - (now - lastGlobalRefreshTime)) / 1000));
 }
+

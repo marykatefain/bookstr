@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
@@ -15,6 +15,7 @@ export const useLibraryData = () => {
     setUser(getCurrentUser());
   }, []);
   
+  // Use optimized query with stale time and caching
   const { 
     data: booksData = { tbr: [], reading: [], read: [] },
     isLoading: booksLoading,
@@ -43,13 +44,14 @@ export const useLibraryData = () => {
       }
     },
     enabled: !!user?.pubkey && isLoggedIn(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
-    refetchOnMount: true
+    staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
+    refetchOnWindowFocus: false, // Only refetch manually or on mount
+    refetchOnMount: true,
+    keepPreviousData: true // Keep showing previous data while fetching
   });
   
-  // Deduplicate books within the same list using ISBN as the unique identifier
-  const deduplicateBooksWithinLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+  // Memoized function to deduplicate books within the same list
+  const deduplicateBooksWithinLists = useCallback((books: { tbr: Book[], reading: Book[], read: Book[] }) => {
     const uniqueTbr = deduplicateListByIsbn(books.tbr);
     const uniqueReading = deduplicateListByIsbn(books.reading);
     const uniqueRead = deduplicateListByIsbn(books.read);
@@ -59,10 +61,10 @@ export const useLibraryData = () => {
       reading: uniqueReading,
       read: uniqueRead
     };
-  };
+  }, []);
   
   // Helper function to deduplicate a single list by ISBN
-  const deduplicateListByIsbn = (books: Book[]): Book[] => {
+  const deduplicateListByIsbn = useCallback((books: Book[]): Book[] => {
     const uniqueBooks = new Map<string, Book>();
     
     // Process books, keeping only the most recent entry for each ISBN
@@ -80,10 +82,10 @@ export const useLibraryData = () => {
     });
     
     return Array.from(uniqueBooks.values());
-  };
+  }, []);
   
-  // Deduplicate books across lists - prioritize finished > reading > tbr
-  const deduplicateBookLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+  // Memoized function to deduplicate books across lists
+  const deduplicateBookLists = useCallback((books: { tbr: Book[], reading: Book[], read: Book[] }) => {
     // Create sets of ISBNs for each list to track what's already been processed
     const readIsbns = new Set(books.read.map(book => book.isbn));
     const readingIsbns = new Set(books.reading.map(book => book.isbn));
@@ -106,9 +108,9 @@ export const useLibraryData = () => {
       reading: dedupedReading,
       tbr: dedupedTbr
     };
-  };
+  }, []);
   
-  // Fetch reviews to get the ratings
+  // Optimize reviews query with proper caching strategy
   const {
     data: reviews = [],
     isLoading: reviewsLoading,
@@ -131,55 +133,58 @@ export const useLibraryData = () => {
       }
     },
     enabled: !!user?.pubkey && isLoggedIn(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true
+    staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
+    refetchOnWindowFocus: false,
+    keepPreviousData: true
   });
   
-  // Merge ratings into the book objects
-  useEffect(() => {
-    if (reviews.length > 0 && booksData) {
-      console.log("Adding ratings to books from reviews");
-      
-      // Create a map of isbn -> rating for quick lookup
-      const ratingsMap = new Map<string, number>();
-      reviews.forEach(review => {
-        if (review.bookIsbn && review.rating !== undefined) {
-          const displayRating = convertRawRatingToDisplayRating(review.rating);
-          ratingsMap.set(review.bookIsbn, displayRating);
-        }
-      });
-      
-      console.log(`Found ${ratingsMap.size} ratings to apply to books`);
-      
-      // Apply ratings to books
-      const applyRatingsToBooks = (bookList: Book[]): Book[] => {
-        return bookList.map(book => {
-          if (book.isbn && ratingsMap.has(book.isbn)) {
-            console.log(`Applying rating ${ratingsMap.get(book.isbn)} to book ${book.title} (${book.isbn})`);
-            return {
-              ...book,
-              readingStatus: {
-                ...book.readingStatus!,
-                rating: ratingsMap.get(book.isbn)
-              }
-            };
-          }
-          return book;
-        });
-      };
-      
-      // Apply ratings to all book categories
-      const updatedReadBooks = applyRatingsToBooks(booksData.read);
-      const updatedReadingBooks = applyRatingsToBooks(booksData.reading);
-      const updatedTbrBooks = applyRatingsToBooks(booksData.tbr);
-      
-      // Update the books data with ratings
-      booksData.read = updatedReadBooks;
-      booksData.reading = updatedReadingBooks;
-      booksData.tbr = updatedTbrBooks;
-    }
-  }, [reviews, booksData]);
+  // Create memoized ratings map from reviews for efficient lookup
+  const ratingsMap = useMemo(() => {
+    if (!reviews.length) return new Map<string, number>();
+    
+    const map = new Map<string, number>();
+    reviews.forEach(review => {
+      if (review.bookIsbn && review.rating !== undefined) {
+        const displayRating = convertRawRatingToDisplayRating(review.rating);
+        map.set(review.bookIsbn, displayRating);
+      }
+    });
+    
+    console.log(`Created ratings map with ${map.size} entries`);
+    return map;
+  }, [reviews]);
   
+  // Apply ratings to books in a memoized way to avoid unnecessary re-computations
+  const booksWithRatings = useMemo(() => {
+    if (!booksData || ratingsMap.size === 0) return booksData;
+    
+    console.log(`Applying ${ratingsMap.size} ratings to books`);
+    
+    // Apply ratings to books
+    const applyRatingsToBooks = (bookList: Book[]): Book[] => {
+      return bookList.map(book => {
+        if (book.isbn && ratingsMap.has(book.isbn)) {
+          return {
+            ...book,
+            readingStatus: {
+              ...book.readingStatus!,
+              rating: ratingsMap.get(book.isbn)
+            }
+          };
+        }
+        return book;
+      });
+    };
+    
+    // Apply ratings to all book categories
+    return {
+      read: applyRatingsToBooks(booksData.read),
+      reading: applyRatingsToBooks(booksData.reading),
+      tbr: applyRatingsToBooks(booksData.tbr)
+    };
+  }, [booksData, ratingsMap]);
+  
+  // Optimize posts query with better caching strategy
   const {
     data: posts = [],
     isLoading: postsLoading,
@@ -202,8 +207,9 @@ export const useLibraryData = () => {
       }
     },
     enabled: !!user?.pubkey && isLoggedIn(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true
+    staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
+    refetchOnWindowFocus: false,
+    keepPreviousData: true
   });
   
   useEffect(() => {
@@ -232,43 +238,45 @@ export const useLibraryData = () => {
     }
   }, [booksError, postsError, reviewsError, toast]);
 
-  const getBookReadingStatus = (isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
-    if (!isbn || !booksData) return null;
+  // Memoized function to get book reading status by ISBN
+  const getBookReadingStatus = useCallback((isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
+    if (!isbn || !booksWithRatings) return null;
     
     // Prioritize "finished" status
-    const readBook = booksData.read.find(book => book.isbn === isbn);
+    const readBook = booksWithRatings.read.find(book => book.isbn === isbn);
     if (readBook) return 'finished';
     
     // Then "reading" status
-    const readingBook = booksData.reading.find(book => book.isbn === isbn);
+    const readingBook = booksWithRatings.reading.find(book => book.isbn === isbn);
     if (readingBook) return 'reading';
     
     // Finally "tbr" status
-    const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
+    const tbrBook = booksWithRatings.tbr.find(book => book.isbn === isbn);
     if (tbrBook) return 'tbr';
     
     return null;
-  };
+  }, [booksWithRatings]);
 
-  const getBookByISBN = (isbn: string | undefined): Book | null => {
-    if (!isbn || !booksData) return null;
+  // Memoized function to get book by ISBN across all categories
+  const getBookByISBN = useCallback((isbn: string | undefined): Book | null => {
+    if (!isbn || !booksWithRatings) return null;
     
     // Check lists in priority order: read > reading > tbr
-    const readBook = booksData.read.find(book => book.isbn === isbn);
+    const readBook = booksWithRatings.read.find(book => book.isbn === isbn);
     if (readBook) return readBook;
     
-    const readingBook = booksData.reading.find(book => book.isbn === isbn);
+    const readingBook = booksWithRatings.reading.find(book => book.isbn === isbn);
     if (readingBook) return readingBook;
     
-    const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
+    const tbrBook = booksWithRatings.tbr.find(book => book.isbn === isbn);
     if (tbrBook) return tbrBook;
     
     return null;
-  };
+  }, [booksWithRatings]);
 
   return {
     user,
-    books: booksData,
+    books: booksWithRatings,
     posts,
     reviews,
     booksLoading,

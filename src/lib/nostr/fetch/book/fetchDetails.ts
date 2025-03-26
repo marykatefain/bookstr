@@ -2,6 +2,7 @@
 import { Book } from "../../types";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 import { batchFetchBooksWithPlaceholders } from "./fetchUtils";
+import { throttlePromises } from "@/lib/utils";
 
 /**
  * Fetch multiple books by their ISBNs using optimized batch fetching
@@ -32,7 +33,7 @@ export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
  * Enhance books with additional details from OpenLibrary
  * While preserving the original reading status and ratings
  * 
- * Optimized version: processes books in a single pass and minimizes object creation
+ * Optimized version with chunking and prioritization
  */
 export async function enhanceBooksWithDetails(
   books: Book[], 
@@ -54,8 +55,31 @@ export async function enhanceBooksWithDetails(
       }
     }
     
-    // Fetch all book details in a single batch operation
-    const booksMap = await batchFetchBooksWithPlaceholders(isbns);
+    // Process ISBNs in chunks to improve performance
+    const CHUNK_SIZE = 20;
+    const uniqueIsbns = [...new Set(isbns)];
+    
+    // Prioritize visible books
+    // Sort ISBNs - books in the current list should be prioritized
+    const bookIsbns = books.map(book => book.isbn).filter(Boolean) as string[];
+    const prioritizedIsbns = [
+      ...bookIsbns,
+      ...uniqueIsbns.filter(isbn => !bookIsbns.includes(isbn))
+    ];
+    
+    // Fetch in chunks to prevent overwhelming the API
+    const booksMap: Record<string, Book> = {};
+    
+    for (let i = 0; i < prioritizedIsbns.length; i += CHUNK_SIZE) {
+      const chunk = prioritizedIsbns.slice(i, i + CHUNK_SIZE);
+      const chunkMap = await batchFetchBooksWithPlaceholders(chunk);
+      Object.assign(booksMap, chunkMap);
+      
+      // Short delay between chunks to avoid overwhelming the API
+      if (i + CHUNK_SIZE < prioritizedIsbns.length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
     
     // Process all books in a single pass
     return books.map(book => {

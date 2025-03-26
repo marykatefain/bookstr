@@ -1,3 +1,4 @@
+
 import { Book } from "../../types";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 import { extractISBNFromTags, extractISBNsFromTags, extractRatingFromTags } from "./eventUtils";
@@ -5,7 +6,7 @@ import { Event } from "nostr-tools";
 
 // Improved cache with longer TTL and better key structure
 const bookDataCache: Record<string, { data: Book, timestamp: number }> = {};
-const BOOK_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours cache (increased from 1 hour)
+const BOOK_CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days cache (increased from 24 hours)
 
 // Track ongoing fetch requests to prevent duplicate calls
 const ongoingFetches: Record<string, Promise<Book>> = {};
@@ -166,7 +167,7 @@ function createPlaceholderBook(isbn: string): Book {
 
 /**
  * Batch fetch books from OpenLibrary with caching to reduce API calls
- * Optimized to process books in parallel and reduce redundant operations
+ * Optimized with chunking to prevent large requests
  */
 export async function batchFetchBooksWithPlaceholders(isbns: string[]): Promise<Record<string, Book>> {
   // Validate and deduplicate ISBNs
@@ -191,44 +192,52 @@ export async function batchFetchBooksWithPlaceholders(isbns: string[]): Promise<
     }
   }
   
-  // If we have books to fetch, get them all at once
+  // If we have books to fetch, get them in chunks to prevent large requests
   if (isbnsToFetch.length > 0) {
     try {
-      console.log(`Batch fetching ${isbnsToFetch.length} books`);
-      const fetchedBooks = await getBooksByISBN(isbnsToFetch);
-      
-      // Process fetched books
-      for (const book of fetchedBooks) {
-        if (book.isbn) {
-          const completeBook = {
-            ...book,
-            title: book.title || "Unknown Title",
-            author: book.author || "Unknown Author",
-            coverUrl: book.coverUrl || "",
-          };
-          
-          result[book.isbn] = completeBook;
-          
-          // Update cache
-          const cacheKey = `isbn:${book.isbn}`;
-          bookDataCache[cacheKey] = { data: completeBook, timestamp: now };
-          
-          // Remove from isbnsToFetch
-          const index = isbnsToFetch.indexOf(book.isbn);
-          if (index !== -1) {
-            isbnsToFetch.splice(index, 1);
+      // Process in chunks of 20 ISBNs to prevent too large requests
+      const CHUNK_SIZE = 20;
+      for (let i = 0; i < isbnsToFetch.length; i += CHUNK_SIZE) {
+        const chunk = isbnsToFetch.slice(i, i + CHUNK_SIZE);
+        console.log(`Batch fetching ${chunk.length} books (chunk ${i / CHUNK_SIZE + 1} of ${Math.ceil(isbnsToFetch.length / CHUNK_SIZE)})`);
+        
+        const fetchedBooks = await getBooksByISBN(chunk);
+        
+        // Process fetched books
+        for (const book of fetchedBooks) {
+          if (book.isbn) {
+            const completeBook = {
+              ...book,
+              title: book.title || "Unknown Title",
+              author: book.author || "Unknown Author",
+              coverUrl: book.coverUrl || "",
+            };
+            
+            result[book.isbn] = completeBook;
+            
+            // Update cache
+            const cacheKey = `isbn:${book.isbn}`;
+            bookDataCache[cacheKey] = { data: completeBook, timestamp: now };
+            
+            // Remove from isbnsToFetch (for final placeholder creation)
+            const index = chunk.indexOf(book.isbn);
+            if (index !== -1) {
+              chunk[index] = '';
+            }
           }
         }
-      }
-      
-      // Create placeholders for books that weren't found
-      for (const isbn of isbnsToFetch) {
-        const placeholderBook = createPlaceholderBook(isbn);
-        result[isbn] = placeholderBook;
         
-        // Cache placeholder
-        const cacheKey = `isbn:${isbn}`;
-        bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
+        // Create placeholders for books that weren't found in this chunk
+        for (const isbn of chunk) {
+          if (isbn && !result[isbn]) {
+            const placeholderBook = createPlaceholderBook(isbn);
+            result[isbn] = placeholderBook;
+            
+            // Cache placeholder
+            const cacheKey = `isbn:${isbn}`;
+            bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
+          }
+        }
       }
     } catch (error) {
       console.error(`Error batch fetching books:`, error);

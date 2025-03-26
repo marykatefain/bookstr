@@ -1,10 +1,10 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
 import { fetchSocialFeed, fetchGlobalSocialFeed } from "@/lib/nostr/fetch";
 import { getConnectionStatus, connectToRelays } from "@/lib/nostr/relay";
 import { isLoggedIn } from "@/lib/nostr";
 import { toast } from "@/components/ui/use-toast";
-import { enrichActivitiesWithData } from "@/lib/nostr/utils/feedUtils";
 
 // Cache for feed data to reduce refetches
 const feedCache: Record<string, { activities: SocialActivity[], timestamp: number }> = {};
@@ -55,44 +55,37 @@ export function useFeedCore({
   }, []);
 
   // Function to handle successful fetch
-  const handleFetchSuccess = useCallback(async (fetchedActivities: SocialActivity[]) => {
-    try {
-      // Enrich activities with reactions and replies data
-      const enrichedActivities = await enrichActivitiesWithData(fetchedActivities);
-      
-      setActivities(enrichedActivities);
-      setError(null);
-      setRetryCount(0);
-      
-      // Update cache
-      const cacheKey = getCacheKey();
-      feedCache[cacheKey] = {
-        activities: enrichedActivities,
-        timestamp: Date.now()
-      };
-      
-      // Call the onComplete callback if provided
-      if (onComplete) {
-        onComplete();
-      }
-    } catch (error) {
-      console.error("Error enriching activities:", error);
-      // Still set the activities even if enrichment fails
-      setActivities(fetchedActivities);
-      
-      if (onComplete) {
-        onComplete();
-      }
+  const handleFetchSuccess = useCallback((fetchedActivities: SocialActivity[]) => {
+    setActivities(fetchedActivities);
+    setError(null);
+    setRetryCount(0);
+    
+    // Call the onComplete callback if provided
+    if (onComplete) {
+      onComplete();
     }
-  }, [onComplete, getCacheKey]);
+  }, [onComplete]);
 
   // Function to handle fetch error
   const handleFetchError = useCallback((err: any): Error => {
     console.error(`Error fetching ${type} feed:`, err);
-    const newError = err instanceof Error ? err : new Error("Failed to fetch feed");
+    const newError = err instanceof Error ? err : new Error(String(err));
     setError(newError);
+    
+    // Only show toast error if not a background refresh
+    if (!isBackgroundRefresh) {
+      toast({
+        title: "Error loading feed",
+        description: "There was a problem loading the latest posts. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    // Increment retry count
+    setRetryCount(prev => prev + 1);
+    
     return newError;
-  }, [type]);
+  }, [type, isBackgroundRefresh]);
 
   // Function to fetch the feed with error handling and caching
   const fetchFeed = useCallback(async () => {
