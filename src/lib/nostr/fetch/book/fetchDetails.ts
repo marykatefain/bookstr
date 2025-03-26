@@ -72,24 +72,31 @@ export async function enhanceBooksWithDetails(
         };
       }
       
-      console.log(`Enhancing book ${book.isbn} with details:`, {
+      // Debug log to see what titles and authors we're working with
+      console.log(`Enhancing book ${book.isbn}:`, {
         originalTitle: book.title || 'None',
         newTitle: details.title || 'None',
         originalAuthor: book.author || 'None',
         newAuthor: details.author || 'None'
       });
       
-      // Always use OpenLibrary data if available, regardless of whether 
-      // our current data is the placeholder or not
-      return {
-        ...book,
-        ...details, // Apply all OpenLibrary fields, but then override the ones we want to preserve
-        id: book.id, // Keep the original ID
-        isbn: book.isbn, // Keep the original ISBN
+      // Create an enhanced book object with OpenLibrary data
+      const enhancedBook = {
+        ...book, // Start with original book to preserve all fields
         title: details.title || book.title || 'Unknown Title',
         author: details.author || book.author || 'Unknown Author',
-        readingStatus: book.readingStatus // Keep the reading status with rating
+        coverUrl: details.coverUrl || book.coverUrl || '',
+        description: details.description || book.description || '',
+        readingStatus: book.readingStatus // Preserve reading status and rating
       };
+      
+      // Log the enhanced book for debugging
+      console.log(`Enhanced book ${book.isbn} result:`, {
+        title: enhancedBook.title,
+        author: enhancedBook.author
+      });
+      
+      return enhancedBook;
     });
     
     console.log('Final enhanced books:', enhancedBooks.map(book => ({ 

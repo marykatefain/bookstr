@@ -31,23 +31,53 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
 
       console.log(`Starting enhancement process for ${allIsbns.length} books`);
 
-      // Enhance each book list with details from OpenLibrary
-      const enhancedTbr = await enhanceBooksWithDetails(userBooks.tbr, 
-        userBooks.tbr.map(b => b.isbn).filter(Boolean) as string[]);
+      // Enhanced books - passing in both books and their ISBNs to get details
+      // Processing each category separately to maintain structure
+      const enhancedTbr = await enhanceBooksWithDetails(
+        userBooks.tbr, 
+        userBooks.tbr.map(b => b.isbn).filter(Boolean) as string[]
+      );
       
-      const enhancedReading = await enhanceBooksWithDetails(userBooks.reading,
-        userBooks.reading.map(b => b.isbn).filter(Boolean) as string[]);
+      const enhancedReading = await enhanceBooksWithDetails(
+        userBooks.reading,
+        userBooks.reading.map(b => b.isbn).filter(Boolean) as string[]
+      );
       
-      const enhancedRead = await enhanceBooksWithDetails(userBooks.read,
-        userBooks.read.map(b => b.isbn).filter(Boolean) as string[]);
+      const enhancedRead = await enhanceBooksWithDetails(
+        userBooks.read,
+        userBooks.read.map(b => b.isbn).filter(Boolean) as string[]
+      );
 
-      // Log the results for debugging
+      // Debug: Log the results to verify data is complete
       console.log(`Enhanced TBR books (${enhancedTbr.length}):`, 
-        enhancedTbr.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
+        enhancedTbr.map(b => ({ 
+          isbn: b.isbn, 
+          title: b.title, 
+          author: b.author,
+          hasTitle: b.title !== 'Unknown Title',
+          hasAuthor: b.author !== 'Unknown Author'
+        }))
+      );
+      
       console.log(`Enhanced Reading books (${enhancedReading.length}):`,
-        enhancedReading.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
+        enhancedReading.map(b => ({ 
+          isbn: b.isbn, 
+          title: b.title, 
+          author: b.author,
+          hasTitle: b.title !== 'Unknown Title',
+          hasAuthor: b.author !== 'Unknown Author'
+        }))
+      );
+      
       console.log(`Enhanced Read books (${enhancedRead.length}):`,
-        enhancedRead.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
+        enhancedRead.map(b => ({ 
+          isbn: b.isbn, 
+          title: b.title, 
+          author: b.author,
+          hasTitle: b.title !== 'Unknown Title',
+          hasAuthor: b.author !== 'Unknown Author'
+        }))
+      );
 
       return {
         tbr: enhancedTbr,
@@ -62,22 +92,43 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
   // Use enhanced books if available, otherwise fall back to original userBooks
   const displayBooks = enhancedUserBooks || userBooks;
   
-  // Log books with ratings for debugging
+  // Log books with titles and authors for verification
   useEffect(() => {
-    const readBooksWithRatings = displayBooks.read.filter(book => 
-      book.readingStatus?.rating !== undefined
-    );
-    
-    if (readBooksWithRatings.length > 0) {
-      console.log(`Found ${readBooksWithRatings.length} read books with ratings:`, 
-        readBooksWithRatings.map(b => ({ 
-          title: b.title, 
-          isbn: b.isbn, 
-          rating: b.readingStatus?.rating 
-        }))
+    if (enhancedUserBooks) {
+      console.log('Rendering Currently Reading section with', enhancedUserBooks.reading.length, 'books');
+      console.log('Rendering To Be Read section with', enhancedUserBooks.tbr.length, 'books');
+      
+      const tbrBooksWithRatings = enhancedUserBooks.tbr.filter(book => 
+        book.readingStatus?.rating !== undefined
       );
+      
+      if (tbrBooksWithRatings.length > 0) {
+        console.log(`Found ${tbrBooksWithRatings.length} books with ratings in To Be Read section:`, 
+          tbrBooksWithRatings.map(b => ({ 
+            title: b.title, 
+            isbn: b.isbn, 
+            rating: b.readingStatus?.rating 
+          }))
+        );
+      }
+      
+      console.log('Rendering Read section with', enhancedUserBooks.read.length, 'books');
+      
+      const readBooksWithRatings = enhancedUserBooks.read.filter(book => 
+        book.readingStatus?.rating !== undefined
+      );
+      
+      if (readBooksWithRatings.length > 0) {
+        console.log(`Found ${readBooksWithRatings.length} books with ratings in Read section:`, 
+          readBooksWithRatings.map(b => ({ 
+            title: b.title, 
+            isbn: b.isbn, 
+            rating: b.readingStatus?.rating 
+          }))
+        );
+      }
     }
-  }, [displayBooks]);
+  }, [enhancedUserBooks]);
   
   return (
     <div className="space-y-8">
