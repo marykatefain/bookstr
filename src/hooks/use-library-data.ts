@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchUserBooks,
@@ -6,8 +7,38 @@ import {
   getCurrentUser,
   isLoggedIn
 } from "@/lib/nostr";
+import { Book } from "@/lib/nostr/types";
 
-async function fetchLibraryData(pubkey?: string) {
+// Helper functions for getting book information
+const getBookByISBN = (library: any, isbn?: string) => {
+  if (!isbn || !library) return null;
+  
+  // Check in each collection
+  const tbrBook = library.tbr?.find((book: Book) => book.isbn === isbn);
+  if (tbrBook) return { ...tbrBook, readingStatus: { ...tbrBook.readingStatus, status: 'tbr' } };
+  
+  const readingBook = library.reading?.find((book: Book) => book.isbn === isbn);
+  if (readingBook) return { ...readingBook, readingStatus: { ...readingBook.readingStatus, status: 'reading' } };
+  
+  const readBook = library.read?.find((book: Book) => book.isbn === isbn);
+  if (readBook) return { ...readBook, readingStatus: { ...readBook.readingStatus, status: 'finished' } };
+  
+  return null;
+};
+
+const getBookReadingStatus = (library: any, isbn?: string) => {
+  if (!isbn || !library) return null;
+  
+  if (library.tbr?.some((book: Book) => book.isbn === isbn)) return 'tbr';
+  if (library.reading?.some((book: Book) => book.isbn === isbn)) return 'reading';
+  if (library.read?.some((book: Book) => book.isbn === isbn)) return 'finished';
+  
+  return null;
+};
+
+async function fetchLibraryData(context: any) {
+  const pubkey = context?.meta?.pubkey;
+  
   if (!pubkey) {
     console.warn("No pubkey provided, returning empty library data");
     return { tbr: [], reading: [], read: [] };
@@ -22,7 +53,9 @@ async function fetchLibraryData(pubkey?: string) {
   }
 }
 
-async function fetchUserReviewsData(pubkey?: string) {
+async function fetchUserReviewsData(context: any) {
+  const pubkey = context?.meta?.pubkey;
+  
   if (!pubkey) {
     console.warn("No pubkey provided, returning empty reviews data");
     return [];
@@ -37,7 +70,9 @@ async function fetchUserReviewsData(pubkey?: string) {
   }
 }
 
-async function fetchUserPostsData(pubkey?: string) {
+async function fetchUserPostsData(context: any) {
+  const pubkey = context?.meta?.pubkey;
+  
   if (!pubkey) {
     console.warn("No pubkey provided, returning empty posts data");
     return [];
@@ -53,32 +88,14 @@ async function fetchUserPostsData(pubkey?: string) {
 }
 
 export function useUserLibrary(pubkey: string) {
-  const queryClient = useQueryClient();
-  
-  const initialLibrary = () => {
-    const cachedLibrary = queryClient.getQueryData(['library']) as any;
-    if (cachedLibrary) {
-      return cachedLibrary;
-    }
-    return { tbr: [], reading: [], read: [] };
-  };
-  
   const {
-    data: library,
+    data: library = { tbr: [], reading: [], read: [] },
     isLoading: libraryLoading,
     error: libraryError,
     refetch: refetchLibrary
   } = useQuery({
     queryKey: ['userLibrary', pubkey],
-    queryFn: fetchLibraryData,
-    initialData: () => {
-      const cachedLibrary = queryClient.getQueryData(['library']) as any;
-      if (cachedLibrary) {
-        return cachedLibrary;
-      }
-      return { tbr: [], reading: [], read: [] };
-    },
-    placeholderData: (previousData) => previousData,
+    queryFn: async () => fetchUserBooks(pubkey),
     enabled: !!pubkey
   });
 
@@ -94,73 +111,42 @@ export function useLibraryData() {
   const user = getCurrentUser();
   const queryClient = useQueryClient();
   
-  const initialLibrary = () => {
-    if (!isLoggedIn()) return { tbr: [], reading: [], read: [] };
-    
-    const cachedLibrary = queryClient.getQueryData(['library']) as any;
-    if (cachedLibrary) {
-      return cachedLibrary;
-    }
-    return { tbr: [], reading: [], read: [] };
-  };
-
-  const initialReviews = () => {
-    if (!isLoggedIn()) return [];
-    
-    const cachedReviews = queryClient.getQueryData(['userReviews', user?.pubkey]) as any;
-    if (cachedReviews) {
-      return cachedReviews;
-    }
-    return [];
-  };
-
-  const initialPosts = () => {
-    if (!isLoggedIn()) return [];
-    
-    const cachedPosts = queryClient.getQueryData(['userPosts', user?.pubkey]) as any;
-    if (cachedPosts) {
-      return cachedPosts;
-    }
-    return [];
-  };
-  
   const {
-    data: library,
+    data: library = { tbr: [], reading: [], read: [] },
     isLoading: libraryLoading,
     error: libraryError,
     refetch: refetchLibrary
   } = useQuery({
     queryKey: ['library'],
-    queryFn: fetchLibraryData,
-    placeholderData: (previousData) => previousData,
+    queryFn: () => fetchLibraryData({ meta: { pubkey: user?.pubkey } }),
     enabled: isLoggedIn()
   });
 
   const {
-    data: reviews,
+    data: reviews = [],
     isLoading: reviewsLoading,
     error: reviewsError,
     refetch: refetchReviews
   } = useQuery({
     queryKey: ['userReviews', user?.pubkey],
-    queryFn: fetchUserReviewsData,
-    placeholderData: (previousData) => previousData,
+    queryFn: () => fetchUserReviewsData({ meta: { pubkey: user?.pubkey } }),
     enabled: !!user?.pubkey
   });
 
   const {
-    data: posts,
+    data: posts = [],
     isLoading: postsLoading,
     error: postsError,
     refetch: refetchPosts
   } = useQuery({
     queryKey: ['userPosts', user?.pubkey],
-    queryFn: fetchUserPostsData,
-    placeholderData: (previousData) => previousData,
+    queryFn: () => fetchUserPostsData({ meta: { pubkey: user?.pubkey } }),
     enabled: !!user?.pubkey
   });
 
+  // Add helper functions to make them available throughout the app
   return {
+    user,
     library,
     libraryLoading,
     libraryError,
@@ -172,6 +158,11 @@ export function useLibraryData() {
     posts,
     postsLoading,
     postsError,
-    refetchPosts
+    refetchPosts,
+    books: library,
+    booksLoading: libraryLoading,
+    refetchBooks: refetchLibrary,
+    getBookByISBN: (isbn?: string) => getBookByISBN(library, isbn),
+    getBookReadingStatus: (isbn?: string) => getBookReadingStatus(library, isbn)
   };
 }

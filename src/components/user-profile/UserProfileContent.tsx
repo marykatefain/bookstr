@@ -42,7 +42,11 @@ export const UserProfileContent: React.FC<UserProfileContentProps> = ({
       </TabsContent>
       
       <TabsContent value="library">
-        <UserLibraryTab userBooks={userBooks} />
+        <UserLibraryTab 
+          tbr={userBooks.tbr} 
+          reading={userBooks.reading} 
+          read={userBooks.read} 
+        />
       </TabsContent>
       
       <TabsContent value="activity">

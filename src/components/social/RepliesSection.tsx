@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Reply } from "@/lib/nostr/types";
-import { isLoggedIn, replyToContent, fetchReplies } from "@/lib/nostr";
+import { isLoggedIn, fetchReplies } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +18,7 @@ interface RepliesSectionProps {
   onReaction: (eventId: string) => void;
   reactionCount?: number;
   userReacted?: boolean;
+  eventKind?: number; // Add this property
 }
 
 export function RepliesSection({
@@ -28,7 +28,8 @@ export function RepliesSection({
   buttonLayout = "vertical",
   onReaction,
   reactionCount = 0,
-  userReacted = false
+  userReacted = false,
+  eventKind // Add this property
 }: RepliesSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [replies, setReplies] = useState<Reply[]>(initialReplies);
