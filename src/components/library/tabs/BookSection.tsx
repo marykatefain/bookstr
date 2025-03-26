@@ -1,5 +1,5 @@
 
-import React, { useMemo } from "react";
+import React from "react";
 import { EmptyState } from "@/components/profile/EmptyState";
 import { BookCard } from "@/components/BookCard";
 import { Book } from "@/lib/nostr/types";
@@ -17,32 +17,33 @@ export const BookSection: React.FC<BookSectionProps> = ({
   emptyStateType,
   onUpdate
 }) => {
-  // Only log in development, not in production
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`Rendering ${title} section with ${books.length} books`);
-  }
+  console.log(`Rendering ${title} section with ${books.length} books`);
 
-  // Memoize valid books to avoid re-filtering on every render
-  const validBooks = useMemo(() => {
-    const filtered = books.filter(book => book.isbn);
-    
-    // Only log in development, not in production
-    if (process.env.NODE_ENV !== 'production') {
-      // Log invalid books for debugging
-      const invalidBooks = books.filter(book => !book.isbn);
-      if (invalidBooks.length > 0) {
-        console.warn(`Found ${invalidBooks.length} invalid books in ${title} section without ISBN`);
-      }
-      
-      // Log books with ratings for debugging
-      const booksWithRatings = filtered.filter(book => book.readingStatus?.rating !== undefined);
-      if (booksWithRatings.length > 0) {
-        console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section`);
-      }
-    }
-    
-    return filtered;
-  }, [books, title]);
+  // Log books with ratings for debugging
+  const booksWithRatings = books.filter(book => book.readingStatus?.rating !== undefined);
+  if (booksWithRatings.length > 0) {
+    console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section:`, booksWithRatings.map(b => ({
+      title: b.title || "Unknown Title",
+      isbn: b.isbn,
+      rating: b.readingStatus?.rating
+    })));
+  }
+  
+  // Filter out books that don't have minimum required data
+  const validBooks = books.filter(book => book.isbn);
+  
+  // Log invalid books for debugging
+  const invalidBooks = books.filter(book => !book.isbn);
+  if (invalidBooks.length > 0) {
+    console.warn(`Found ${invalidBooks.length} invalid books in ${title} section without ISBN`);
+  }
+  
+  const incompleteBooks = validBooks.filter(book => !book.title || !book.author);
+  if (incompleteBooks.length > 0) {
+    console.warn(`Found ${incompleteBooks.length} books with missing title/author in ${title} section:`, 
+      incompleteBooks.map(b => ({ isbn: b.isbn, hasTitle: !!b.title, hasAuthor: !!b.author }))
+    );
+  }
   
   return (
     <section className="mb-12 py-0 my-[25px]">
