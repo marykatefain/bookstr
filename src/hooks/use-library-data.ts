@@ -5,6 +5,7 @@ import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 export const useLibraryData = () => {
   const [user, setUser] = useState(getCurrentUser());
@@ -143,7 +144,8 @@ export const useLibraryData = () => {
       const ratingsMap = new Map<string, number>();
       reviews.forEach(review => {
         if (review.bookIsbn && review.rating !== undefined) {
-          ratingsMap.set(review.bookIsbn, review.rating / 5); // Convert back to 0-1 scale
+          const displayRating = convertRawRatingToDisplayRating(review.rating);
+          ratingsMap.set(review.bookIsbn, displayRating);
         }
       });
       

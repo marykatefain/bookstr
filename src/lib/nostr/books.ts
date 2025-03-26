@@ -6,6 +6,7 @@ import { getUserRelays } from "./relay";
 import { fetchFollowingList } from "./fetch";
 import { toast } from "@/hooks/use-toast";
 import { getSharedPool } from "./utils/poolManager";
+import { convertDisplayRatingToRawRating } from "../utils/ratings";
 
 /**
  * Fetch all ISBNs from a specific list type
@@ -223,10 +224,10 @@ export async function rateBook(bookOrIsbn: Book | string, rating: number): Promi
     console.error("Cannot rate book: ISBN is missing");
     return null;
   }
-  
-  // Ensure rating is between 0 and 1
-  if (rating < 0 || rating > 1) {
-    console.error("Rating must be between 0 and 1");
+  const rawRating = convertDisplayRatingToRawRating(rating);
+  // Ensure rawRating is now between 0 and 1
+  if (rawRating < 0 || rawRating > 1) {
+    console.error("rawRating must be between 0 and 1");
     return null;
   }
   
@@ -235,7 +236,7 @@ export async function rateBook(bookOrIsbn: Book | string, rating: number): Promi
     tags: [
       ["d", `isbn:${isbn}`],
       ["k", "isbn"],
-      ["rating", rating.toString()]
+      ["rating", rawRating.toString()]
     ],
     content: ""
   };

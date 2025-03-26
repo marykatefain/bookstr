@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookCoverProps {
   isbn?: string;
@@ -122,15 +121,12 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 
   const renderRatingStars = () => {
-    console.log("Rendering rating stars with rating:", rating);
+    console.log("MK Rendering rating stars with rating:", rating);
     const starCount = 5;
     
     // Use the utility function for consistent conversion
-    const displayRating = convertRawRatingToDisplayRating(rating) || 0;
-    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
-    
-    console.log("Display rating:", displayRating, "Hover rating:", hoverRating);
-    
+    const hoverRating = ratingHover !== null ? ratingHover : rating;
+        
     return (
       <div 
         className="absolute top-2 right-2 p-1 bg-black/50 backdrop-blur-sm rounded-full flex items-center"
@@ -140,7 +136,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
           <button
             key={i}
             className="p-0.5"
-            onClick={() => handleRateBook((i + 1) / 5)}
+            onClick={() => handleRateBook((i + 1))}
             onMouseEnter={() => setRatingHover(i + 1)}
             disabled={isRating}
             aria-label={`Rate ${i + 1} stars`}
