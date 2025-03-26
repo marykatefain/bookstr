@@ -1,5 +1,6 @@
+
 import { Book } from "../nostr/types";
-import { getBookDetails } from "./bookDetails";
+import { getBookByISBN } from "./bookDetails";
 import { throttlePromises } from "@/lib/utils";
 
 // Cache search results for 1 hour (3600000 ms)
@@ -78,7 +79,7 @@ export function processBasicSearchResults(searchData: any): Book[] {
     
     return {
       id: `ol:${doc.key}`,
-      isbn: isbn,
+      isbn: isbn || '',
       title: doc.title || 'Unknown Title',
       author: doc.author_name ? doc.author_name[0] : 'Unknown Author',
       coverUrl,
@@ -104,7 +105,7 @@ async function processSearchResults(searchData: any): Promise<Book[]> {
   
   // Get detailed information for each book with an ISBN, with throttling to avoid overloading the API
   const enhancedBooks = await throttlePromises(
-    booksWithIsbns.map(book => () => getBookDetails(book.isbn!)),
+    booksWithIsbns.map(book => () => getBookByISBN(book.isbn!)),
     5 // Process 5 books at a time
   );
   
@@ -276,7 +277,7 @@ async function processGenreResults(genreData: any): Promise<Book[]> {
   
   // Get detailed information for each book with an ISBN, with throttling
   const enhancedBooks = await throttlePromises(
-    booksWithValidISBNs.map(book => () => getBookDetails(book.isbn!)),
+    booksWithValidISBNs.map(book => () => getBookByISBN(book.isbn!)),
     5 // Process 5 books at a time
   );
   

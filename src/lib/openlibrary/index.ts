@@ -7,6 +7,9 @@ export * from './trending';
 export * from './bookDetails';
 export { 
   searchBooks, 
-  searchBooksByGenre, 
+  searchBooksByGenre as searchBooksByGenreFromSearch, 
   processBasicSearchResults 
 } from './search';
+
+// Re-export searchBooksByGenre from genres as the default implementation
+export { searchBooksByGenre } from './genres';
