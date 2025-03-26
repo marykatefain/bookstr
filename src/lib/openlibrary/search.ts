@@ -1,3 +1,4 @@
+
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
@@ -112,7 +113,8 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
     });
     
     // Process books in parallel with throttling to avoid hammering the API
-    const books = await throttlePromises(bookPromises, 5);
+    // Fix: Explicitly type the result as Book[]
+    const books = await throttlePromises<Book>(bookPromises, 5);
     
     // Cache the results
     searchCache[cacheKey] = { data: books, timestamp: now };
@@ -308,7 +310,8 @@ export async function searchBooksByGenre(
     });
     
     // Process books in parallel with throttling to avoid hammering the API
-    const books = await throttlePromises(bookPromises, 5);
+    // Fix: Explicitly type the result as Book[]
+    const books = await throttlePromises<Book>(bookPromises, 5);
     
     // Cache the results
     searchCache[cacheKey] = { data: books, timestamp: now };

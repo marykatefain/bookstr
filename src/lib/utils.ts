@@ -1,58 +1,51 @@
-
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-// Debounce helper function
-export const debounce = (fn: Function, ms = 300) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return function(this: any, ...args: any[]) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), ms);
-  };
-};
-
 /**
- * Throttle a batch of promise-returning functions to limit concurrency
- * @param promiseFunctions Array of functions that return promises
- * @param limit Maximum number of promises to execute concurrently
- * @returns Promise that resolves to an array of the results
+ * Throttle a list of promises to control concurrency
+ * @param promises Array of promises to execute
+ * @param limit Maximum number of concurrent promises
+ * @returns Promise that resolves with array of results
  */
-export const throttlePromises = async <T>(
-  promiseFunctions: (() => Promise<T>)[],
-  limit: number
-): Promise<T[]> => {
-  const results: T[] = [];
-  let index = 0;
-
-  // Helper function to process the next batch
-  const runBatch = async (): Promise<void> => {
-    const currentIndex = index++;
-    if (currentIndex >= promiseFunctions.length) return;
-
-    // Execute the current promise
-    try {
-      const result = await promiseFunctions[currentIndex]();
-      results[currentIndex] = result;
-    } catch (error) {
-      console.error(`Error in throttled promise at index ${currentIndex}:`, error);
-      results[currentIndex] = null as unknown as T;
+export function throttlePromises<T>(promises: Promise<T>[], limit: number): Promise<T[]> {
+  return new Promise((resolve) => {
+    if (!promises.length) {
+      resolve([]);
+      return;
     }
 
-    // Process the next one
-    await runBatch();
-  };
+    const results: T[] = [];
+    let index = 0;
+    let done = 0;
 
-  // Start `limit` number of batches
-  const batchPromises = Array(Math.min(limit, promiseFunctions.length))
-    .fill(0)
-    .map(() => runBatch());
+    function next() {
+      if (index >= promises.length) return;
+      
+      const currentIdx = index++;
+      const promise = promises[currentIdx];
+      
+      promise.then(result => {
+        results[currentIdx] = result;
+        done++;
+        
+        if (done === promises.length) {
+          resolve(results);
+        } else {
+          next();
+        }
+      }).catch(err => {
+        console.error('Error in throttled promise:', err);
+        results[currentIdx] = {} as T; // Placeholder for error case
+        done++;
+        
+        if (done === promises.length) {
+          resolve(results);
+        } else {
+          next();
+        }
+      });
+    }
 
-  // Wait for all batches to complete
-  await Promise.all(batchPromises);
-  
-  return results;
-};
+    // Start initial batch of promises
+    for (let i = 0; i < Math.min(limit, promises.length); i++) {
+      next();
+    }
+  });
+}
