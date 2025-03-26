@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Book, BookReview } from "@/lib/nostr/types";
 import { 
   fetchBookReviews, 
@@ -21,60 +21,58 @@ export const useBookReviews = (isbn: string | undefined) => {
   const { toast } = useToast();
   const currentUser = getCurrentUser();
 
-  // Use useCallback for the data fetching function to stabilize it
-  const fetchReviewsData = useCallback(async () => {
-    if (!isbn) return;
-    
-    try {
-      const bookReviews = await fetchBookReviews(isbn);
+  useEffect(() => {
+    const fetchReviewsData = async () => {
+      if (!isbn) return;
       
-      // Fetch replies for each review
-      const reviewsWithReplies = await Promise.all(
-        bookReviews.map(async (review) => {
-          try {
-            const replies = await fetchReplies(review.id);
-            return {
-              ...review,
-              replies
-            };
-          } catch (error) {
-            console.error(`Error fetching replies for review ${review.id}:`, error);
-            return review;
+      try {
+        const bookReviews = await fetchBookReviews(isbn);
+        
+        // Fetch replies for each review
+        const reviewsWithReplies = await Promise.all(
+          bookReviews.map(async (review) => {
+            try {
+              const replies = await fetchReplies(review.id);
+              return {
+                ...review,
+                replies
+              };
+            } catch (error) {
+              console.error(`Error fetching replies for review ${review.id}:`, error);
+              return review;
+            }
+          })
+        );
+        
+        setReviews(reviewsWithReplies);
+        
+        const bookRatings = await fetchBookRatings(isbn);
+        setRatings(bookRatings);
+        
+        if (currentUser && bookRatings.length > 0) {
+          const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
+          if (userRatingObj && userRatingObj.rating !== undefined) {
+            // Store in original 0-1 scale for consistency
+            setUserRating(userRatingObj.rating);
           }
-        })
-      );
-      
-      setReviews(reviewsWithReplies);
-      
-      const bookRatings = await fetchBookRatings(isbn);
-      setRatings(bookRatings);
-      
-      if (currentUser && bookRatings.length > 0) {
-        const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
-        if (userRatingObj && userRatingObj.rating !== undefined) {
-          // Store in original 0-1 scale for consistency
-          setUserRating(userRatingObj.rating);
         }
+      } catch (error) {
+        console.error("Error fetching review data:", error);
       }
-    } catch (error) {
-      console.error("Error fetching review data:", error);
-    }
+    };
+    
+    fetchReviewsData();
   }, [isbn, currentUser]);
 
-  // Use useEffect with the callback
-  useEffect(() => {
-    fetchReviewsData();
-  }, [fetchReviewsData]);
-
   // This function now only updates the local state without submitting to the network
-  const handleRateBook = useCallback(async (book: Book | null, rating: number) => {
+  const handleRateBook = async (book: Book | null, rating: number) => {
     if (!book || !isLoggedIn()) return;
     
     // Just update the local state
     setUserRating(rating);
-  }, []);
+  };
 
-  const handleSubmitReview = useCallback(async (book: Book | null) => {
+  const handleSubmitReview = async (book: Book | null) => {
     if (!book || !reviewText.trim() || !isLoggedIn()) return;
     
     setSubmitting(true);
@@ -121,7 +119,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     } finally {
       setSubmitting(false);
     }
-  }, [isbn, reviewText, userRating, toast]);
+  };
 
   return {
     reviews,

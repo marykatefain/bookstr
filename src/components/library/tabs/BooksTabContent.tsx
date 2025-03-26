@@ -32,49 +32,56 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     );
   }
 
-  // Add debug logs
-  React.useEffect(() => {
-    if (filterType !== "all") {
-      console.log(`BooksTabContent filtered for: ${filterType}, count: ${books[filterType].length}`);
-      if (books[filterType].length > 0) {
-        console.log(`First ${filterType} book:`, {
-          title: books[filterType][0]?.title || 'No title',
-          author: books[filterType][0]?.author || 'No author',
-          isbn: books[filterType][0]?.isbn || 'No ISBN'
-        });
-      }
-    }
-  }, [books, filterType]);
-
-  // Render a specific book section based on filter type
-  if (filterType !== "all") {
-    const sectionConfig = {
-      reading: {
-        title: "Currently Reading",
-        books: books.reading || [],
-        emptyType: "reading"
-      },
-      tbr: {
-        title: "To Be Read",
-        books: books.tbr || [],
-        emptyType: "want-to-read"
-      },
-      read: {
-        title: "Read",
-        books: books.read || [],
-        emptyType: "read"
-      }
-    }[filterType];
-    
+  // If we're filtering for a specific book type, show only that section
+  if (filterType === "reading") {
     return (
       <div className="py-4">
-        <h1 className="text-3xl font-serif font-semibold mb-6">{sectionConfig.title}</h1>
-        {!sectionConfig.books || sectionConfig.books.length === 0 ? (
-          <EmptyState type={sectionConfig.emptyType} />
+        <h1 className="text-3xl font-serif font-semibold mb-6">Currently Reading</h1>
+        {books.reading.length === 0 ? (
+          <EmptyState type="reading" />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-            {sectionConfig.books.map((book) => (
-              <BookCard key={book?.id || `book-${book?.isbn}`} book={book} size="medium" onUpdate={onUpdate} />
+            {books.reading.map((book) => (
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (filterType === "tbr") {
+    return (
+      <div className="py-4">
+        <h1 className="text-3xl font-serif font-semibold mb-6">To Be Read</h1>
+        {books.tbr.length === 0 ? (
+          <EmptyState type="want-to-read" />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+            {books.tbr.map((book) => (
+              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (filterType === "read") {
+    return (
+      <div className="py-4">
+        <h1 className="text-3xl font-serif font-semibold mb-6">Read</h1>
+        {books.read.length === 0 ? (
+          <EmptyState type="read" />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+            {books.read.map((book) => (
+              <BookCard 
+                key={book.id} 
+                book={book} 
+                size="medium" 
+                onUpdate={onUpdate} 
+              />
             ))}
           </div>
         )}
@@ -87,19 +94,19 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     <>
       <BookSection 
         title="Currently Reading" 
-        books={books.reading || []} 
+        books={books.reading} 
         emptyStateType="reading"
         onUpdate={onUpdate} 
       />
       <BookSection 
         title="To Be Read" 
-        books={books.tbr || []} 
+        books={books.tbr} 
         emptyStateType="want-to-read"
         onUpdate={onUpdate} 
       />
       <BookSection 
         title="Read" 
-        books={books.read || []} 
+        books={books.read} 
         emptyStateType="read"
         onUpdate={onUpdate} 
       />

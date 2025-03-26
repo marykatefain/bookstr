@@ -4,9 +4,6 @@ import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 import { searchBooks } from './search';
 
-// Base URL for the Cloudflare Worker
-const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
-
 // Cache for genre search results with increased TTL
 const genreCache: Record<string, { data: Book[], timestamp: number }> = {};
 const CACHE_TTL = 1000 * 60 * 60; // 60 minutes cache for genres (increased from 30)
@@ -51,13 +48,15 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
-        // FIX: Use /search.json in the path when searching by subject
+        // Use the search API with subject, ISBN filter, and rating sort
         const response = await fetch(
-          `${API_BASE_URL}/search.json?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}`,
+          `${BASE_URL}/search.json?` + 
+          `q=subject:"${encodeURIComponent(formattedGenre)}"&` +
+          `sort=rating&` +
+          `limit=${limit}`,
           {
             headers: { 'Accept': 'application/json' },
-            // Use browser cache
-            cache: 'default',
+            cache: 'no-store',
             signal: controller.signal
           }
         );

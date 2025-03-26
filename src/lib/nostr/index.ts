@@ -65,6 +65,7 @@ export {
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchUserReviews,
+  ensureBookMetadata,
   fetchBookActivity,
   fetchEventById
 } from "./fetch";
