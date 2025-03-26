@@ -1,59 +1,123 @@
+import { Book } from "@/lib/nostr/types";
+import { BASE_URL } from './types';
+import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
+import { throttlePromises } from '@/lib/utils';
 
-import { Book } from "../nostr/types";
-import { getBookByISBN } from "./bookDetails";
-import { throttlePromises } from "@/lib/utils";
+// Cache for search results with appropriate TTL
+const searchCache: Record<string, { data: Book[], timestamp: number }> = {};
+const SEARCH_CACHE_TTL = 1000 * 60 * 10; // 10 minutes cache for searches
 
-// Cache search results for 1 hour (3600000 ms)
-const SEARCH_CACHE_DURATION = 3600000;
-const searchCache = new Map<string, { data: Book[], timestamp: number }>();
+// Calculate the minimum publication year for the 5-year filter
+const CURRENT_YEAR = new Date().getFullYear();
+const MIN_PUB_YEAR = CURRENT_YEAR - 5;
 
 /**
  * Search for books by title or author
- * @param query The search query
- * @param limit The maximum number of results to return
- * @param quickMode If true, return basic book data without fetching full details
- * @returns Array of books matching the search
  */
-export async function searchBooks(query: string, limit = 20, quickMode = false): Promise<Book[]> {
-  if (!query) return [];
-  
-  console.log(`Searching OpenLibrary for: "${query}" with limit ${limit}, quickMode: ${quickMode}`);
-  
-  // Create cache key based on query and limit
-  const cacheKey = `search:${query.toLowerCase()}:${limit}:${quickMode}`;
-  
-  // Check if we have a valid cached result
-  const now = Date.now();
-  const cached = searchCache.get(cacheKey);
-  if (cached && now - cached.timestamp < SEARCH_CACHE_DURATION) {
-    console.log(`Using cached search results for "${query}"`);
-    return cached.data;
+export async function searchBooks(query: string, limit: number = 20, quickMode: boolean = false): Promise<Book[]> {
+  if (!query || query.trim() === '') {
+    return [];
   }
-  
+
   try {
-    // Query OpenLibrary search API
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
-    const response = await fetch(url);
+    // Create a cache key that includes quickMode parameter
+    const cacheKey = `${query.toLowerCase()}-${limit}-${quickMode ? 'quick' : 'full'}`;
+    const now = Date.now();
+    
+    // Check cache first
+    const cached = searchCache[cacheKey];
+    if (cached && (now - cached.timestamp < SEARCH_CACHE_TTL)) {
+      console.log(`Using cached search results for "${query}"`);
+      return cached.data;
+    }
+    
+    // Construct the API URL
+    const apiUrl = `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
+    
+    // Set up request with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
+    
+    const response = await fetch(apiUrl, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
-      throw new Error(`OpenLibrary search failed: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log(`Search returned ${data.docs?.length || 0} results for "${query}"`);
     
-    // Extract basic book info for quick mode
-    if (quickMode) {
-      const books = processBasicSearchResults(data);
-      searchCache.set(cacheKey, { data: books, timestamp: now });
-      return books;
+    if (!data.docs || !Array.isArray(data.docs)) {
+      return [];
     }
     
-    // Process results with full book details
-    const books = await processSearchResults(data);
+    // In quick mode, we do minimal processing for speed
+    if (quickMode) {
+      const results = await processBasicSearchResults(data.docs, limit);
+      searchCache[cacheKey] = { data: results, timestamp: now };
+      return results;
+    }
+    
+    // For full results, we want to filter by publication year and complete data
+    const filteredDocs = data.docs
+      .filter(doc => {
+        // Keep books with a recent publication year
+        const pubYear = doc.first_publish_year || doc.publish_year?.[0] || 0;
+        return pubYear >= MIN_PUB_YEAR || (doc.isbn && doc.cover_i);
+      })
+      .sort((a, b) => {
+        // Prioritize books with complete data
+        const aComplete = Boolean(a.isbn && a.cover_i);
+        const bComplete = Boolean(b.isbn && b.cover_i);
+        
+        if (aComplete && !bComplete) return -1;
+        if (!aComplete && bComplete) return 1;
+        
+        // Then prioritize recent books
+        const aYear = a.first_publish_year || a.publish_year?.[0] || 0;
+        const bYear = b.first_publish_year || b.publish_year?.[0] || 0;
+        return bYear - aYear;
+      });
+    
+    // Get the final limit of books
+    const finalDocs = filteredDocs.slice(0, limit);
+    
+    // For each book, fetch additional details if needed
+    const bookPromises = finalDocs.map(doc => {
+      const processedBook = docToBook(doc);
+      
+      // If we don't have an ISBN and we have a cover_edition_key, try to fetch it
+      if (!processedBook.isbn && doc.cover_edition_key) {
+        return (async () => {
+          try {
+            const isbn = await fetchISBNFromEditionKey(doc.cover_edition_key);
+            if (isbn) {
+              return {
+                ...processedBook,
+                isbn
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching ISBN for book:`, error);
+          }
+          return processedBook;
+        })();
+      }
+      
+      return Promise.resolve(processedBook);
+    });
+    
+    // Process books in parallel with throttling to avoid hammering the API
+    const books = await throttlePromises(bookPromises, 5);
     
     // Cache the results
-    searchCache.set(cacheKey, { data: books, timestamp: now });
+    searchCache[cacheKey] = { data: books, timestamp: now };
     
+    console.log(`Processed ${books.length} books from search results`);
     return books;
   } catch (error) {
     console.error("Error searching books:", error);
@@ -61,251 +125,199 @@ export async function searchBooks(query: string, limit = 20, quickMode = false):
   }
 }
 
-// Process search results with only basic information for immediate display
-export function processBasicSearchResults(searchData: any): Book[] {
-  if (!searchData.docs || searchData.docs.length === 0) {
-    return [];
-  }
+/**
+ * Process search results quickly without fetching additional details
+ */
+export async function processBasicSearchResults(docs: any[], limit: number): Promise<Book[]> {
+  const processedBooks: Book[] = [];
   
-  return searchData.docs.map((doc: any) => {
-    // Extract the first ISBN if available
-    const isbn = doc.isbn ? (Array.isArray(doc.isbn) ? doc.isbn[0] : doc.isbn) : null;
+  for (let i = 0; i < Math.min(docs.length, limit); i++) {
+    const doc = docs[i];
     
-    // Get the cover ID for the book
-    const coverId = doc.cover_i || null;
-    const coverUrl = coverId 
-      ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` 
-      : '';
+    // Extract ISBN (try various possible sources)
+    let isbn = "";
+    if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+      isbn = doc.isbn[0];
+    }
     
-    return {
-      id: `ol:${doc.key}`,
-      isbn: isbn || '',
-      title: doc.title || 'Unknown Title',
-      author: doc.author_name ? doc.author_name[0] : 'Unknown Author',
-      coverUrl,
-      olKey: doc.key,
-    };
-  });
-}
-
-// For complete results with detailed book information
-async function processSearchResults(searchData: any): Promise<Book[]> {
-  if (!searchData.docs || searchData.docs.length === 0) {
-    return [];
+    // Get the best available cover URL
+    const coverUrl = getCoverUrl(isbn, doc.cover_i);
+    
+    processedBooks.push({
+      id: doc.key || `search-${doc.title}-${Math.random().toString(36).substring(2, 8)}`,
+      title: doc.title || "Unknown Title",
+      author: doc.author_name?.[0] || "Unknown Author",
+      isbn: isbn,
+      coverUrl: coverUrl,
+      description: doc.description || "",
+      pubDate: doc.first_publish_year?.toString() || "",
+      pageCount: doc.number_of_pages_median || 0,
+      categories: doc.subject?.slice(0, 3) || []
+    });
   }
   
-  const booksWithBasicInfo = processBasicSearchResults(searchData);
-  
-  // Get full details for all books that have ISBNs
-  const booksWithIsbns = booksWithBasicInfo.filter(book => book.isbn);
-  
-  if (booksWithIsbns.length === 0) {
-    return booksWithBasicInfo;
-  }
-  
-  // Get detailed information for each book with an ISBN, with throttling to avoid overloading the API
-  const enhancedBooks = await throttlePromises(
-    booksWithIsbns.map(book => () => getBookByISBN(book.isbn!)),
-    5 // Process 5 books at a time
-  );
-  
-  // Create a map of ISBN to detailed book data
-  const detailedBooksMap = new Map<string, Book>();
-  enhancedBooks.forEach(book => {
-    if (book && book.isbn) {
-      detailedBooksMap.set(book.isbn, book);
-    }
-  });
-  
-  // Merge detailed data with basic data, preserving basic data for books without detailed info
-  return booksWithBasicInfo.map(basicBook => {
-    if (basicBook.isbn && detailedBooksMap.has(basicBook.isbn)) {
-      const detailedBook = detailedBooksMap.get(basicBook.isbn)!;
-      return {
-        ...basicBook,
-        ...detailedBook,
-        // Ensure we keep the title and author from the search if they're better
-        title: detailedBook.title || basicBook.title,
-        author: detailedBook.author || basicBook.author,
-        coverUrl: detailedBook.coverUrl || basicBook.coverUrl,
-        // Keep the olKey from the basic book data
-        olKey: basicBook.olKey
-      };
-    }
-    return basicBook;
-  });
+  return processedBooks;
 }
 
 /**
- * Search for books by genre/subject
- * @param genre The genre to search for
- * @param limit The maximum number of results to return
- * @param quickMode If true, return basic book data without fetching full details
- * @returns Array of books in the requested genre
+ * Search books by genre/subject - enhanced version for search.ts that supports quickMode
  */
-export async function searchBooksByGenre(genre: string, limit = 20, quickMode = false): Promise<Book[]> {
-  if (!genre) return [];
-  
-  console.log(`Searching OpenLibrary for genre: "${genre}" with limit ${limit}, quickMode: ${quickMode}`);
-  
-  // Create cache key based on genre and limit
-  const cacheKey = `genre:${genre.toLowerCase()}:${limit}:${quickMode}`;
-  
-  // Check if we have a valid cached result
-  const now = Date.now();
-  const cached = searchCache.get(cacheKey);
-  if (cached && now - cached.timestamp < SEARCH_CACHE_DURATION) {
-    console.log(`Using cached genre results for "${genre}"`);
-    return cached.data;
+export async function searchBooksByGenre(
+  genre: string, 
+  limit: number = 20, 
+  quickMode: boolean = false
+): Promise<Book[]> {
+  if (!genre || genre.trim() === '') {
+    return [];
   }
   
   try {
-    // Query OpenLibrary subject API
-    const url = `https://openlibrary.org/subjects/${encodeURIComponent(genre.toLowerCase())}.json?limit=${limit}`;
-    const response = await fetch(url);
+    // Create a cache key that includes the quickMode parameter
+    const formattedGenre = genre.toLowerCase();
+    const cacheKey = `genre-${formattedGenre}-${limit}-${quickMode ? 'quick' : 'full'}`;
+    const now = Date.now();
+    
+    // Check cache first
+    const cached = searchCache[cacheKey];
+    if (cached && (now - cached.timestamp < SEARCH_CACHE_TTL)) {
+      console.log(`Using cached genre results for "${genre}"`);
+      return cached.data;
+    }
+    
+    // Construct the API URL with sort=new to prioritize newer books
+    const apiUrl = `${BASE_URL}/subjects/${encodeURIComponent(formattedGenre)}.json?limit=${limit * 2}&sort=new`;
+    
+    // Set up request with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
+    
+    const response = await fetch(apiUrl, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
-      throw new Error(`OpenLibrary genre search failed: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log(`Genre search returned ${data.works?.length || 0} results for "${genre}"`);
     
-    // Extract basic book info for quick mode
-    if (quickMode) {
-      const books = processBasicGenreResults(data);
-      searchCache.set(cacheKey, { data: books, timestamp: now });
-      return books;
+    if (!data.works || !Array.isArray(data.works)) {
+      return [];
     }
     
-    // Process results with full book details
-    const books = await processGenreResults(data);
+    // Filter works by publication year and availability of complete data
+    const filteredWorks = data.works
+      .filter(work => {
+        // Keep books with a recent publication year (or with cover and ISBN)
+        const pubYear = work.first_publish_year || 0;
+        return pubYear >= MIN_PUB_YEAR || 
+               (work.cover_id && work.availability?.isbn);
+      })
+      .sort((a, b) => {
+        // Prioritize books with complete data
+        const aComplete = Boolean(a.availability?.isbn && a.cover_id);
+        const bComplete = Boolean(b.availability?.isbn && b.cover_id);
+        
+        if (aComplete && !bComplete) return -1;
+        if (!aComplete && bComplete) return 1;
+        
+        // Then prioritize recent books
+        const aYear = a.first_publish_year || 0;
+        const bYear = b.first_publish_year || 0;
+        return bYear - aYear;
+      });
+    
+    // Get final books with limit applied
+    const finalWorks = filteredWorks.slice(0, limit);
+    
+    // In quick mode, we do minimal processing for speed
+    if (quickMode) {
+      const processedBooks = finalWorks.map(work => {
+        // Get the best available cover URL
+        const coverUrl = work.cover_id 
+          ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+          : (work.cover_edition_key 
+              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+              : "");
+        
+        return {
+          id: work.key || `genre-${genre}-${Math.random().toString(36).substring(2, 8)}`,
+          title: work.title || "Unknown Title",
+          author: work.authors?.[0]?.name || "Unknown Author",
+          isbn: work.availability?.isbn || "",
+          coverUrl: coverUrl,
+          description: work.description?.value || work.description || "",
+          pubDate: work.first_publish_year?.toString() || "",
+          pageCount: 0,
+          categories: [genre]
+        };
+      });
+      
+      // Cache the quick results
+      searchCache[cacheKey] = { data: processedBooks, timestamp: now };
+      return processedBooks;
+    }
+    
+    // For full results, we fetch additional details where needed
+    const bookPromises = finalWorks.map(work => {
+      // Extract available information
+      const isbn = work.availability?.isbn || "";
+      
+      // Get the best available cover URL
+      const coverUrl = work.cover_id 
+        ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+        : (work.cover_edition_key 
+            ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+            : "");
+      
+      // Create the basic book object
+      const bookObj: Book = {
+        id: work.key || `genre-${genre}-${Math.random().toString(36).substring(2, 8)}`,
+        title: work.title || "Unknown Title",
+        author: work.authors?.[0]?.name || "Unknown Author",
+        isbn: isbn,
+        coverUrl: coverUrl,
+        description: work.description?.value || work.description || "",
+        pubDate: work.first_publish_year?.toString() || "",
+        pageCount: work.number_of_pages_median || 0,
+        categories: [genre]
+      };
+      
+      // If we don't have an ISBN and we have a cover_edition_key, try to fetch it
+      if (!isbn && work.cover_edition_key) {
+        return (async () => {
+          try {
+            const fetchedIsbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+            if (fetchedIsbn) {
+              return {
+                ...bookObj,
+                isbn: fetchedIsbn
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching ISBN for genre book:`, error);
+          }
+          return bookObj;
+        })();
+      }
+      
+      return Promise.resolve(bookObj);
+    });
+    
+    // Process books in parallel with throttling to avoid hammering the API
+    const books = await throttlePromises(bookPromises, 5);
     
     // Cache the results
-    searchCache.set(cacheKey, { data: books, timestamp: now });
+    searchCache[cacheKey] = { data: books, timestamp: now };
     
+    console.log(`Processed ${books.length} books from genre search results`);
     return books;
   } catch (error) {
-    console.error(`Error searching books by genre "${genre}":`, error);
-    return [];
+    console.error("Error fetching books by genre:", error);
+    // Fallback to regular search if genre search fails
+    return searchBooks(genre, limit, quickMode);
   }
-}
-
-// Process genre results with only basic information for immediate display
-function processBasicGenreResults(genreData: any): Book[] {
-  if (!genreData.works || genreData.works.length === 0) {
-    return [];
-  }
-  
-  return genreData.works.map((work: any) => {
-    // Get the cover ID for the book
-    const coverId = work.cover_id || null;
-    const coverUrl = coverId 
-      ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` 
-      : '';
-    
-    return {
-      id: `ol:${work.key}`,
-      olKey: work.key,
-      title: work.title || 'Unknown Title',
-      author: work.authors?.[0]?.name || 'Unknown Author',
-      coverUrl,
-      categories: [genreData.name],
-      isbn: ''  // Initialize with empty string as it will be populated later
-    };
-  });
-}
-
-// For complete results with detailed book information
-async function processGenreResults(genreData: any): Promise<Book[]> {
-  if (!genreData.works || genreData.works.length === 0) {
-    return [];
-  }
-  
-  const booksWithBasicInfo = processBasicGenreResults(genreData);
-  
-  // For genre searches, we need to get the ISBNs first
-  const booksWithEditionKeys = booksWithBasicInfo.filter(book => book.olKey);
-  
-  if (booksWithEditionKeys.length === 0) {
-    return booksWithBasicInfo;
-  }
-  
-  // Get the ISBNs for each book
-  const booksWithISBNs = await Promise.all(
-    booksWithEditionKeys.map(async (book) => {
-      if (!book.olKey) return book;
-      
-      try {
-        // Extract the work ID from the key
-        const workId = book.olKey.replace('/works/', '');
-        const url = `https://openlibrary.org/works/${workId}/editions.json?limit=1`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          return book;
-        }
-        
-        const data = await response.json();
-        
-        if (data.entries && data.entries.length > 0) {
-          const edition = data.entries[0];
-          const isbn = edition.isbn_13?.[0] || edition.isbn_10?.[0] || null;
-          
-          return {
-            ...book,
-            isbn: isbn || '',
-            coverUrl: book.coverUrl || (edition.covers?.[0] 
-              ? `https://covers.openlibrary.org/b/id/${edition.covers[0]}-L.jpg` 
-              : '')
-          };
-        }
-        
-        return book;
-      } catch (error) {
-        console.error(`Error getting ISBN for book ${book.olKey}:`, error);
-        return book;
-      }
-    })
-  );
-  
-  // Get detailed information for each book with an ISBN
-  const booksWithValidISBNs = booksWithISBNs.filter(book => book.isbn);
-  
-  if (booksWithValidISBNs.length === 0) {
-    return booksWithISBNs; // Return books with basic info and ISBNs if available
-  }
-  
-  // Get detailed information for each book with an ISBN, with throttling
-  const enhancedBooks = await throttlePromises(
-    booksWithValidISBNs.map(book => () => getBookByISBN(book.isbn!)),
-    5 // Process 5 books at a time
-  );
-  
-  // Create a map of ISBN to detailed book data
-  const detailedBooksMap = new Map<string, Book>();
-  enhancedBooks.forEach(book => {
-    if (book && book.isbn) {
-      detailedBooksMap.set(book.isbn, book);
-    }
-  });
-  
-  // Merge detailed data with basic data
-  return booksWithISBNs.map(basicBook => {
-    if (basicBook.isbn && detailedBooksMap.has(basicBook.isbn)) {
-      const detailedBook = detailedBooksMap.get(basicBook.isbn)!;
-      return {
-        ...basicBook,
-        ...detailedBook,
-        // Ensure we keep the title and author from the search if they're better
-        title: detailedBook.title || basicBook.title,
-        author: detailedBook.author || basicBook.author,
-        coverUrl: detailedBook.coverUrl || basicBook.coverUrl,
-        // Keep the olKey from the basic book data
-        olKey: basicBook.olKey,
-        // Keep the category from the genre search
-        categories: [...(detailedBook.categories || []), ...(basicBook.categories || [])]
-      };
-    }
-    return basicBook;
-  });
 }
