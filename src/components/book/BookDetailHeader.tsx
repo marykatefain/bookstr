@@ -186,8 +186,7 @@ const BookCover: React.FC<{
 
   const renderRatingStars = () => {
     const starCount = 5;
-    const displayRating = rating ? Math.round(rating * 5) : 0;
-    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
+    const hoverRating = ratingHover !== null ? ratingHover : rating;
     
     return (
       <div 
@@ -198,7 +197,7 @@ const BookCover: React.FC<{
           <button
             key={i}
             className="p-0.5"
-            onClick={() => handleRateBook((i + 1) / 5)}
+            onClick={() => handleRateBook((i + 1))}
             onMouseEnter={() => setRatingHover(i + 1)}
             disabled={isRating}
             aria-label={`Rate ${i + 1} stars`}
