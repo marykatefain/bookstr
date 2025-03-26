@@ -1,129 +1,69 @@
 
 import React, { useState, useEffect } from "react";
-import { Reply } from "@/lib/nostr/types";
-import { ReplyItem } from "./ReplyItem";
-import { ReplyForm } from "./ReplyForm";
+import { Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, ChevronDown, ChevronUp, Loader2, Heart } from "lucide-react";
-import { fetchReplies, isLoggedIn, fetchReactions, fetchEventById } from "@/lib/nostr";
+import { Input } from "@/components/ui/input";
+import { Reply } from "@/lib/nostr/types";
+import { isLoggedIn, replyToContent, fetchReplies } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
-import { NOSTR_KINDS } from "@/lib/nostr/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
+import { getCurrentUser } from "@/lib/nostr/user";
 
 interface RepliesSectionProps {
   eventId: string;
   authorPubkey: string;
   initialReplies?: Reply[];
-  buttonLayout?: "horizontal" | "vertical";
-  onReaction?: (eventId: string) => void;
+  buttonLayout?: "vertical" | "horizontal";
+  onReaction: (eventId: string) => void;
   reactionCount?: number;
   userReacted?: boolean;
-  eventKind?: number;
 }
 
-export function RepliesSection({ 
-  eventId, 
-  authorPubkey, 
+export function RepliesSection({
+  eventId,
+  authorPubkey,
   initialReplies = [],
   buttonLayout = "vertical",
   onReaction,
-  reactionCount: initialReactionCount,
-  userReacted: initialUserReacted,
-  eventKind
+  reactionCount = 0,
+  userReacted = false
 }: RepliesSectionProps) {
+  const [expanded, setExpanded] = useState(false);
   const [replies, setReplies] = useState<Reply[]>(initialReplies);
-  const [showReplyForm, setShowReplyForm] = useState(false);
-  const [showReplies, setShowReplies] = useState(initialReplies.length > 0);
-  const [loadingReplies, setLoadingReplies] = useState(false);
-  const [reactions, setReactions] = useState({
-    count: initialReactionCount || 0,
-    userReacted: initialUserReacted || false
-  });
-  const [loadingReactions, setLoadingReactions] = useState(false);
-  const [detectedEventKind, setDetectedEventKind] = useState<number | undefined>(eventKind);
+  const [replyText, setReplyText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  const currentUser = getCurrentUser();
 
-  const fetchReplyData = async () => {
-    if (!eventId) return;
+  // Load replies if we expand and don't have initial replies
+  useEffect(() => {
+    if (expanded && initialReplies.length === 0) {
+      loadReplies();
+    }
+  }, [expanded, initialReplies.length]);
+
+  const loadReplies = async () => {
+    if (loading) return;
+    setLoading(true);
     
-    setLoadingReplies(true);
     try {
       const fetchedReplies = await fetchReplies(eventId);
       setReplies(fetchedReplies);
     } catch (error) {
-      console.error("Error fetching replies:", error);
-      toast({
-        title: "Error",
-        description: "Could not load replies",
-        variant: "destructive"
-      });
+      console.error("Error loading replies:", error);
     } finally {
-      setLoadingReplies(false);
+      setLoading(false);
     }
   };
 
-  const fetchReactionData = async () => {
-    if (!eventId) return;
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setLoadingReactions(true);
-    try {
-      const fetchedReactions = await fetchReactions(eventId);
-      setReactions({
-        count: fetchedReactions.count,
-        userReacted: fetchedReactions.userReacted
-      });
-    } catch (error) {
-      console.error("Error fetching reactions:", error);
-    } finally {
-      setLoadingReactions(false);
-    }
-  };
-
-  const fetchEventKind = async () => {
-    if (!eventId || detectedEventKind) return;
+    if (!replyText.trim() || submitting) return;
     
-    try {
-      const event = await fetchEventById(eventId);
-      if (event) {
-        setDetectedEventKind(event.kind);
-      }
-    } catch (error) {
-      console.error("Error fetching event kind:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (showReplies && replies.length === 0) {
-      fetchReplyData();
-    }
-    
-    // Fetch reactions if they weren't provided
-    if (initialReactionCount === undefined) {
-      fetchReactionData();
-    }
-    
-    // Try to determine the event kind if not provided
-    if (!eventKind) {
-      fetchEventKind();
-    }
-  }, [showReplies, eventId]);
-
-  useEffect(() => {
-    if (initialReactionCount !== undefined) {
-      setReactions({
-        count: initialReactionCount,
-        userReacted: initialUserReacted || false
-      });
-    }
-  }, [initialReactionCount, initialUserReacted]);
-
-  // Update detected event kind if eventKind prop changes
-  useEffect(() => {
-    if (eventKind) {
-      setDetectedEventKind(eventKind);
-    }
-  }, [eventKind]);
-
-  const handleReplyClick = () => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -132,102 +72,133 @@ export function RepliesSection({
       });
       return;
     }
-    setShowReplyForm(true);
-    // If replies are not already shown, fetch and show them
-    if (!showReplies) {
-      setShowReplies(true);
-    }
-  };
-
-  const handleReplySubmitted = () => {
-    setShowReplyForm(false);
-    fetchReplyData();
-  };
-
-  const toggleReplies = () => {
-    setShowReplies(!showReplies);
-  };
-
-  const handleReaction = () => {
-    if (onReaction) {
-      onReaction(eventId);
-      // Update local state optimistically
-      setReactions(prev => ({
-        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-        userReacted: !prev.userReacted
-      }));
+    
+    setSubmitting(true);
+    
+    try {
+      await replyToContent(eventId, authorPubkey, replyText);
+      
+      toast({
+        title: "Reply sent",
+        description: "Your reply has been posted"
+      });
+      
+      // Add optimistic reply
+      if (currentUser) {
+        const newReply: Reply = {
+          id: `temp-${Date.now()}`,
+          pubkey: currentUser.pubkey,
+          content: replyText,
+          createdAt: Date.now(),
+          parentId: eventId,
+          author: {
+            name: currentUser.name || "You",
+            picture: currentUser.picture,
+            npub: currentUser.npub
+          }
+        };
+        
+        setReplies(prev => [newReply, ...prev]);
+      }
+      
+      setReplyText("");
+      setExpanded(true);
+      
+      // Refresh replies to get the real one
+      setTimeout(() => {
+        loadReplies();
+      }, 2000);
+    } catch (error) {
+      console.error("Error posting reply:", error);
+      toast({
+        title: "Error",
+        description: "Could not send reply",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="mt-2 w-full">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className={`text-muted-foreground ${loadingReactions ? 'opacity-50' : ''}`}
-          onClick={handleReaction}
-          disabled={loadingReactions}
+    <div className="w-full">
+      <div className={`flex ${buttonLayout === "vertical" ? "flex-col gap-2" : "gap-4"} items-center mb-2`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex items-center gap-1 text-muted-foreground px-2 ${
+            userReacted ? "text-red-500" : ""
+          }`}
+          onClick={() => onReaction(eventId)}
         >
-          <Heart className={`mr-1 h-4 w-4 ${reactions.userReacted ? 'fill-red-500 text-red-500' : ''}`} />
-          <span>{loadingReactions ? 'Loading...' : reactions.count > 0 ? reactions.count : 'Like'}</span>
+          <Heart
+            className={`h-4 w-4 ${userReacted ? "fill-red-500 text-red-500" : ""}`}
+          />
+          <span>{reactionCount > 0 ? reactionCount : ""}</span>
         </Button>
         
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="text-muted-foreground"
-          onClick={handleReplyClick}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-1 text-muted-foreground px-2"
+          onClick={() => setExpanded(!expanded)}
         >
-          <MessageCircle className="mr-1 h-4 w-4" />
-          <span>Reply</span>
+          <MessageCircle className="h-4 w-4" />
+          <span>{replies.length > 0 ? replies.length : ""}</span>
         </Button>
-        
-        {(replies.length > 0 || loadingReplies) && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-            onClick={toggleReplies}
-          >
-            {loadingReplies ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <>
-                {showReplies ? (
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                )}
-              </>
-            )}
-            <span>{replies.length} {replies.length === 1 ? 'Reply' : 'Replies'}</span>
-          </Button>
-        )}
       </div>
 
-      {showReplyForm && (
-        <div className="w-full mt-2">
-          <ReplyForm 
-            eventId={eventId} 
-            authorPubkey={authorPubkey} 
-            onReplySubmitted={handleReplySubmitted}
-            onCancel={() => setShowReplyForm(false)}
-            eventKind={detectedEventKind}
-          />
-        </div>
-      )}
+      {expanded && (
+        <div className="border-t pt-3 mt-2">
+          {isLoggedIn() && (
+            <form onSubmit={handleSubmitReply} className="flex gap-2 mb-3">
+              <Input
+                placeholder="Write a reply..."
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                className="text-sm"
+              />
+              <Button 
+                type="submit" 
+                size="sm" 
+                disabled={!replyText.trim() || submitting}
+              >
+                {submitting ? "Sending..." : "Reply"}
+              </Button>
+            </form>
+          )}
 
-      {showReplies && (
-        <div className="mt-3 space-y-1 w-full">
-          {loadingReplies && replies.length === 0 ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          {loading ? (
+            <div className="text-center py-3">
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+              <p className="text-xs text-muted-foreground mt-1">Loading replies...</p>
+            </div>
+          ) : replies.length > 0 ? (
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {replies.map((reply) => (
+                <div key={reply.id} className="flex gap-2">
+                  <Link to={`/user/${reply.pubkey}`} className="flex-shrink-0">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={reply.author?.picture} />
+                      <AvatarFallback>{reply.author?.name?.[0] || '?'}</AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <Link to={`/user/${reply.pubkey}`} className="text-sm font-medium hover:underline">
+                        {reply.author?.name || reply.pubkey.substring(0, 8)}
+                      </Link>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-0.5">{reply.content}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            replies.map(reply => (
-              <ReplyItem key={reply.id} reply={reply} />
-            ))
+            <p className="text-sm text-muted-foreground text-center py-2">No replies yet</p>
           )}
         </div>
       )}
