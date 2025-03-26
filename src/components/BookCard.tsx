@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -64,13 +63,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     else sizeClasses = "max-w-[210px] w-full"; // medium size - reduced from no max-width
     
     return `${baseClasses} ${layoutClasses} ${sizeClasses} ${className}`;
-  };
-
-  const getTitleClasses = () => {
-    const baseClasses = "font-bold font-serif truncate";
-    if (size === "small") return `${baseClasses} text-xs`;
-    if (size === "large") return `${baseClasses} text-base`; // reduced from text-lg
-    return `${baseClasses} text-sm`; // medium size
   };
 
   const handleAction = async (action: 'tbr' | 'reading' | 'finished') => {
@@ -270,20 +262,6 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
             
             <div className={contentContainerClasses}>
-              <h3 className={getTitleClasses()}>
-                {localBook.isbn ? (
-                  <Link 
-                    to={`/book/${localBook.isbn}`}
-                    className="hover:text-bookverse-accent transition-colors"
-                  >
-                    {bookTitle}
-                  </Link>
-                ) : (
-                  <span>{bookTitle}</span>
-                )}
-              </h3>
-              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
-              
               {showRating && (
                 <BookRating 
                   rating={localBook.readingStatus?.rating} 
@@ -325,20 +303,6 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
             
             <div className={contentContainerClasses}>
-              <h3 className={getTitleClasses()}>
-                {localBook.isbn ? (
-                  <Link 
-                    to={`/book/${localBook.isbn}`}
-                    className="hover:text-bookverse-accent transition-colors"
-                  >
-                    {bookTitle}
-                  </Link>
-                ) : (
-                  <span>{bookTitle}</span>
-                )}
-              </h3>
-              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
-              
               {showRating && (
                 <BookRating 
                   rating={localBook.readingStatus?.rating} 
