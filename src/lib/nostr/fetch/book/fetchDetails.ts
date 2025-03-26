@@ -46,7 +46,11 @@ export async function enhanceBooksWithDetails(
     
     // Log received data for debugging
     bookDetails.forEach(book => {
-      console.log(`OpenLibrary data for ISBN ${book.isbn}: title="${book.title}", author="${book.author}"`);
+      if (book && book.isbn) {
+        console.log(`OpenLibrary data for ISBN ${book.isbn}: title="${book.title || 'Unknown'}", author="${book.author || 'Unknown'}"`);
+      } else {
+        console.log(`OpenLibrary returned incomplete book data`, book);
+      }
     });
     
     // Create a map for quick lookup

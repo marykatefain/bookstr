@@ -17,6 +17,19 @@ export const BookSection: React.FC<BookSectionProps> = ({
   emptyStateType,
   onUpdate
 }) => {
+  // Debug logging
+  React.useEffect(() => {
+    console.log(`BookSection "${title}" received ${books.length} books`);
+    if (books.length > 0) {
+      const firstBook = books[0];
+      console.log(`Sample book in "${title}":`, {
+        isbn: firstBook.isbn,
+        title: firstBook.title,
+        author: firstBook.author
+      });
+    }
+  }, [books, title]);
+
   // Filter out books that don't have minimum required data
   const validBooks = books.filter(book => book.isbn);
   

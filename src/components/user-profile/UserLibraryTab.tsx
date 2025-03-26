@@ -63,7 +63,25 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
       
       // Log a sample of the enhanced data
       if (enhancedTbr.length > 0) {
-        console.log("Sample enhanced TBR book:", enhancedTbr[0]);
+        console.log("Sample enhanced TBR book:", {
+          title: enhancedTbr[0].title,
+          author: enhancedTbr[0].author,
+          isbn: enhancedTbr[0].isbn
+        });
+      }
+      if (enhancedReading.length > 0) {
+        console.log("Sample enhanced Reading book:", {
+          title: enhancedReading[0].title,
+          author: enhancedReading[0].author,
+          isbn: enhancedReading[0].isbn
+        });
+      }
+      if (enhancedRead.length > 0) {
+        console.log("Sample enhanced Read book:", {
+          title: enhancedRead[0].title,
+          author: enhancedRead[0].author,
+          isbn: enhancedRead[0].isbn
+        });
       }
 
       return {
@@ -88,16 +106,19 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         <p className="text-muted-foreground">{emptyMessage}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-          {books.map(book => (
-            <BookCard 
-              key={book.id || `book-${book.isbn}`} 
-              book={book} 
-              size="small"
-              showDescription={false}
-              showRating={true}
-              onUpdate={() => {}}
-            />
-          ))}
+          {books.map(book => {
+            console.log(`Rendering book: ${book.isbn}, title=${book.title}, author=${book.author}`);
+            return (
+              <BookCard 
+                key={book.id || `book-${book.isbn}`} 
+                book={book} 
+                size="small"
+                showDescription={false}
+                showRating={true}
+                onUpdate={() => {}}
+              />
+            );
+          })}
         </div>
       )}
     </div>

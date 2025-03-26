@@ -32,6 +32,20 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     );
   }
 
+  // Add debug logs
+  React.useEffect(() => {
+    if (filterType !== "all") {
+      console.log(`BooksTabContent filtered for: ${filterType}, count: ${books[filterType].length}`);
+      if (books[filterType].length > 0) {
+        console.log(`First ${filterType} book:`, {
+          title: books[filterType][0].title,
+          author: books[filterType][0].author,
+          isbn: books[filterType][0].isbn
+        });
+      }
+    }
+  }, [books, filterType]);
+
   // Render a specific book section based on filter type
   if (filterType !== "all") {
     const sectionConfig = {
@@ -60,7 +74,7 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {sectionConfig.books.map((book) => (
-              <BookCard key={book.id} book={book} size="medium" onUpdate={onUpdate} />
+              <BookCard key={book.id || `book-${book.isbn}`} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
