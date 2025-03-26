@@ -5,9 +5,8 @@
 import { 
   fetchUserBooks, 
   fetchBooksByISBN, 
-  fetchBookByISBN,
-  ensureBookMetadata
-} from './fetch/bookFetch';
+  fetchBookByISBN
+} from './fetch/book';
 
 // Review fetch functions
 import {
@@ -38,7 +37,6 @@ export {
   fetchUserBooks,
   fetchBooksByISBN,
   fetchBookByISBN,
-  ensureBookMetadata,
   
   // Review functions
   fetchBookReviews,
