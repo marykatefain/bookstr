@@ -61,7 +61,7 @@ export async function searchBooks(query: string, limit = 20, quickMode = false):
 }
 
 // Process search results with only basic information for immediate display
-function processBasicSearchResults(searchData: any): Book[] {
+export function processBasicSearchResults(searchData: any): Book[] {
   if (!searchData.docs || searchData.docs.length === 0) {
     return [];
   }
@@ -126,7 +126,9 @@ async function processSearchResults(searchData: any): Promise<Book[]> {
         // Ensure we keep the title and author from the search if they're better
         title: detailedBook.title || basicBook.title,
         author: detailedBook.author || basicBook.author,
-        coverUrl: detailedBook.coverUrl || basicBook.coverUrl
+        coverUrl: detailedBook.coverUrl || basicBook.coverUrl,
+        // Keep the olKey from the basic book data
+        olKey: basicBook.olKey
       };
     }
     return basicBook;
@@ -207,6 +209,7 @@ function processBasicGenreResults(genreData: any): Book[] {
       author: work.authors?.[0]?.name || 'Unknown Author',
       coverUrl,
       categories: [genreData.name],
+      isbn: ''  // Initialize with empty string as it will be populated later
     };
   });
 }
@@ -249,7 +252,7 @@ async function processGenreResults(genreData: any): Promise<Book[]> {
           
           return {
             ...book,
-            isbn,
+            isbn: isbn || '',
             coverUrl: book.coverUrl || (edition.covers?.[0] 
               ? `https://covers.openlibrary.org/b/id/${edition.covers[0]}-L.jpg` 
               : '')
@@ -296,6 +299,8 @@ async function processGenreResults(genreData: any): Promise<Book[]> {
         title: detailedBook.title || basicBook.title,
         author: detailedBook.author || basicBook.author,
         coverUrl: detailedBook.coverUrl || basicBook.coverUrl,
+        // Keep the olKey from the basic book data
+        olKey: basicBook.olKey,
         // Keep the category from the genre search
         categories: [...(detailedBook.categories || []), ...(basicBook.categories || [])]
       };

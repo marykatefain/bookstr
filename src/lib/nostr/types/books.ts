@@ -18,6 +18,8 @@ export interface Book {
   };
   // Add author_name field for compatibility with OpenLibrary data
   author_name?: string[];
+  // Add olKey field for OpenLibrary data
+  olKey?: string;
 }
 
 export interface BookReview {
