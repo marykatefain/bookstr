@@ -3,8 +3,6 @@ import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useQuery } from "@tanstack/react-query";
-import { getCachedBookByISBN } from "@/lib/cache/libraryCache";
-import { getBookByISBN } from "@/lib/openlibrary";
 
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
@@ -51,22 +49,6 @@ export const useBookData = (isbn: string | undefined) => {
         console.log(`User's library book data for ISBN: ${isbn} is incomplete:`, {
           hasTitle: !!userBook.title && userBook.title !== 'Unknown Title',
           hasAuthor: !!userBook.author && userBook.author !== 'Unknown Author'
-        });
-      }
-      
-      // Then try to get from library cache
-      const cachedBook = getCachedBookByISBN(isbn);
-      if (cachedBook && cachedBook.title && cachedBook.author && 
-          cachedBook.title !== 'Unknown Title' && cachedBook.author !== 'Unknown Author') {
-        console.log(`Using cached book data for ISBN: ${isbn}`, {
-          title: cachedBook.title,
-          author: cachedBook.author
-        });
-        return cachedBook;
-      } else if (cachedBook) {
-        console.log("Cached book data is missing or incomplete:", {
-          hasTitle: !!cachedBook.title && cachedBook.title !== 'Unknown Title',
-          hasAuthor: !!cachedBook.author && cachedBook.author !== 'Unknown Author'
         });
       }
       

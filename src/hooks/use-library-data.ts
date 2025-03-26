@@ -1,11 +1,10 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Book, Post, BookReview } from "@/lib/nostr/types";
+import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
-import { cacheLibraryBooks, getCachedLibraryBooks, clearLibraryCache } from "@/lib/cache/libraryCache";
 
 export const useLibraryData = () => {
   const [user, setUser] = useState(getCurrentUser());
@@ -26,14 +25,7 @@ export const useLibraryData = () => {
       if (!isLoggedIn() || !user?.pubkey) {
         return { tbr: [], reading: [], read: [] };
       }
-      
-      // Try to get data from cache first
-      const cachedBooks = getCachedLibraryBooks();
-      if (cachedBooks) {
-        console.log("Using cached library books data");
-        return cachedBooks;
-      }
-      
+
       try {
         console.log("Fetching user books data for library");
         const userBooks = await fetchUserBooks(user.pubkey);
@@ -43,12 +35,7 @@ export const useLibraryData = () => {
         const deduplicatedWithinLists = deduplicateBooksWithinLists(userBooks);
         
         // Then deduplicate books across lists
-        const dedupedBooks = deduplicateBookLists(deduplicatedWithinLists);
-        
-        // Cache the deduplicated books
-        cacheLibraryBooks(dedupedBooks);
-        
-        return dedupedBooks;
+        return deduplicateBookLists(deduplicatedWithinLists);        
       } catch (error) {
         console.error("Error fetching user books:", error);
         throw error;
@@ -231,12 +218,6 @@ export const useLibraryData = () => {
     
     return null;
   };
-  
-  // Enhanced refetch function that clears cache first
-  const refetchBooksWithCacheClear = async () => {
-    clearLibraryCache();
-    return refetchBooks();
-  };
 
   return {
     user,
@@ -247,7 +228,7 @@ export const useLibraryData = () => {
     postsLoading,
     reviewsLoading,
     isLoggedIn: isLoggedIn(),
-    refetchBooks: refetchBooksWithCacheClear,
+    refetchBooks,
     getBookReadingStatus,
     getBookByISBN
   };

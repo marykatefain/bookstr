@@ -38,11 +38,13 @@ export function extractISBNsFromTags(event: Event): string[] {
   const isbns: string[] = [];
   if (!event.tags) return isbns;
   
-  for (const tag of event.tags) {
-    if (tag[0] === 'k' && tag[1] === 'isbn' && tag[2]) {
-      isbns.push(tag[2]);
+  for (const [name, value] of event.tags) {
+    if (name === 'i' && value.startsWith('isbn:')) {
+      isbns.push(value.replace(/^isbn:/, ''));
     }
   }
+
+  console.log({isbns})
   
   return isbns;
 }

@@ -3,8 +3,7 @@ import { useBookData } from "./book/use-book-data";
 import { useBookReviews } from "./book/use-book-reviews";
 import { useBookActions } from "./book/use-book-actions";
 import { useBookActivity } from "./book/use-book-activity";
-import { useCallback, useEffect } from "react";
-import { cacheBookDetail } from "@/lib/cache/libraryCache";
+import { useCallback } from "react";
 
 export const useBookDetail = (isbn: string | undefined) => {
   const { 
@@ -41,13 +40,6 @@ export const useBookDetail = (isbn: string | undefined) => {
     loadingActivity,
     refreshTrigger
   } = useBookActivity(isbn);
-
-  // Cache the book data when it's loaded
-  useEffect(() => {
-    if (book) {
-      cacheBookDetail(book);
-    }
-  }, [book]);
 
   // Combine the hooks with book-specific wrappers
   const handleMarkAsRead = useCallback(() => {
