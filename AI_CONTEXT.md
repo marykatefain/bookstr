@@ -5,11 +5,11 @@ Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to 
 
 **Tech Stack:**  
 - Frontend: React + Tailwind + Vite  
-- Data Sources: Nostr relays (ex. wss://ditto.pub/relay), Open Library API [(https://openlibrary.org/developers/api)](https://openlibrary.org/developers/api)
+- Data Sources: Nostr relays (ex. wss://ditto.pub/relay), Open Library API ([https://openlibrary.org/developers/api](https://openlibrary.org/developers/api))
 
-## Key Features
+---
 
-### Book Look Up with Open Library API
+## Book Look Up with Open Library API
 Using Open Library API, users can search for books. ISBN is the source of truth for each book, and we need the ISBN to make everything work, so it important to prioritize fetching that. 
 
 Open Library lookup data is being cached via cloudflare at `https://bookstr.xyz/api/openlibrary`
@@ -248,14 +248,112 @@ The cover access by ids other than CoverID and OLID are rate-limited. Currently 
 
 If any IP tries to access more that the allowed limit, the service will return "403 Forbidden" status.
 
+Always use the Bookstr cloudflare cache for requests when possibleto avoid getting rate limited: `https://bookstr.xyz/api/openlibrary`, the project also supports local caching.
+
 The full docs of the Open Library API can he found [here](https://openlibrary.org/developers/api).
 
+---
 
-### Book Reading Tracking
+## User Engagement with Book Tracking, Rating, Reviewing, and more - over Nostr
+
+**Nostr Events and Relays**
+
+The user's actions on books are stored as Nostr events, which are then published and read from Nostr relays. Here are a few Nostr relays: 
+
+- wss://ditto.pub/relay: my default relay
+- wss://relay.nostr.band: good for account lookup
+- wss://relay.damus.io: good general purpose relay
+
+The Nostr protocol is standardized with NIPS, the documentation of which can be found [here](https://github.com/nostr-protocol/nips)
+
+**Updating Book Lists: Kinds `10075`, `10074`, and `10073`**
+
+These are new event kinds created specifically for Bookstr. They are replacable lists which should be fully updated with each action to either add or remove the respective books isbn from the list. 
+
+- k tag = "isbn"
+- i tags = isbns all books on the new version of the list (with new book either added or removed as needed)
+- Kind 10075: To Be Read list (TBR)
+- Kind 10074: Currently Reading List
+- Kind 10073: Read (Finished) List 
+
+Example Event for "Add to TBR" :
+```
+{
+  "kind": 10075,
+  "created_at": 1743013293,
+  "tags": [
+    ["k", "isbn"],
+    ["i","isbn:0062362712"],
+    ["i","isbn:9783641283452"],
+    ["i","isbn:9780008710224"
+    ]
+  ],
+  "content": "",
+  "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d"
+}
+```
+See [NIP 51](https://github.com/nostr-protocol/nips/blob/master/51.md) for general information on user-created lists. 
 
 
-### Book Ratings & Reviews
+**Ratings and Reviews: Kind 31985**
+
+For ratings/reviews Bookstr uses Kind 31985, a new proposed event kind. 
+- Kind `31985`
+- `d` tag = the isbn of the book being reviewed
+- `k` tag = "isbn"
+- `rating` = a number on the scale of 0-1
+
+Please note that here the review uses d tags instead of i tags for ISBN (versus in the other event kinds). This is a common point of error, so pay attention to get it right!
+
+Please also note that although the Bookstr UI displays ratings on a scale of 1-5 stars, the underlying data model is a scale of 0-1. So all ratings must be numerically converted before displaying in the UI. Here is a basic conversion chart: 
+
+- raw rating .20 -> 1 star
+- raw rating .40 -> 2 stars
+- raw rating .60 -> 3 stars
+- raw rating .80 -> 4 stars
+- raw rating 1 -> 5 stars
+
+The raw rating of 1 -> 5 stars is a common point of error, as well, because 1 (without context) could also be 1 star. This is why it's always important to double check if you are using raw or converted rating data before displaying it in the UI. 
+
+Example Review event: 
+
+```
+{
+  "kind": 31985,
+  "created_at": 1743013662,
+  "tags": [
+    ["d","isbn:9781619634466"],
+    ["k","isbn"],
+    ["rating",".8"
+    ]
+  ],
+  "content": "Great book!",
+  "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d"
+}
+```
+See [NIP 73](https://github.com/nostr-protocol/nips/blob/master/73.md) for basic information about External Content IDs ex. i tag for isbn)
 
 
-### Social engagement
+**Posts, replies, and reactions**
 
+For user profiles, posts, replies, and reactions we use regular Nostr event Kinds 0, 1, 7, and 1111
+- See [NIP 01](https://github.com/nostr-protocol/nips/blob/master/01.md) for user profiles (Kind 0) and Nostr basics
+- See [NIP 10](https://github.com/nostr-protocol/nips/blob/master/10.md) for Kind 1 text notes and replies
+- See [NIP 25](https://github.com/nostr-protocol/nips/blob/master/25.md) for Kind 7 reactions
+- See [NIP 22](https://github.com/nostr-protocol/nips/blob/master/22.md) for Kind 1111 comments to events that are not Kind 1 (ex. for comments on book reviews)  
+
+Example Post that includes a book reference (i tag with isbn) and #bookstr (t tag): 
+
+```
+{
+  "kind": 1,
+  "created_at": 1743015053,
+  "tags": [
+    ["i", "isbn:9781649374189"],
+    ["t", "bookstr"],
+    ["k","isbn"]
+  ],
+  "content": "I've been procrastinating reading Onyx Storm... is it good? #bookstr",
+  "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d"
+}
+```
