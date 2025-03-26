@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookCoverProps {
   isbn?: string;
@@ -123,9 +124,9 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const renderRatingStars = () => {
     console.log("Rendering rating stars with rating:", rating);
     const starCount = 5;
-    // If rating is on 0-1 scale, multiply by 5 to get the star count (1-5)
-    const displayRating = rating !== undefined ? 
-      (rating <= 1 ? Math.round(rating * 5) : Math.min(5, Math.round(rating))) : 0;
+    
+    // Use the utility function for consistent conversion
+    const displayRating = convertRawRatingToDisplayRating(rating) || 0;
     const hoverRating = ratingHover !== null ? ratingHover : displayRating;
     
     console.log("Display rating:", displayRating, "Hover rating:", hoverRating);

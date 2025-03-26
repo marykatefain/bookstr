@@ -1,4 +1,3 @@
-
 # Bookstr – A Social Book Tracking App Built on Nostr
 
 **Project Description:**  
@@ -23,6 +22,7 @@ Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to 
   - [Updating Book Lists: Kinds `10075`, `10074`, and `10073`](#updating-book-lists-kinds-10075-10074-and-10073)
   - [Ratings and Reviews: Kind 31985](#ratings-and-reviews-kind-31985)
   - [Posts, replies, and reactions](#posts-replies-and-reactions)
+  - [Rating System Implementation](#rating-system-implementation)
 - [4. AI Tips](#4-ai-tips)
   - [UI Component Organization](#ui-component-organization)
   - [Social Feed Implementation](#social-feed-implementation)
@@ -455,6 +455,10 @@ Please also note that although the Bookstr UI displays ratings on a scale of 1-5
 
 The raw rating of 1 -> 5 stars is a common point of error, as well, because 1 (without context) could also be 1 star. This is why it's always important to double check if you are using raw or converted rating data before displaying it in the UI. 
 
+**IMPORTANT**: Always use the utility functions from `src/lib/utils/ratings.ts` to convert between rating scales:
+- `convertRawRatingToDisplayRating(rawRating)`: Converts from 0-1 scale to 1-5 scale
+- `convertDisplayRatingToRawRating(displayRating)`: Converts from 1-5 scale to 0-1 scale
+
 Example Review event: 
 
 ```
@@ -471,8 +475,38 @@ Example Review event:
   "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d"
 }
 ```
-See [NIP 73](https://github.com/nostr-protocol/nips/blob/master/73.md) for basic information about External Content IDs ex. i tag for isbn)
 
+### Rating System Implementation
+
+The application maintains two different rating scales:
+
+1. **Raw Rating (0-1 scale)**
+   - Used for storage in Nostr events
+   - Range: 0.0 to 1.0
+   - Example: 0.6 represents 3 stars
+
+2. **Display Rating (1-5 scale)**
+   - Used for UI display as stars
+   - Range: 1 to 5 (integer)
+   - Example: 3 represents 3 stars
+
+Conversion between these scales should ALWAYS be done using the utility functions in `src/lib/utils/ratings.ts`:
+
+```typescript
+// To convert from raw (0-1) to display (1-5):
+const displayRating = convertRawRatingToDisplayRating(rawRating);
+
+// To convert from display (1-5) to raw (0-1):
+const rawRating = convertDisplayRatingToRawRating(displayRating);
+```
+
+This ensures consistent handling of ratings throughout the application.
+
+**Common Pitfalls to Avoid:**
+- Displaying raw ratings (0-1 scale) directly in the UI
+- Storing display ratings (1-5 scale) in Nostr events
+- Manual conversion calculations without using the utility functions
+- Confusing the two scales when passing rating values between components
 
 ### Posts, replies, and reactions
 

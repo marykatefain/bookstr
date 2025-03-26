@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Star } from "lucide-react";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookRatingProps {
   rating?: number;
@@ -17,8 +18,8 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus })
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
 
-  // Convert rating from 0-1 scale to 1-5 scale for display
-  const displayRating = Math.round(rating * 5);
+  // Convert rating from 0-1 scale to 1-5 scale for display using utility function
+  const displayRating = convertRawRatingToDisplayRating(rating);
 
   return (
     <div className="flex items-center space-x-1">
