@@ -1,3 +1,4 @@
+
 # Bookstr – A Social Book Tracking App Built on Nostr
 
 **Project Description:**  
@@ -22,6 +23,11 @@ Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to 
   - [Updating Book Lists: Kinds `10075`, `10074`, and `10073`](#updating-book-lists-kinds-10075-10074-and-10073)
   - [Ratings and Reviews: Kind 31985](#ratings-and-reviews-kind-31985)
   - [Posts, replies, and reactions](#posts-replies-and-reactions)
+- [4. AI Tips](#4-ai-tips)
+- [5. UI Component Organization](#5-ui-component-organization)
+- [6. Social Feed Implementation](#6-social-feed-implementation)
+- [7. Error & Loading States](#7-error--loading-states)
+- [8. Performance Optimization](#8-performance-optimization)
 
 ---
 
@@ -508,3 +514,97 @@ Do NOT:
 - Store user data server-side — use localStorage or Nostr events.
 - Mix up the `d` and `i` tags for ISBNs - they're used in different contexts.
 - Implement direct API calls to OpenLibrary without using the caching proxy.
+
+---
+
+## 5. UI Component Organization
+
+### Component Structure
+- **UI Components** (`/src/components/ui/`): Reusable generic UI elements like buttons, cards, etc.
+- **Feature Components** (`/src/components/{feature}/`): Components specific to features (books, social, profile)
+- **Page Components** (`/src/pages/`): Top-level components that represent entire pages
+- **Layout Components** (`/src/components/layout/`): Components for page structure and navigation
+
+### Component Best Practices
+- Keep components focused on a single responsibility
+- Split complex components into smaller subcomponents
+- Use composition over inheritance
+- Maintain consistent naming conventions across similar components
+- Prefer functional components with hooks over class components
+
+### Shadcn UI Integration
+- Use Shadcn UI components as the foundation for the UI
+- Customize Shadcn components using Tailwind classes through the `cn` utility
+- Follow the established pattern of creating wrapper components around Shadcn components
+- Import components from their correct locations (e.g., toast components from hooks/use-toast)
+
+---
+
+## 6. Social Feed Implementation
+
+### Feed Architecture
+- Social feeds are split between following feed and global feed
+- Each feed has its own data fetching strategy and refresh mechanism
+- Feed components are separated from feed data fetching logic
+
+### Feed Components
+- Use `FeedLoadingState` for loading states
+- Use `FeedErrorState` for error states
+- Use `EmptyFeedState` for empty states
+- Feed items are displayed through `ActivityCard` or `PostCard` components
+
+### Feed Data Flow
+- Relay connections are managed in `nostr/relay/`
+- Events are fetched, filtered, and processed by functions in `nostr/fetch/social/`
+- Feed data is enriched with user profiles, reactions, and replies
+
+### Refresh Strategies
+- Manual refresh through UI actions
+- Auto-refresh on specific intervals (different for global and following feeds)
+- Background refresh to minimize UI interruptions
+
+---
+
+## 7. Error & Loading States
+
+### Loading States
+- Always implement Skeleton components during data loading
+- Use consistent loading patterns across similar features
+- Provide visual feedback for background operations
+
+### Empty States
+- Display informative empty states with actionable guidance
+- Customize empty states based on context (e.g., empty search vs. empty feed)
+- Provide clear next steps for users
+
+### Error Handling
+- Use toast notifications for transient errors
+- Implement dedicated error state components for persistent errors
+- Distinguish between connection issues and other types of errors
+- Provide retry mechanisms where appropriate
+- Log errors to console with contextual information
+
+---
+
+## 8. Performance Optimization
+
+### Data Fetching
+- Use TanStack Query for efficient data fetching and caching
+- Implement proper cache invalidation strategies
+- Use debouncing for input-triggered queries (e.g., search)
+
+### Nostr Optimizations
+- Use throttlePromises utility for controlling concurrency of relay operations
+- Implement efficient event filters to minimize unnecessary data transfer
+- Cache frequently accessed data locally
+
+### Rendering Optimization
+- Memoize expensive components with React.memo
+- Use virtualization for long lists
+- Implement proper dependency arrays in useEffect and useMemo hooks
+- Split large components into smaller, focused ones
+
+### Network Efficiency
+- Batch related API requests where possible
+- Use the CloudFlare proxy for OpenLibrary requests to avoid rate limiting
+- Implement progressive loading for media content
