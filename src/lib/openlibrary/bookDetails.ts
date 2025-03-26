@@ -1,4 +1,3 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './utils';
@@ -50,7 +49,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     
     // Parse the response as JSON and handle different response formats
     const data = await response.json();
-    console.log(`Raw book data for ISBN ${isbn}:`, JSON.stringify(data));
+    console.log(`Raw book data for ISBN ${isbn}:`, JSON.stringify(data).substring(0, 500) + '...');
     
     // Handle the case where we might get an unexpected format
     if (!data || typeof data !== 'object') {
@@ -71,6 +70,16 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       throw new Error("No book data in response");
     }
     
+    // Log the structure of bookData to understand what we're working with
+    console.log(`Book data structure for ISBN ${isbn}:`, {
+      hasTitle: !!bookData.title,
+      title: bookData.title,
+      hasAuthors: !!bookData.authors && Array.isArray(bookData.authors),
+      hasAuthorName: !!bookData.author_name,
+      hasWorks: !!bookData.works,
+      works: bookData.works ? bookData.works.map((w: any) => w.key) : null
+    });
+    
     // Extract work key from the book data - works for both formats
     const workKey = bookData.works?.[0]?.key || bookData.key;
     
@@ -89,7 +98,16 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
         
         if (workResponse.ok) {
           workData = await workResponse.json();
-          console.log(`Got work data:`, workData);
+          console.log(`Got work data structure:`, {
+            hasTitle: !!workData.title,
+            title: workData.title,
+            hasAuthors: !!workData.authors && Array.isArray(workData.authors),
+            description: typeof workData.description === 'string' 
+              ? workData.description.substring(0, 50) + '...' 
+              : typeof workData.description === 'object' 
+                ? workData.description.value?.substring(0, 50) + '...' 
+                : 'No description'
+          });
         } else {
           console.error(`Work API error: ${workResponse.status} for ${workKey}`);
         }
@@ -99,17 +117,22 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       }
     }
     
+    // Determine the best title to use, with fallbacks
+    const title = bookData.title || workData?.title || "Unknown Title";
+    console.log(`Using title: "${title}" for ISBN ${isbn}`);
+    
     // Fetch author details if available
     let authorNames: string[] = [];
     let authorName = "Unknown Author";
     
-    // Handle different author data formats
+    // Try different author data formats with detailed logging
     if (bookData.authors && Array.isArray(bookData.authors) && bookData.authors.length > 0) {
-      console.log(`Found authors array in book data:`, bookData.authors);
+      console.log(`Found authors array in book data for ISBN ${isbn}:`, 
+        bookData.authors.map((a: any) => ({ key: a.key, name: a.name })));
+      
       const authorPromises = bookData.authors.map(async (author: any) => {
         if (author.key) {
-          const authorDetail = await fetchAuthorDetails(author.key);
-          return authorDetail;
+          return await fetchAuthorDetails(author.key);
         } else if (author.name) {
           return author.name;
         }
@@ -118,13 +141,17 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       
       authorNames = await Promise.all(authorPromises);
       authorName = authorNames[0] || "Unknown Author";
-      console.log(`Resolved author names: ${authorNames.join(', ')}`);
+      console.log(`Resolved author names for ISBN ${isbn}: ${authorNames.join(', ')}`);
     } else if (workData?.authors && Array.isArray(workData.authors)) {
-      console.log(`Found authors array in work data:`, workData.authors);
+      console.log(`Found authors array in work data for ISBN ${isbn}:`, 
+        workData.authors.map((a: any) => ({ 
+          key: a.author?.key || 'none', 
+          type: a.type || 'none' 
+        })));
+      
       const authorPromises = workData.authors.map(async (author: any) => {
         if (author.author?.key) {
-          const authorDetail = await fetchAuthorDetails(author.author.key);
-          return authorDetail;
+          return await fetchAuthorDetails(author.author.key);
         } else if (author.name) {
           return author.name;
         }
@@ -133,17 +160,17 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       
       authorNames = await Promise.all(authorPromises);
       authorName = authorNames[0] || "Unknown Author";
-      console.log(`Resolved author names from work data: ${authorNames.join(', ')}`);
+      console.log(`Resolved author names from work data for ISBN ${isbn}: ${authorNames.join(', ')}`);
     } else if (bookData.author_name && Array.isArray(bookData.author_name)) {
       // Handle author_name array format (sometimes used in search results)
       authorNames = bookData.author_name;
       authorName = authorNames[0] || "Unknown Author";
-      console.log(`Using author_name array: ${authorNames.join(', ')}`);
+      console.log(`Using author_name array for ISBN ${isbn}: ${authorNames.join(', ')}`);
     } else if (typeof bookData.author === 'string') {
       // Handle flat author string
       authorName = bookData.author;
       authorNames = [authorName];
-      console.log(`Using flat author string: ${authorName}`);
+      console.log(`Using flat author string for ISBN ${isbn}: ${authorName}`);
     } else {
       console.log(`No author information found in data for ISBN ${isbn}, using default`);
     }
@@ -151,27 +178,30 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     // Extract or generate a book ID
     const bookId = workData?.key || bookData.key || `isbn:${isbn}`;
     
-    // Get the title from the most specific source
-    const bookTitle = bookData.title || workData?.title || "Unknown Title";
-    console.log(`Extracted title: ${bookTitle}`);
-    
     // Extract the cover ID or use the ISBN for cover URL generation
     const coverId = bookData.covers?.[0] || workData?.covers?.[0];
+    
+    // Extract description with fallbacks for different formats
+    let description = "";
+    if (typeof workData?.description === 'string') {
+      description = workData.description;
+    } else if (workData?.description?.value) {
+      description = workData.description.value;
+    } else if (typeof bookData.description === 'string') {
+      description = bookData.description;
+    } else if (bookData.description?.value) {
+      description = bookData.description.value;
+    }
     
     // Create book object with available data
     const book: Book = {
       id: bookId,
-      title: bookTitle,
+      title: title,
       author: authorName,
       author_name: authorNames.length > 0 ? authorNames : undefined,
       isbn: isbn,
       coverUrl: getCoverUrl(isbn, coverId),
-      description: typeof workData?.description === 'string' 
-        ? workData.description 
-        : workData?.description?.value || 
-          (typeof bookData.description === 'string' 
-            ? bookData.description 
-            : bookData.description?.value || ""),
+      description: description,
       pubDate: bookData.publish_date || workData?.first_publish_date || "",
       pageCount: bookData.number_of_pages || 0,
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
@@ -342,4 +372,3 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   return allBooks;
 }
-
