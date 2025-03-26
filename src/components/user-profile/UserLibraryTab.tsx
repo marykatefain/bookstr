@@ -29,7 +29,9 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         ...userBooks.read.map(b => b.isbn)
       ].filter(Boolean) as string[];
 
-      // Enhance each book list
+      console.log(`Starting enhancement process for ${allIsbns.length} books`);
+
+      // Enhance each book list with details from OpenLibrary
       const enhancedTbr = await enhanceBooksWithDetails(userBooks.tbr, 
         userBooks.tbr.map(b => b.isbn).filter(Boolean) as string[]);
       
@@ -38,6 +40,14 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
       
       const enhancedRead = await enhanceBooksWithDetails(userBooks.read,
         userBooks.read.map(b => b.isbn).filter(Boolean) as string[]);
+
+      // Log the results for debugging
+      console.log(`Enhanced TBR books (${enhancedTbr.length}):`, 
+        enhancedTbr.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
+      console.log(`Enhanced Reading books (${enhancedReading.length}):`,
+        enhancedReading.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
+      console.log(`Enhanced Read books (${enhancedRead.length}):`,
+        enhancedRead.map(b => ({ isbn: b.isbn, title: b.title, author: b.author })));
 
       return {
         tbr: enhancedTbr,

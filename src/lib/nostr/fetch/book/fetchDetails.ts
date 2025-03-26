@@ -34,21 +34,22 @@ export async function enhanceBooksWithDetails(
   try {
     console.log(`Enhancing ${books.length} books with OpenLibrary data for ${isbns.length} ISBNs`);
     
-    // Filter out only the books with missing data
-    const booksNeedingDetails = books.filter(book => !book.title || !book.author || book.title === 'Unknown Title' || book.author === 'Unknown Author');
-    const isbnsNeedingDetails = booksNeedingDetails.map(book => book.isbn).filter(Boolean);
-    
-    if (isbnsNeedingDetails.length === 0) {
-      console.log('All books already have complete data, skipping OpenLibrary fetch');
+    // If no books to enhance, return early
+    if (books.length === 0 || isbns.length === 0) {
       return books;
     }
     
-    console.log(`Fetching data for ${isbnsNeedingDetails.length} books with missing details`);
+    // Fetch detailed book data from OpenLibrary
+    console.log(`Fetching data from OpenLibrary for ${isbns.length} books`);
     const bookDetails = await getBooksByISBN(isbns);
-    console.log('Received book details from OpenLibrary:', bookDetails.map(book => ({ isbn: book.isbn, title: book.title, author: book.author })));
+    console.log('Received book details from OpenLibrary:', bookDetails.map(book => ({ 
+      isbn: book.isbn, 
+      title: book.title || 'No Title', 
+      author: book.author || 'No Author' 
+    })));
     
     // Create a map for quick lookup
-    const bookDetailsMap = new Map<string, Partial<Book>>();
+    const bookDetailsMap = new Map<string, Book>();
     bookDetails.forEach(book => {
       if (book.isbn) {
         bookDetailsMap.set(book.isbn, book);
@@ -56,41 +57,48 @@ export async function enhanceBooksWithDetails(
     });
     
     // Enhance books with OpenLibrary data while preserving ratings and reading status
-    return books.map(book => {
+    const enhancedBooks = books.map(book => {
+      // Skip books without ISBN
       if (!book.isbn) return book;
       
       const details = bookDetailsMap.get(book.isbn);
-      if (details) {
-        console.log(`Enhancing book ${book.isbn} with details:`, {
-          originalTitle: book.title,
-          newTitle: details.title,
-          originalAuthor: book.author,
-          newAuthor: details.author
-        });
-        
-        // Only use OpenLibrary data if our current data is missing or placeholder
-        const shouldUpdateTitle = !book.title || book.title === 'Unknown Title';
-        const shouldUpdateAuthor = !book.author || book.author === 'Unknown Author';
-        
-        // Merge the details while preserving the id, reading status and rating
+      if (!details) {
+        console.log(`No OpenLibrary details found for book ISBN: ${book.isbn}`);
+        // Return book with placeholders if needed
         return {
           ...book,
-          ...details,
-          id: book.id, // Keep the original ID
-          isbn: book.isbn, // Keep the original ISBN
-          title: shouldUpdateTitle ? (details.title || 'Unknown Title') : book.title,
-          author: shouldUpdateAuthor ? (details.author || 'Unknown Author') : book.author,
-          readingStatus: book.readingStatus // Keep the reading status with rating
+          title: book.title || 'Unknown Title',
+          author: book.author || 'Unknown Author'
         };
       }
       
-      // If no details found, ensure we have at least placeholder title/author
+      console.log(`Enhancing book ${book.isbn} with details:`, {
+        originalTitle: book.title || 'None',
+        newTitle: details.title || 'None',
+        originalAuthor: book.author || 'None',
+        newAuthor: details.author || 'None'
+      });
+      
+      // Always use OpenLibrary data if available, regardless of whether 
+      // our current data is the placeholder or not
       return {
         ...book,
-        title: book.title || 'Unknown Title',
-        author: book.author || 'Unknown Author'
+        ...details, // Apply all OpenLibrary fields, but then override the ones we want to preserve
+        id: book.id, // Keep the original ID
+        isbn: book.isbn, // Keep the original ISBN
+        title: details.title || book.title || 'Unknown Title',
+        author: details.author || book.author || 'Unknown Author',
+        readingStatus: book.readingStatus // Keep the reading status with rating
       };
     });
+    
+    console.log('Final enhanced books:', enhancedBooks.map(book => ({ 
+      isbn: book.isbn, 
+      title: book.title, 
+      author: book.author 
+    })));
+    
+    return enhancedBooks;
   } catch (error) {
     console.error('Error enhancing books with OpenLibrary data:', error);
     // Return the original books with placeholders for missing titles/authors
