@@ -155,6 +155,7 @@ const Books = () => {
           console.log(`Searching for books in category: "${activeCategory}"`);
           
           // For category searches, use the same pattern
+          // FIX HERE: For quick results (third argument is true) we need to ensure we're using the correct function that accepts 3 arguments
           const quickResults = await searchBooksByGenre(activeCategory, 20, true);
           if (quickResults.length > 0) {
             const enrichedQuickResults = enrichBooksWithReadingStatus(quickResults);
@@ -162,6 +163,7 @@ const Books = () => {
             setIsLoading(false); // Stop initial loading when we have partial results
           }
           
+          // Then for full results
           results = await searchBooksByGenre(activeCategory, 20);
         }
 

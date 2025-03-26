@@ -7,9 +7,10 @@ export * from './trending';
 export * from './bookDetails';
 export { 
   searchBooks, 
-  searchBooksByGenre as searchBooksByGenreFromSearch, 
-  processBasicSearchResults 
+  processBasicSearchResults,
+  // Export the searchBooksByGenre from search.ts that supports the quickMode parameter
+  searchBooksByGenre 
 } from './search';
 
-// Re-export searchBooksByGenre from genres as the default implementation
-export { searchBooksByGenre } from './genres';
+// We're no longer re-exporting searchBooksByGenre from genres since 
+// we need the version from search.ts that supports the quickMode parameter
