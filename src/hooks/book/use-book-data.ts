@@ -59,13 +59,27 @@ export const useBookData = (isbn: string | undefined) => {
         console.log(`Nostr data incomplete or missing for ISBN: ${isbn}, fetching directly from OpenLibrary`);
         const openLibraryResult = await getBookByISBN(isbn);
         
-        if (!openLibraryResult || (!openLibraryResult.title && !openLibraryResult.author)) {
-          console.error(`No complete data returned for ISBN: ${isbn} from any source`);
-          throw new Error("Book details not found");
+        if (!openLibraryResult) {
+          console.error(`No data returned for ISBN: ${isbn} from any source`);
+          // Return a minimal book object with the ISBN but placeholders for missing data
+          return {
+            id: `isbn:${isbn}`,
+            isbn: isbn,
+            title: "Unknown Title",
+            author: "Unknown Author",
+            coverUrl: ""
+          };
         }
         
-        console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, openLibraryResult);
-        return openLibraryResult;
+        // Ensure we have at least placeholder values for title and author
+        const enrichedResult = {
+          ...openLibraryResult,
+          title: openLibraryResult.title || "Unknown Title",
+          author: openLibraryResult.author || "Unknown Author"
+        };
+        
+        console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, enrichedResult);
+        return enrichedResult;
       } catch (err) {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
         toast({
@@ -73,7 +87,14 @@ export const useBookData = (isbn: string | undefined) => {
           description: "Could not load book details. Please try again later.",
           variant: "destructive"
         });
-        throw err;
+        // Return a minimal book object in case of errors
+        return {
+          id: `isbn:${isbn}`,
+          isbn: isbn,
+          title: "Unknown Title",
+          author: "Unknown Author",
+          coverUrl: ""
+        };
       }
     },
     enabled: !!isbn,

@@ -37,7 +37,6 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
   const [localBook, setLocalBook] = useState<Book>(book);
 
-  // Log warning if book data is incomplete
   useEffect(() => {
     if (!book.title || !book.author) {
       console.warn(`BookCard received incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
@@ -57,12 +56,18 @@ export const BookCard: React.FC<BookCardProps> = ({
       : "flex flex-col";
     
     let sizeClasses = "";
-    // Modified size classes to make cards smaller on large screens
     if (size === "small") sizeClasses = "max-w-[180px] w-full";
     else if (size === "large") sizeClasses = "max-w-[240px] w-full";
-    else sizeClasses = "max-w-[210px] w-full"; // medium size - reduced from no max-width
+    else sizeClasses = "max-w-[210px] w-full";
     
     return `${baseClasses} ${layoutClasses} ${sizeClasses} ${className}`;
+  };
+
+  const getTitleClasses = () => {
+    const baseClasses = "font-bold font-serif truncate";
+    if (size === "small") return `${baseClasses} text-xs`;
+    if (size === "large") return `${baseClasses} text-base`;
+    return `${baseClasses} text-sm`;
   };
 
   const handleAction = async (action: 'tbr' | 'reading' | 'finished') => {
@@ -235,7 +240,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     mappedReadingStatus = 'finished';
   }
 
-  // Get display values with fallbacks for missing data
   const bookTitle = localBook.title || `Book (ISBN: ${localBook.isbn || "Unknown"})`;
   const authorDisplayName = localBook.author || "Unknown Author";
 
@@ -262,6 +266,20 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
             
             <div className={contentContainerClasses}>
+              <h3 className={getTitleClasses()}>
+                {localBook.isbn ? (
+                  <Link 
+                    to={`/book/${localBook.isbn}`}
+                    className="hover:text-bookverse-accent transition-colors"
+                  >
+                    {bookTitle}
+                  </Link>
+                ) : (
+                  <span>{bookTitle}</span>
+                )}
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
+              
               {showRating && (
                 <BookRating 
                   rating={localBook.readingStatus?.rating} 
@@ -303,6 +321,20 @@ export const BookCard: React.FC<BookCardProps> = ({
             </div>
             
             <div className={contentContainerClasses}>
+              <h3 className={getTitleClasses()}>
+                {localBook.isbn ? (
+                  <Link 
+                    to={`/book/${localBook.isbn}`}
+                    className="hover:text-bookverse-accent transition-colors"
+                  >
+                    {bookTitle}
+                  </Link>
+                ) : (
+                  <span>{bookTitle}</span>
+                )}
+              </h3>
+              <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
+              
               {showRating && (
                 <BookRating 
                   rating={localBook.readingStatus?.rating} 
