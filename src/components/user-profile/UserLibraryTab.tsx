@@ -36,6 +36,8 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
         isbn: b.isbn,
         title: b.title || 'No Title',
         author: b.author || 'No Author',
+        hasValidTitle: b.title && b.title !== 'Unknown Title',
+        hasValidAuthor: b.author && b.author !== 'Unknown Author',
         hasRating: b.readingStatus?.rating !== undefined
       })));
 
