@@ -25,7 +25,7 @@ export function docToBook(doc: any) {
 
   // Get the best available cover URL
   const coverUrl = doc.cover_i 
-    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
+    ? getCoverUrl('', doc.cover_i)
     : (doc.cover_edition_key 
       ? `https://covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
       : "");

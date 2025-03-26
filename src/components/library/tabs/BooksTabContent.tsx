@@ -38,9 +38,9 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
       console.log(`BooksTabContent filtered for: ${filterType}, count: ${books[filterType].length}`);
       if (books[filterType].length > 0) {
         console.log(`First ${filterType} book:`, {
-          title: books[filterType][0].title,
-          author: books[filterType][0].author,
-          isbn: books[filterType][0].isbn
+          title: books[filterType][0]?.title || 'No title',
+          author: books[filterType][0]?.author || 'No author',
+          isbn: books[filterType][0]?.isbn || 'No ISBN'
         });
       }
     }
@@ -51,17 +51,17 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     const sectionConfig = {
       reading: {
         title: "Currently Reading",
-        books: books.reading,
+        books: books.reading || [],
         emptyType: "reading"
       },
       tbr: {
         title: "To Be Read",
-        books: books.tbr,
+        books: books.tbr || [],
         emptyType: "want-to-read"
       },
       read: {
         title: "Read",
-        books: books.read,
+        books: books.read || [],
         emptyType: "read"
       }
     }[filterType];
@@ -69,12 +69,12 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     return (
       <div className="py-4">
         <h1 className="text-3xl font-serif font-semibold mb-6">{sectionConfig.title}</h1>
-        {sectionConfig.books.length === 0 ? (
+        {!sectionConfig.books || sectionConfig.books.length === 0 ? (
           <EmptyState type={sectionConfig.emptyType} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {sectionConfig.books.map((book) => (
-              <BookCard key={book.id || `book-${book.isbn}`} book={book} size="medium" onUpdate={onUpdate} />
+              <BookCard key={book?.id || `book-${book?.isbn}`} book={book} size="medium" onUpdate={onUpdate} />
             ))}
           </div>
         )}
@@ -87,19 +87,19 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
     <>
       <BookSection 
         title="Currently Reading" 
-        books={books.reading} 
+        books={books.reading || []} 
         emptyStateType="reading"
         onUpdate={onUpdate} 
       />
       <BookSection 
         title="To Be Read" 
-        books={books.tbr} 
+        books={books.tbr || []} 
         emptyStateType="want-to-read"
         onUpdate={onUpdate} 
       />
       <BookSection 
         title="Read" 
-        books={books.read} 
+        books={books.read || []} 
         emptyStateType="read"
         onUpdate={onUpdate} 
       />

@@ -31,7 +31,7 @@ export const BookSection: React.FC<BookSectionProps> = ({
   }, [books, title]);
 
   // Filter out books that don't have minimum required data
-  const validBooks = books.filter(book => book.isbn);
+  const validBooks = books.filter(book => book && book.isbn);
   
   return (
     <section className="mb-12 py-0 my-[25px]">
