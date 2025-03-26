@@ -43,15 +43,7 @@ export async function enhanceBooksWithDetails(
     console.log(`Fetching data from OpenLibrary for ${isbns.length} books`);
     const bookDetails = await getBooksByISBN(isbns);
     
-    console.log('Received book details from OpenLibrary:', bookDetails.map(book => ({ 
-      isbn: book.isbn, 
-      title: book.title, 
-      author: book.author,
-      hasValidTitle: book.title && book.title !== 'Unknown Title',
-      hasValidAuthor: book.author && book.author !== 'Unknown Author' 
-    })));
-    
-    // Create a map for quick lookup - all books including those with incomplete data
+    // Create a map for quick lookup
     const bookDetailsMap = new Map<string, Book>();
     bookDetails.forEach(book => {
       if (book?.isbn) {
@@ -60,37 +52,20 @@ export async function enhanceBooksWithDetails(
     });
     
     // Enhance books with OpenLibrary data while preserving ratings and reading status
-    const enhancedBooks = books.map(book => {
+    return books.map(book => {
       // Skip books without ISBN
       if (!book.isbn) {
-        console.log(`Book has no ISBN, keeping original data:`, {
-          title: book.title || 'No Title',
-          author: book.author || 'No Author'
-        });
         return book;
       }
       
       const details = bookDetailsMap.get(book.isbn);
       if (!details) {
-        console.log(`No OpenLibrary details found for book ISBN: ${book.isbn}, keeping original data:`, {
-          title: book.title || 'No Title', 
-          author: book.author || 'No Author'
-        });
-        
         return {
           ...book,
           title: book.title || 'Unknown Title',
           author: book.author || 'Unknown Author'
         };
       }
-      
-      // Debug log to see what we're working with
-      console.log(`Enhancing book ${book.isbn}:`, {
-        originalTitle: book.title || 'None',
-        newTitle: details.title || 'None',
-        originalAuthor: book.author || 'None',
-        newAuthor: details.author || 'None'
-      });
       
       // Select the best title to use
       const bestTitle = (details.title && details.title !== 'Unknown Title') 
@@ -107,7 +82,7 @@ export async function enhanceBooksWithDetails(
           : 'Unknown Author';
       
       // Create an enhanced book object with the best available data
-      const enhancedBook = {
+      return {
         ...book, // Start with original book to preserve all fields
         title: bestTitle,
         author: bestAuthor,
@@ -116,29 +91,8 @@ export async function enhanceBooksWithDetails(
         // Explicitly preserve reading status and rating
         readingStatus: book.readingStatus
       };
-      
-      // Log the enhanced book for debugging
-      console.log(`Enhanced book ${book.isbn} result:`, {
-        title: enhancedBook.title,
-        author: enhancedBook.author,
-        hasValidTitle: enhancedBook.title !== 'Unknown Title',
-        hasValidAuthor: enhancedBook.author !== 'Unknown Author',
-        rating: enhancedBook.readingStatus?.rating
-      });
-      
-      return enhancedBook;
     });
     
-    console.log('Final enhanced books sample:', enhancedBooks.slice(0, 3).map(book => ({ 
-      isbn: book.isbn, 
-      title: book.title, 
-      author: book.author,
-      hasValidTitle: book.title !== 'Unknown Title',
-      hasValidAuthor: book.author !== 'Unknown Author',
-      rating: book.readingStatus?.rating
-    })));
-    
-    return enhancedBooks;
   } catch (error) {
     console.error('Error enhancing books with OpenLibrary data:', error);
     // Return the original books with placeholders for missing titles/authors

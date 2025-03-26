@@ -17,33 +17,8 @@ export const BookSection: React.FC<BookSectionProps> = ({
   emptyStateType,
   onUpdate
 }) => {
-  console.log(`Rendering ${title} section with ${books.length} books`);
-
-  // Log books with ratings for debugging
-  const booksWithRatings = books.filter(book => book.readingStatus?.rating !== undefined);
-  if (booksWithRatings.length > 0) {
-    console.log(`Found ${booksWithRatings.length} books with ratings in ${title} section:`, booksWithRatings.map(b => ({
-      title: b.title || "Unknown Title",
-      isbn: b.isbn,
-      rating: b.readingStatus?.rating
-    })));
-  }
-  
   // Filter out books that don't have minimum required data
   const validBooks = books.filter(book => book.isbn);
-  
-  // Log invalid books for debugging
-  const invalidBooks = books.filter(book => !book.isbn);
-  if (invalidBooks.length > 0) {
-    console.warn(`Found ${invalidBooks.length} invalid books in ${title} section without ISBN`);
-  }
-  
-  const incompleteBooks = validBooks.filter(book => !book.title || !book.author);
-  if (incompleteBooks.length > 0) {
-    console.warn(`Found ${incompleteBooks.length} books with missing title/author in ${title} section:`, 
-      incompleteBooks.map(b => ({ isbn: b.isbn, hasTitle: !!b.title, hasAuthor: !!b.author }))
-    );
-  }
   
   return (
     <section className="mb-12 py-0 my-[25px]">
