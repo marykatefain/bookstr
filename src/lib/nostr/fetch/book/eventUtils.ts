@@ -1,7 +1,27 @@
 
 import { Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../../types";
-import { extractFirstEventTag } from "../../utils/eventUtils";
+
+/**
+ * Extract a value from the first matching tag
+ */
+export function extractFirstEventTag(event: Event, tagName: string, tagValue?: string): string | null {
+  if (!event.tags) return null;
+  
+  for (const tag of event.tags) {
+    if (tag[0] === tagName) {
+      if (tagValue) {
+        if (tag[1] === tagValue && tag[2]) {
+          return tag[2];
+        }
+      } else if (tag[1]) {
+        return tag[1];
+      }
+    }
+  }
+  
+  return null;
+}
 
 /**
  * Extract ISBN from event tags
@@ -90,8 +110,9 @@ export function eventToBook(event: Event, isbn?: string): Book | null {
   const book: Book = {
     id: `isbn:${bookIsbn}`,
     isbn: bookIsbn,
-    title: title || undefined,
-    author: author || undefined,
+    title: title || "Unknown Title",
+    author: author || "Unknown Author",
+    coverUrl: "", // Add default empty coverUrl to satisfy type requirement
     readingStatus: status ? {
       status,
       dateAdded: event.created_at * 1000, // Convert UNIX timestamp to milliseconds
@@ -101,8 +122,3 @@ export function eventToBook(event: Event, isbn?: string): Book | null {
 
   return book;
 }
-
-// Re-export all functions for use elsewhere
-export { 
-  extractRatingFromTags 
-};
