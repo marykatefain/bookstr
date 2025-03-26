@@ -45,8 +45,6 @@ export {
   reviewBook,
   reactToContent,
   replyToContent,
-  fetchReplies,
-  fetchReactions,
   followUser,
   addBookToList,
   updateBookInList,
@@ -68,6 +66,10 @@ export {
   fetchBookActivity,
   fetchEventById
 } from "./fetch";
+
+// Export reactions and replies functions
+export { fetchReactions } from "./fetch/reactions";
+export { fetchReplies } from "./fetch/replies";
 
 // Export mock data
 export { mockBooks } from "./mockData";

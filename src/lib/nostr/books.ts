@@ -1,545 +1,51 @@
-import { Book, NOSTR_KINDS, BookActionType, Reply } from "./types";
-import { publishToNostr, updateNostrEvent } from "./publish";
-import { SimplePool, Event } from "nostr-tools";
-import { getCurrentUser } from "./user";
-import { getUserRelays } from "./relay";
-import { fetchFollowingList } from "./fetch";
+import {
+  publishToNostr,
+  updateNostrEvent,
+  getCurrentUser,
+  isLoggedIn
+} from "@/lib/nostr";
+import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { toast } from "@/hooks/use-toast";
-import { getSharedPool } from "./utils/poolManager";
-import { convertDisplayRatingToRawRating } from "../utils/ratings";
+import { fetchEventById } from "./fetch/eventDetails";
 
 /**
- * Fetch all ISBNs from a specific list type
+ * Add a book to the user's TBR list
  */
-async function fetchExistingIsbnTags(listType: BookActionType): Promise<string[][]> {
-  console.log(`==== Fetching existing ISBNs from ${listType} list ====`);
-  
-  const currentUser = getCurrentUser();
-  if (!currentUser) {
-    console.error("Cannot fetch ISBNs: User not logged in");
-    return [];
-  }
-  
-  let kind: number;
-  switch (listType) {
-    case 'tbr':
-      kind = NOSTR_KINDS.BOOK_TBR;
-      break;
-    case 'reading':
-      kind = NOSTR_KINDS.BOOK_READING;
-      break;
-    case 'finished':
-      kind = NOSTR_KINDS.BOOK_READ;
-      break;
-    default:
-      console.error(`Unknown list type: ${listType}`);
-      return [];
-  }
-  
-  const pool = getSharedPool();
-  const relayUrls = getUserRelays();
-  
+export async function addBookToTBR(isbn: string): Promise<string | null> {
   try {
-    const filterParams = {
-      kinds: [kind],
-      authors: [currentUser.pubkey],
-      limit: 10
-    };
-    
-    const events = await pool.querySync(relayUrls, filterParams);
-    
-    if (events.length === 0) {
-      console.log(`No existing events found for ${listType} list`);
-      return [];
-    }
-    
-    // Get the most recent event
-    const mostRecent = events[0];
-    
-    // Extract all ISBN tags
-    const isbnTags = mostRecent.tags.filter(tag => tag[0] === 'i');
-    console.log(`Found ${isbnTags.length} existing ISBN tags:`, isbnTags);
-    
-    return isbnTags;
-  } catch (error) {
-    console.error(`Error fetching existing ISBNs for ${listType} list:`, error);
-    return [];
-  }
-}
-
-/**
- * Add a book to the "TBR" list
- */
-export async function addBookToTBR(book: Book): Promise<string | null> {
-  console.log("==== Adding book to TBR ====");
-  console.log("Book details:", book.title, book.author, book.isbn);
-  
-  if (!book.isbn) {
-    console.error("Cannot add book to TBR: ISBN is missing");
-    return null;
-  }
-  
-  // First, try to fetch existing ISBN tags
-  const existingTags = await fetchExistingIsbnTags('tbr');
-  
-  // Create a new tag for the current book
-  const newIsbnTag = ["i", `isbn:${book.isbn}`];
-  
-  // Check if this ISBN is already in the list to avoid duplicates
-  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
-  
-  // Create the full list of tags, avoiding duplicates
-  const allTags = isbnAlreadyExists 
-    ? existingTags 
-    : [...existingTags, newIsbnTag];
-  
-  // Add k tag for isbn
-  allTags.push(["k", "isbn"]);
-  
-  console.log("Combined tags for TBR event:", allTags);
-  
-  const event = {
-    kind: NOSTR_KINDS.BOOK_TBR,
-    tags: allTags,
-    content: ""
-  };
-  
-  console.log("Publishing TBR event with tags:", event.tags);
-  console.log("Event kind:", event.kind);
-  
-  try {
-    const result = await publishToNostr(event);
-    console.log("TBR publish result:", result);
-    return result;
-  } catch (error) {
-    console.error("Error in addBookToTBR:", error);
-    throw error;
-  }
-}
-
-/**
- * Mark a book as currently reading
- */
-export async function markBookAsReading(book: Book): Promise<string | null> {
-  console.log("==== Marking book as reading ====");
-  console.log("Book details:", book.title, book.author, book.isbn);
-  
-  if (!book.isbn) {
-    console.error("Cannot mark book as reading: ISBN is missing");
-    return null;
-  }
-  
-  // First, try to fetch existing ISBN tags
-  const existingTags = await fetchExistingIsbnTags('reading');
-  
-  // Create a new tag for the current book
-  const newIsbnTag = ["i", `isbn:${book.isbn}`];
-  
-  // Check if this ISBN is already in the list to avoid duplicates
-  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
-  
-  // Create the full list of tags, avoiding duplicates
-  const allTags = isbnAlreadyExists 
-    ? existingTags 
-    : [...existingTags, newIsbnTag];
-  
-  // Add k tag for isbn
-  allTags.push(["k", "isbn"]);
-  
-  const event = {
-    kind: NOSTR_KINDS.BOOK_READING,
-    tags: allTags,
-    content: ""
-  };
-  
-  console.log("Publishing reading event with tags:", event.tags);
-  console.log("Event kind:", event.kind);
-  
-  try {
-    const result = await publishToNostr(event);
-    console.log("Reading publish result:", result);
-    return result;
-  } catch (error) {
-    console.error("Error in markBookAsReading:", error);
-    throw error;
-  }
-}
-
-/**
- * Mark a book as read
- */
-export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
-  console.log("==== Marking book as read ====");
-  console.log("Book details:", book.title, book.author, book.isbn);
-  
-  if (!book.isbn) {
-    console.error("Cannot mark book as read: ISBN is missing");
-    return null;
-  }
-  
-  // First, try to fetch existing ISBN tags
-  const existingTags = await fetchExistingIsbnTags('finished');
-  
-  // Create a new tag for the current book
-  const newIsbnTag = ["i", `isbn:${book.isbn}`];
-  
-  // Check if this ISBN is already in the list to avoid duplicates
-  const isbnAlreadyExists = existingTags.some(tag => tag[1] === `isbn:${book.isbn}`);
-  
-  // Create the full list of tags, avoiding duplicates
-  const allTags = isbnAlreadyExists 
-    ? existingTags 
-    : [...existingTags, newIsbnTag];
-  
-  // Add k tag for isbn
-  allTags.push(["k", "isbn"]);
-  
-  const event = {
-    kind: NOSTR_KINDS.BOOK_READ,
-    tags: allTags,
-    content: ""
-  };
-  
-  console.log("Publishing read event with tags:", event.tags);
-  console.log("Event kind:", event.kind);
-  
-  try {
-    const result = await publishToNostr(event);
-    console.log("Read publish result:", result);
-    return result;
-  } catch (error) {
-    console.error("Error in markBookAsRead:", error);
-    throw error;
-  }
-}
-
-/**
- * Rate a book separately
- */
-export async function rateBook(bookOrIsbn: Book | string, rating: number): Promise<string | null> {
-  // Determine if we have a book object or just an ISBN string
-  const isbn = typeof bookOrIsbn === 'string' ? bookOrIsbn : bookOrIsbn.isbn;
-  
-  if (!isbn) {
-    console.error("Cannot rate book: ISBN is missing");
-    return null;
-  }
-  const rawRating = convertDisplayRatingToRawRating(rating);
-  // Ensure rawRating is now between 0 and 1
-  if (rawRating < 0 || rawRating > 1) {
-    console.error("rawRating must be between 0 and 1");
-    return null;
-  }
-  
-  const event = {
-    kind: NOSTR_KINDS.REVIEW,
-    tags: [
-      ["d", `isbn:${isbn}`],
-      ["k", "isbn"],
-      ["rating", rawRating.toString()]
-    ],
-    content: ""
-  };
-  
-  return publishToNostr(event);
-}
-
-/**
- * Post a review for a book
- */
-export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
-  if (!book.isbn) {
-    console.error("Cannot review book: ISBN is missing");
-    return null;
-  }
-  
-  // Create tags array with the required format
-  const tags = [
-    ["d", `isbn:${book.isbn}`],
-    ["k", "isbn"]
-  ];
-  
-  // Add rating tag if provided
-  if (rating !== undefined) {
-    tags.push(["rating", rating.toString()]);
-  }
-  
-  const event = {
-    kind: NOSTR_KINDS.REVIEW,
-    tags,
-    content: reviewText
-  };
-  
-  console.log("Publishing review event:", event);
-  return publishToNostr(event);
-}
-
-/**
- * React to content (review, rating, etc)
- */
-export async function reactToContent(eventId: string): Promise<string | null> {
-  const event = {
-    kind: NOSTR_KINDS.REACTION,
-    tags: [
-      ["e", eventId]
-    ],
-    content: "+"
-  };
-  
-  return publishToNostr(event);
-}
-
-/**
- * Reply to content (review, rating, etc)
- */
-export async function replyToContent(eventId: string, pubkey: string, replyText: string): Promise<string | null> {
-  if (!eventId || !replyText.trim()) {
-    console.error("Cannot reply: missing eventId or reply text");
-    return null;
-  }
-
-  // Determine if this is a reply to a post or a book-related event
-  let kind = NOSTR_KINDS.BOOK_LIST_REPLY; // Default to book list reply
-
-  try {
-    // Fetch the original event to determine its kind
-    const originalEvent = await fetchEventById(eventId);
-    
-    if (originalEvent) {
-      // If the original event is a text note (kind 1), use kind 1 for the reply
-      if (originalEvent.kind === NOSTR_KINDS.TEXT_NOTE) {
-        kind = NOSTR_KINDS.POST_REPLY;
-      }
-    }
-  } catch (error) {
-    console.error("Error determining event kind for reply:", error);
-    // Continue with default kind if there's an error
-  }
-
-  const event = {
-    kind: kind,
-    tags: [
-      ["e", eventId, "", "reply"],
-      ["p", pubkey]
-    ],
-    content: replyText
-  };
-  
-  return publishToNostr(event);
-}
-
-/**
- * Fetch an event by its ID
- */
-export async function fetchEventById(eventId: string): Promise<Event | null> {
-  if (!eventId) {
-    console.error("Cannot fetch event: missing eventId");
-    return null;
-  }
-  
-  const pool = getSharedPool();
-  const relayUrls = getUserRelays();
-  
-  try {
-    const events = await pool.querySync(relayUrls, {
-      ids: [eventId],
-      limit: 1
-    });
-    
-    return events[0] || null;
-  } catch (error) {
-    console.error("Error fetching event by ID:", error);
-    return null;
-  }
-}
-
-/**
- * Fetch reactions for a specific event
- */
-export async function fetchReactions(eventId: string): Promise<{ count: number; userReacted: boolean }> {
-  const relays = getUserRelays();
-  const pool = getSharedPool();
-  const currentUser = getCurrentUser();
-  
-  try {
-    // Get all reaction events for this event
-    const filter = {
-      kinds: [NOSTR_KINDS.REACTION],
-      '#e': [eventId]
-    };
-    
-    const reactionEvents = await pool.querySync(relays, filter);
-    
-    // Count the reactions
-    const count = reactionEvents.length;
-    
-    // Check if the current user has reacted
-    const userReacted = currentUser ? 
-      reactionEvents.some(event => event.pubkey === currentUser.pubkey) : 
-      false;
-    
-    return { count, userReacted };
-  } catch (error) {
-    console.error(`Error fetching reactions for event ${eventId}:`, error);
-    return { count: 0, userReacted: false };
-  }
-}
-
-/**
- * Fetch replies for a specific event
- */
-export async function fetchReplies(eventId: string): Promise<Reply[]> {
-  if (!eventId) {
-    console.error("Cannot fetch replies: missing eventId");
-    return [];
-  }
-  
-  const pool = getSharedPool();
-  const relayUrls = getUserRelays();
-  
-  try {
-    // Query for replies to this event (both kinds)
-    const events = await pool.querySync(relayUrls, {
-      kinds: [NOSTR_KINDS.BOOK_LIST_REPLY, NOSTR_KINDS.POST_REPLY],
-      "#e": [eventId],
-      limit: 50
-    });
-    
-    if (!events.length) {
-      return [];
-    }
-    
-    // Format replies
-    const replies: Reply[] = events.map(event => ({
-      id: event.id,
-      pubkey: event.pubkey,
-      content: event.content,
-      createdAt: event.created_at * 1000, // Convert to milliseconds
-      parentId: eventId,
-      author: undefined // Will be populated later
-    }));
-    
-    // Fetch profiles for reply authors
-    const authorPubkeys = Array.from(new Set(replies.map(reply => reply.pubkey)));
-    const profiles = await fetchProfilesForPubkeys(authorPubkeys);
-    
-    // Attach profile data to replies
-    return replies.map(reply => {
-      const profile = profiles[reply.pubkey];
-      
-      if (profile) {
-        reply.author = {
-          name: profile.name,
-          picture: profile.picture,
-          npub: profile.npub
-        };
-      }
-      
-      return reply;
-    });
-  } catch (error) {
-    console.error("Error fetching replies:", error);
-    return [];
-  }
-}
-
-/**
- * Fetch profiles for a list of pubkeys
- */
-async function fetchProfilesForPubkeys(pubkeys: string[]): Promise<Record<string, any>> {
-  if (!pubkeys.length) return {};
-  
-  const pool = getSharedPool();
-  const relayUrls = getUserRelays();
-  
-  try {
-    const events = await pool.querySync(relayUrls, {
-      kinds: [NOSTR_KINDS.SET_METADATA],
-      authors: pubkeys
-    });
-    
-    const profiles: Record<string, any> = {};
-    
-    for (const event of events) {
-      try {
-        const profileData = JSON.parse(event.content);
-        profiles[event.pubkey] = {
-          name: profileData.name || profileData.display_name,
-          picture: profileData.picture,
-          npub: event.pubkey
-        };
-      } catch (error) {
-        console.error("Error parsing profile data:", error);
-      }
-    }
-    
-    return profiles;
-  } catch (error) {
-    console.error("Error fetching profiles:", error);
-    return {};
-  }
-}
-
-/**
- * Follow a user
- */
-export async function followUser(pubkey: string): Promise<string | null> {
-  if (!pubkey) {
-    console.error("Cannot follow user: pubkey is missing");
-    return null;
-  }
-  
-  const currentUser = getCurrentUser();
-  if (!currentUser) {
-    throw new Error("User not logged in");
-  }
-  
-  console.log(`===== Following user ${pubkey} =====`);
-  
-  try {
-    // First, fetch the user's existing follow list
-    const { follows } = await fetchFollowingList(currentUser.pubkey);
-    console.log("Current follows:", follows);
-    
-    // Check if already following
-    if (follows.includes(pubkey)) {
-      console.log(`Already following ${pubkey}`);
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to add books to your list",
+        variant: "destructive"
+      });
       return null;
     }
-    
-    // If the follows list is empty, warn the user that this might be their first follow
-    const isFirstFollow = follows.length === 0;
-    
-    // Create a new set to avoid duplicates
-    const updatedFollows = new Set([...follows, pubkey]);
-    console.log("Updated follows:", Array.from(updatedFollows));
-    
-    // Convert to the format needed for tags
-    const followTags = Array.from(updatedFollows).map(key => ["p", key]);
-    
-    // Create the event with all follows included
-    const event = {
-      kind: NOSTR_KINDS.CONTACTS,
-      tags: followTags,
-      content: ""
-    };
-    
-    if (isFirstFollow) {
-      toast({
-        title: "This may be your first follow",
-        description: "If you already follow others but they're not appearing, please ensure your follow list is synced to the relays.",
-        variant: "warning",
-        duration: 5000
-      });
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
     }
-    
-    console.log("Publishing follow event with tags:", followTags);
-    return publishToNostr(event);
+
+    console.log(`Adding book ${isbn} to TBR list`);
+
+    // Create tags for the TBR event
+    const tags: string[][] = [["i", `isbn:${isbn}`]];
+
+    // Create and publish the TBR event
+    const eventData = {
+      kind: NOSTR_KINDS.TBR,
+      content: `Want to read ${isbn}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
   } catch (error) {
-    console.error("Error in followUser:", error);
+    console.error("Error adding book to TBR list:", error);
     toast({
-      title: "Error following user",
-      description: "Could not update your follow list. Please try again.",
+      title: "Error",
+      description: "Failed to add book to TBR list",
       variant: "destructive"
     });
     return null;
@@ -547,175 +53,516 @@ export async function followUser(pubkey: string): Promise<string | null> {
 }
 
 /**
- * Try to update an existing book in a list
- * Returns true if the update was successful, false if no existing event was found
+ * Mark a book as currently reading
  */
-export async function updateBookInList(book: Book, listType: BookActionType): Promise<boolean> {
-  console.log(`==== Updating book in ${listType} list ====`);
-  
-  if (!book.isbn) {
-    console.error(`Cannot update book in ${listType} list: ISBN is missing`);
-    return false;
+export async function markBookAsReading(isbn: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to update your reading status",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Marking book ${isbn} as reading`);
+
+    // Create tags for the reading event
+    const tags: string[][] = [["i", `isbn:${isbn}`]];
+
+    // Create and publish the reading event
+    const eventData = {
+      kind: NOSTR_KINDS.READING,
+      content: `Currently reading ${isbn}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error marking book as reading:", error);
+    toast({
+      title: "Error",
+      description: "Failed to mark book as reading",
+      variant: "destructive"
+    });
+    return null;
   }
-  
-  let kind: number;
-  switch (listType) {
-    case 'tbr':
-      kind = NOSTR_KINDS.BOOK_TBR;
-      break;
-    case 'reading':
-      kind = NOSTR_KINDS.BOOK_READING;
-      break;
-    case 'finished':
-      kind = NOSTR_KINDS.BOOK_READ;
-      break;
-    default:
-      console.error(`Unknown list type: ${listType}`);
+}
+
+/**
+ * Mark a book as read
+ */
+export async function markBookAsRead(isbn: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to update your reading status",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Marking book ${isbn} as read`);
+
+    // Create tags for the read event
+    const tags: string[][] = [["i", `isbn:${isbn}`]];
+
+    // Create and publish the read event
+    const eventData = {
+      kind: NOSTR_KINDS.READ,
+      content: `Finished reading ${isbn}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error marking book as read:", error);
+    toast({
+      title: "Error",
+      description: "Failed to mark book as read",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
+
+/**
+ * Rate a book
+ */
+export async function rateBook(isbn: string, rating: number): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to rate books",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    if (rating < 0 || rating > 1) {
+      throw new Error("Rating must be between 0 and 1");
+    }
+
+    console.log(`Rating book ${isbn} with ${rating}`);
+
+    // Create tags for the rating event
+    const tags: string[][] = [
+      ["i", `isbn:${isbn}`],
+      ["rating", rating.toString()]
+    ];
+
+    // Create and publish the rating event
+    const eventData = {
+      kind: NOSTR_KINDS.RATING,
+      content: `Rated ${isbn} with ${rating}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error rating book:", error);
+    toast({
+      title: "Error",
+      description: "Failed to rate book",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
+
+/**
+ * Review a book
+ */
+export async function reviewBook(isbn: string, review: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to review books",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Reviewing book ${isbn}`);
+
+    // Create tags for the review event
+    const tags: string[][] = [["i", `isbn:${isbn}`]];
+
+    // Create and publish the review event
+    const eventData = {
+      kind: NOSTR_KINDS.REVIEW,
+      content: review,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error reviewing book:", error);
+    toast({
+      title: "Error",
+      description: "Failed to review book",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
+
+/**
+ * Reply to content
+ */
+export async function replyToContent(
+  eventId: string,
+  authorPubkey: string,
+  content: string,
+  eventKind: number = NOSTR_KINDS.TEXT_NOTE
+): Promise<boolean> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to reply to content",
+        variant: "destructive"
+      });
       return false;
-  }
-  
-  try {
-    // The updateNostrEvent function will try to find an existing event with the specified kind
-    // If found, it updates the event with the new tags
-    const result = await updateNostrEvent(
-      { kind },
-      (prevTags) => {
-        // Extract all existing ISBN tags
-        const isbnTags = prevTags.filter(tag => tag[0] === 'i');
-        
-        // Create a set to track unique ISBNs (without the 'isbn:' prefix)
-        const isbnSet = new Set<string>();
-        
-        // Add existing ISBNs to the set
-        isbnTags.forEach(tag => {
-          if (tag[1]) {
-            isbnSet.add(tag[1]);
-          }
-        });
-        
-        // Add the new ISBN if it's not already in the set
-        const newIsbnTag = `isbn:${book.isbn}`;
-        isbnSet.add(newIsbnTag);
-        
-        // Keep non-ISBN tags
-        const otherTags = prevTags.filter(tag => tag[0] !== 'i');
-        
-        // Create the updated tags array with all ISBNs
-        const updatedTags = [
-          ...otherTags,
-          ...Array.from(isbnSet).map(isbn => ['i', isbn])
-        ];
-        
-        console.log('Updated tags with all ISBNs:', updatedTags);
-        return updatedTags;
-      }
-    );
-    
-    if (result) {
-      console.log(`Successfully updated book in ${listType} list:`, result);
-      return true;
     }
-    
-    console.log(`No existing event found for ${listType} list, need to create new one`);
-    return false;
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Replying to event ${eventId} with content "${content}"`);
+
+    // Create tags for the reply event
+    // Per NIP-10: e tag contains the id of the note being replied to
+    // Per NIP-10: p tag contains the pubkey of the note author
+    const tags: string[][] = [
+      ["e", eventId, "", "root"],
+      ["p", authorPubkey]
+    ];
+
+    // For non-standard event kinds (not kind 1), we should add a k tag
+    if (eventKind !== NOSTR_KINDS.TEXT_NOTE) {
+      tags.push(["k", eventKind.toString()]);
+    }
+
+    // Create and publish the reply event
+    const eventData = {
+      kind: NOSTR_KINDS.TEXT_NOTE,
+      content: content,
+      tags: tags
+    };
+
+    console.log("Publishing reply event:", eventData);
+    const replyId = await publishToNostr(eventData);
+    return replyId !== null;
   } catch (error) {
-    console.error(`Error updating book in ${listType} list:`, error);
+    console.error("Error replying to content:", error);
+    toast({
+      title: "Error",
+      description: "Failed to reply to this content",
+      variant: "destructive"
+    });
     return false;
   }
 }
 
 /**
- * Unified function to add a book to any of the reading lists
+ * Follow a user
  */
-export async function addBookToList(book: Book, listType: BookActionType): Promise<string | null> {
-  console.log(`==== Adding book to ${listType} list ====`);
-  
-  if (!book.isbn) {
-    console.error(`Cannot add book to ${listType} list: ISBN is missing`);
+export async function followUser(pubkeyToFollow: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to follow users",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Following user ${pubkeyToFollow}`);
+
+    // Get current user's existing contact list
+    const { follows } = await fetchFollowingList(currentUser.pubkey);
+
+    // Check if already following
+    if (follows.includes(pubkeyToFollow)) {
+      console.log(`Already following ${pubkeyToFollow}`);
+      return null;
+    }
+
+    // Add the new pubkey to the list
+    const updatedFollows = [...follows, pubkeyToFollow];
+
+    // Create the contact list event (kind 3)
+    const eventData = {
+      kind: NOSTR_KINDS.CONTACT_LIST,
+      content: "",
+      tags: updatedFollows.map(pk => ["p", pk])
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error following user:", error);
+    toast({
+      title: "Error",
+      description: "Failed to follow user",
+      variant: "destructive"
+    });
     return null;
   }
-  
-  // Try to update existing list first
-  const updated = await updateBookInList(book, listType);
-  
-  // If update succeeded, we're done
-  if (updated) {
-    return null; // We don't have the event ID here, but the update was successful
-  }
-  
-  // Otherwise create a new list with just this book
-  switch (listType) {
-    case 'tbr':
-      return addBookToTBR(book);
-    case 'reading':
-      return markBookAsReading(book);
-    case 'finished':
-      return markBookAsRead(book);
-    default:
-      console.error(`Unknown list type: ${listType}`);
+}
+
+import { fetchFollowingList } from "./fetch";
+
+/**
+ * Add a book to a custom list
+ */
+export async function addBookToList(listName: string, isbn: string): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to add books to lists",
+        variant: "destructive"
+      });
       return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Adding book ${isbn} to list ${listName}`);
+
+    // Create tags for the list event
+    const tags: string[][] = [
+      ["d", listName], // "d" tag is the identifier for the list
+      ["i", `isbn:${isbn}`]  // "i" tag for the ISBN
+    ];
+
+    // Create and publish the list event
+    const eventData = {
+      kind: NOSTR_KINDS.BOOK_LIST,
+      content: `Added ${isbn} to ${listName}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error adding book to list:", error);
+    toast({
+      title: "Error",
+      description: "Failed to add book to list",
+      variant: "destructive"
+    });
+    return null;
   }
 }
 
 /**
- * Remove a book from a specific list
+ * Update a book in a custom list (e.g., change order, add notes)
  */
-export async function removeBookFromList(book: Book, listType: BookActionType): Promise<string | null> {
-  console.log(`==== Removing book from ${listType} list ====`);
-  
-  if (!book.isbn) {
-    console.error(`Cannot remove book from ${listType} list: ISBN is missing`);
+export async function updateBookInList(listName: string, isbn: string, notes?: string, order?: number): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to update book in list",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Updating book ${isbn} in list ${listName}`);
+
+    // Create tags for the list event
+    const tags: string[][] = [
+      ["d", listName], // "d" tag is the identifier for the list
+      ["i", `isbn:${isbn}`]  // "i" tag for the ISBN
+    ];
+
+    // Add optional notes
+    if (notes) {
+      tags.push(["note", notes]);
+    }
+
+    // Add optional order
+    if (order !== undefined) {
+      tags.push(["order", order.toString()]);
+    }
+
+    // Create and publish the list event
+    const eventData = {
+      kind: NOSTR_KINDS.BOOK_LIST,
+      content: `Updated ${isbn} in ${listName}`,
+      tags: tags
+    };
+
+    const eventId = await publishToNostr(eventData);
+    return eventId;
+  } catch (error) {
+    console.error("Error updating book in list:", error);
+    toast({
+      title: "Error",
+      description: "Failed to update book in list",
+      variant: "destructive"
+    });
     return null;
   }
-  
-  let kind: number;
-  switch (listType) {
-    case 'tbr':
-      kind = NOSTR_KINDS.BOOK_TBR;
-      break;
-    case 'reading':
-      kind = NOSTR_KINDS.BOOK_READING;
-      break;
-    case 'finished':
-      kind = NOSTR_KINDS.BOOK_READ;
-      break;
-    default:
-      console.error(`Unknown list type: ${listType}`);
-      return null;
-  }
-  
+}
+
+/**
+ * Remove a book from a custom list
+ */
+export async function removeBookFromList(listName: string, isbn: string): Promise<string | null> {
   try {
-    // The updateNostrEvent function will try to find an existing event with the specified kind
-    // If found, it updates the event by removing the specified ISBN
-    const result = await updateNostrEvent(
-      { kind },
-      (prevTags) => {
-        // Keep all tags that are not this specific ISBN
-        const isbnToRemove = `isbn:${book.isbn}`;
-        const updatedTags = prevTags.filter(tag => !(tag[0] === 'i' && tag[1] === isbnToRemove));
-        
-        // Ensure we still have the 'k' tag for isbn
-        if (updatedTags.some(tag => tag[0] === 'i')) {
-          // Only keep 'k' tag if we still have other ISBNs
-          if (!updatedTags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
-            updatedTags.push(['k', 'isbn']);
-          }
-        }
-        
-        console.log('Updated tags after removing ISBN:', updatedTags);
-        return updatedTags;
-      }
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to remove books from lists",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Removing book ${isbn} from list ${listName}`);
+
+    // Define a function to update the tags, removing the specified ISBN
+    const updateTags = (tags: string[][]) => {
+      return tags.filter(tag => !(tag[0] === 'i' && tag[1] === `isbn:${isbn}`));
+    };
+
+    // Use the updateNostrEvent function to find and update the event
+    const eventId = await updateNostrEvent(
+      { kind: NOSTR_KINDS.BOOK_LIST, isbn: isbn },
+      updateTags
     );
+
+    return eventId;
+  } catch (error) {
+    console.error("Error removing book from list:", error);
+    toast({
+      title: "Error",
+      description: "Failed to remove book from list",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
+
+/**
+ * React to content with a "like" reaction (Kind 7)
+ * Implements NIP-25: https://github.com/nostr-protocol/nips/blob/master/25.md
+ */
+export async function reactToContent(
+  eventId: string,
+  content: string = "+",
+  eventKind: number = NOSTR_KINDS.TEXT_NOTE
+): Promise<boolean> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to react to content",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not logged in");
+    }
+
+    console.log(`Creating reaction to event ${eventId} with content "${content}"`);
     
-    if (result) {
-      console.log(`Successfully removed book from ${listType} list:`, result);
-      return result;
+    // Fetch the original event to get the author's pubkey
+    // This is required for the p tag in the reaction
+    const originalEvent = await fetchEventById(eventId);
+    if (!originalEvent) {
+      throw new Error("Failed to fetch the original event");
     }
     
-    console.log(`No existing event found for ${listType} list, nothing to remove`);
-    return null;
+    const eventPubkey = originalEvent.pubkey;
+
+    // Create tags for the reaction event
+    // Per NIP-25: e tag contains the id of the note being reacted to
+    // Per NIP-25: p tag contains the pubkey of the note author
+    const tags: string[][] = [
+      ["e", eventId, "", "root"],
+      ["p", eventPubkey]
+    ];
+
+    // For non-standard event kinds (not kind 1), we should add a k tag
+    if (eventKind !== NOSTR_KINDS.TEXT_NOTE) {
+      tags.push(["k", eventKind.toString()]);
+    }
+
+    // Create and publish the reaction event
+    const eventData = {
+      kind: NOSTR_KINDS.REACTION,
+      content: content,
+      tags: tags
+    };
+
+    console.log("Publishing reaction event:", eventData);
+    const reactionId = await publishToNostr(eventData);
+    return reactionId !== null;
   } catch (error) {
-    console.error(`Error removing book from ${listType} list:`, error);
-    throw error;
+    console.error("Error reacting to content:", error);
+    toast({
+      title: "Error",
+      description: "Failed to react to this content",
+      variant: "destructive"
+    });
+    return false;
   }
 }

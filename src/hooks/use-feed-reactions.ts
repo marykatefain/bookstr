@@ -19,7 +19,22 @@ export function useFeedReactions(activities: SocialActivity[], onActivitiesChang
     }
 
     try {
-      await reactToContent(activityId);
+      // Find the activity to determine its kind
+      const activity = localActivities.find(a => a.id === activityId);
+      if (!activity) {
+        console.error(`Activity with id ${activityId} not found`);
+        return;
+      }
+      
+      // Determine the appropriate event kind based on activity type
+      let eventKind = 1; // Default to text note
+      if (activity.type === 'review') {
+        eventKind = 1984; // Review kind
+      }
+      
+      // Call reactToContent with the appropriate kind
+      await reactToContent(activityId, "+", eventKind);
+      
       toast({
         title: "Reaction sent",
         description: "You've reacted to this post"
