@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +14,18 @@ export const useBookData = (isbn: string | undefined) => {
   // First try to get the book from the user's library which might have more data
   const libraryBook = useCallback(() => {
     if (!isbn) return null;
-    return getBookByISBN(isbn);
+    const book = getBookByISBN(isbn);
+    
+    if (book) {
+      console.log(`Found book in user's library for ISBN ${isbn}:`, {
+        hasTitle: !!book.title && book.title !== 'Unknown Title',
+        hasAuthor: !!book.author && book.author !== 'Unknown Author',
+        title: book.title,
+        author: book.author
+      });
+    }
+    
+    return book;
   }, [isbn, getBookByISBN]);
 
   const { 
@@ -31,18 +41,33 @@ export const useBookData = (isbn: string | undefined) => {
       
       // First check if the book is in the user's library
       const userBook = libraryBook();
-      if (userBook && userBook.title && userBook.author) {
-        console.log(`Using user's library book data for ISBN: ${isbn}`);
+      
+      // Only use user's book if it has complete data
+      if (userBook && userBook.title && userBook.author && 
+          userBook.title !== 'Unknown Title' && userBook.author !== 'Unknown Author') {
+        console.log(`Using user's library book data for ISBN: ${isbn}`, userBook);
         return userBook;
+      } else if (userBook) {
+        console.log(`User's library book data for ISBN: ${isbn} is incomplete:`, {
+          hasTitle: !!userBook.title && userBook.title !== 'Unknown Title',
+          hasAuthor: !!userBook.author && userBook.author !== 'Unknown Author'
+        });
       }
       
       // Then try to get from library cache
       const cachedBook = getCachedBookByISBN(isbn);
-      if (cachedBook && cachedBook.title && cachedBook.author) {
-        console.log(`Using cached book data for ISBN: ${isbn}`, cachedBook);
+      if (cachedBook && cachedBook.title && cachedBook.author && 
+          cachedBook.title !== 'Unknown Title' && cachedBook.author !== 'Unknown Author') {
+        console.log(`Using cached book data for ISBN: ${isbn}`, {
+          title: cachedBook.title,
+          author: cachedBook.author
+        });
         return cachedBook;
-      } else {
-        console.log("Cached book data is missing or incomplete, fetching fresh data");
+      } else if (cachedBook) {
+        console.log("Cached book data is missing or incomplete:", {
+          hasTitle: !!cachedBook.title && cachedBook.title !== 'Unknown Title',
+          hasAuthor: !!cachedBook.author && cachedBook.author !== 'Unknown Author'
+        });
       }
       
       try {
@@ -50,14 +75,45 @@ export const useBookData = (isbn: string | undefined) => {
         const nostrResult = await fetchBookByISBN(isbn);
         
         // If we get a complete result from Nostr, use it
-        if (nostrResult && nostrResult.title && nostrResult.author) {
-          console.log(`Book data loaded successfully from Nostr for ISBN: ${isbn}:`, nostrResult);
+        if (nostrResult && nostrResult.title && nostrResult.author && 
+            nostrResult.title !== 'Unknown Title' && nostrResult.author !== 'Unknown Author') {
+          console.log(`Book data loaded successfully from Nostr for ISBN: ${isbn}:`, {
+            title: nostrResult.title,
+            author: nostrResult.author
+          });
           return nostrResult;
+        } else if (nostrResult) {
+          console.log(`Nostr data incomplete for ISBN: ${isbn}:`, {
+            hasTitle: !!nostrResult.title && nostrResult.title !== 'Unknown Title',
+            hasAuthor: !!nostrResult.author && nostrResult.author !== 'Unknown Author'
+          });
         }
         
         // If Nostr data is incomplete, try fetching directly from OpenLibrary
-        console.log(`Nostr data incomplete or missing for ISBN: ${isbn}, fetching directly from OpenLibrary`);
+        console.log(`Fetching directly from OpenLibrary for ISBN: ${isbn}`);
         const openLibraryResult = await getBookByISBN(isbn);
+        
+        if (openLibraryResult && openLibraryResult.title && openLibraryResult.author) {
+          console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, {
+            title: openLibraryResult.title,
+            author: openLibraryResult.author
+          });
+          
+          // If we have an incomplete userBook, merge the OpenLibrary data with it
+          if (userBook) {
+            console.log(`Merging OpenLibrary data with user's library book for ISBN: ${isbn}`);
+            return {
+              ...userBook,
+              title: openLibraryResult.title || userBook.title || 'Unknown Title',
+              author: openLibraryResult.author || userBook.author || 'Unknown Author',
+              coverUrl: userBook.coverUrl || openLibraryResult.coverUrl || '',
+              description: userBook.description || openLibraryResult.description || ''
+            };
+          }
+          
+          // Otherwise return the OpenLibrary result
+          return openLibraryResult;
+        }
         
         if (!openLibraryResult) {
           console.error(`No data returned for ISBN: ${isbn} from any source`);
@@ -78,7 +134,7 @@ export const useBookData = (isbn: string | undefined) => {
           author: openLibraryResult.author || "Unknown Author"
         };
         
-        console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, enrichedResult);
+        console.log(`Book data loaded with placeholders for ISBN: ${isbn}:`, enrichedResult);
         return enrichedResult;
       } catch (err) {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
@@ -140,8 +196,8 @@ export const useBookData = (isbn: string | undefined) => {
 
   // Force a refetch if we have an ISBN but no book details after loading
   useEffect(() => {
-    if (!isLoading && isbn && !book) {
-      console.log(`No book data for ISBN ${isbn}, triggering a refetch`);
+    if (!isLoading && isbn && (!book || book.title === 'Unknown Title' || book.author === 'Unknown Author')) {
+      console.log(`Book data for ISBN ${isbn} is missing or incomplete, triggering a refetch`, book);
       refetch();
     }
   }, [isbn, isLoading, book, refetch]);
@@ -156,7 +212,14 @@ export const useBookData = (isbn: string | undefined) => {
   // Log the final enriched book for debugging
   useEffect(() => {
     if (enrichedBook) {
-      console.log("Final enriched book data:", enrichedBook);
+      console.log("Final enriched book data:", {
+        isbn: enrichedBook.isbn,
+        title: enrichedBook.title,
+        author: enrichedBook.author,
+        hasReadingStatus: !!enrichedBook.readingStatus,
+        readingStatus: enrichedBook.readingStatus?.status,
+        rating: enrichedBook.readingStatus?.rating
+      });
     }
   }, [enrichedBook]);
 

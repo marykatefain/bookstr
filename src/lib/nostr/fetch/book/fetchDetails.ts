@@ -35,7 +35,7 @@ export async function enhanceBooksWithDetails(
     console.log(`Enhancing ${books.length} books with OpenLibrary data for ${isbns.length} ISBNs`);
     
     // Filter out only the books with missing data
-    const booksNeedingDetails = books.filter(book => !book.title || !book.author);
+    const booksNeedingDetails = books.filter(book => !book.title || !book.author || book.title === 'Unknown Title' || book.author === 'Unknown Author');
     const isbnsNeedingDetails = booksNeedingDetails.map(book => book.isbn).filter(Boolean);
     
     if (isbnsNeedingDetails.length === 0) {
@@ -45,6 +45,7 @@ export async function enhanceBooksWithDetails(
     
     console.log(`Fetching data for ${isbnsNeedingDetails.length} books with missing details`);
     const bookDetails = await getBooksByISBN(isbns);
+    console.log('Received book details from OpenLibrary:', bookDetails.map(book => ({ isbn: book.isbn, title: book.title, author: book.author })));
     
     // Create a map for quick lookup
     const bookDetailsMap = new Map<string, Partial<Book>>();
@@ -60,9 +61,16 @@ export async function enhanceBooksWithDetails(
       
       const details = bookDetailsMap.get(book.isbn);
       if (details) {
-        // Fill in missing title and author if needed
-        const title = book.title || details.title;
-        const author = book.author || details.author;
+        console.log(`Enhancing book ${book.isbn} with details:`, {
+          originalTitle: book.title,
+          newTitle: details.title,
+          originalAuthor: book.author,
+          newAuthor: details.author
+        });
+        
+        // Only use OpenLibrary data if our current data is missing or placeholder
+        const shouldUpdateTitle = !book.title || book.title === 'Unknown Title';
+        const shouldUpdateAuthor = !book.author || book.author === 'Unknown Author';
         
         // Merge the details while preserving the id, reading status and rating
         return {
@@ -70,8 +78,8 @@ export async function enhanceBooksWithDetails(
           ...details,
           id: book.id, // Keep the original ID
           isbn: book.isbn, // Keep the original ISBN
-          title: title || 'Unknown Title',
-          author: author || 'Unknown Author',
+          title: shouldUpdateTitle ? (details.title || 'Unknown Title') : book.title,
+          author: shouldUpdateAuthor ? (details.author || 'Unknown Author') : book.author,
           readingStatus: book.readingStatus // Keep the reading status with rating
         };
       }
