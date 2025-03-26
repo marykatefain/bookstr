@@ -2,6 +2,9 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Cache for weekly trending books
 const weeklyTrendingCache: {
   timestamp: number;
@@ -34,62 +37,73 @@ export async function getDailyTrendingBooks(limit: number = 10): Promise<Book[]>
   }
 
   try {
-    console.log(`Fetching daily trending books from OpenLibrary API`);
-    const response = await fetch(`${BASE_URL}/trending/daily.json?limit=${limit}`, {
+    console.log(`Fetching daily trending books from Cloudflare Worker`);
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/trending/daily.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      // Use browser cache
+      cache: 'default'
     });
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
     
-    const data = await response.json();
-    console.log(`Got daily trending books data:`, data);
-    const works = data.works || [];
+    // First get response as text to debug potential JSON parsing issues
+    const responseText = await response.text();
     
-    if (works.length === 0) {
-      console.warn("Daily trending API returned no works, falling back to alternative method");
-      return getTrendingBooks(limit);
-    }
-    
-    const books = await Promise.all(
-      works
-        .filter((work: any) => work.cover_id || work.cover_edition_key)
-        .map(async (work: any) => {
-          let isbn = work.availability?.isbn || "";
-          
-          // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
-          if (!isbn && work.cover_edition_key) {
-            console.log(`Fetching ISBN for trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
-            isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
-            if (isbn) {
-              console.log(`Found ISBN for trending book ${work.title}: ${isbn}`);
+    try {
+      // Parse the JSON (after validating it's actually JSON)
+      const data = JSON.parse(responseText);
+      console.log(`Got daily trending books data:`, data);
+      const works = data.works || [];
+      
+      if (works.length === 0) {
+        console.warn("Daily trending API returned no works, falling back to alternative method");
+        return getTrendingBooks(limit);
+      }
+      
+      const books = await Promise.all(
+        works
+          .filter((work: any) => work.cover_id || work.cover_edition_key)
+          .map(async (work: any) => {
+            let isbn = work.availability?.isbn || "";
+            
+            // If no ISBN available and we have a cover_edition_key, try to fetch ISBN
+            if (!isbn && work.cover_edition_key) {
+              console.log(`Fetching ISBN for trending book: ${work.title} using edition key: ${work.cover_edition_key}`);
+              isbn = await fetchISBNFromEditionKey(work.cover_edition_key);
+              if (isbn) {
+                console.log(`Found ISBN for trending book ${work.title}: ${isbn}`);
+              }
             }
-          }
-          
-          return {
-            id: work.key,
-            title: work.title,
-            author: work.authors?.[0]?.name || "Unknown Author",
-            isbn: isbn,
-            coverUrl: getCoverUrl(isbn, work.cover_id),
-            description: work.description?.value || "",
-            pubDate: work.first_publish_year?.toString() || "",
-            pageCount: 0,
-            categories: ["Trending"],
-            author_name: work.authors?.map((a: any) => a.name) || []
-          };
-        })
-    );
-    
-    console.log(`Processed ${books.length} daily trending books`);
-    
-    // Update cache
-    dailyTrendingCache.books = books;
-    dailyTrendingCache.timestamp = now;
-    
-    return books;
+            
+            return {
+              id: work.key,
+              title: work.title,
+              author: work.authors?.[0]?.name || work.author_name?.[0] || "Unknown Author",
+              isbn: isbn,
+              coverUrl: getCoverUrl(isbn, work.cover_id),
+              description: work.description?.value || work.description || "",
+              pubDate: work.first_publish_year?.toString() || "",
+              pageCount: 0,
+              categories: ["Trending"],
+              author_name: work.author_name || work.authors?.map((a: any) => a.name).filter(Boolean) || []
+            };
+          })
+      );
+      
+      console.log(`Processed ${books.length} daily trending books`);
+      
+      // Update cache
+      dailyTrendingCache.books = books;
+      dailyTrendingCache.timestamp = now;
+      
+      return books;
+    } catch (jsonError) {
+      console.error("Error parsing JSON response:", jsonError, "Raw response:", responseText.substring(0, 200));
+      throw new Error(`JSON parse error: ${jsonError.message}`);
+    }
   } catch (error) {
     console.error("Error fetching daily trending books:", error);
     // Fallback to the older trending books method if the daily API fails
@@ -111,14 +125,15 @@ export async function getWeeklyTrendingBooks(limit: number = 10): Promise<Book[]
   }
 
   try {
-    console.log(`Fetching weekly trending books from OpenLibrary API`);
+    console.log(`Fetching weekly trending books from Cloudflare Worker`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`${BASE_URL}/trending/weekly.json?limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/trending/weekly.json?limit=${limit}`, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     clearTimeout(timeoutId);
     
@@ -226,11 +241,12 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
   }
 
   try {
-    console.log(`Fetching trending books using subject API`);
+    console.log(`Fetching trending books using subject API via Cloudflare Worker`);
     // Using subjects that typically have popular books
-    const response = await fetch(`${BASE_URL}/subjects/fiction.json?limit=${limit}`, {
+    // FIX: Use the correct path format for subjects
+    const response = await fetch(`${API_BASE_URL}/subjects/fiction.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {
@@ -293,15 +309,16 @@ export async function getTrendingBooks(limit: number = 10): Promise<Book[]> {
  */
 async function getAlternativeTrendingBooks(limit: number = 10): Promise<Book[]> {
   try {
-    console.log(`Using alternative trending books method`);
+    console.log(`Using alternative trending books method via Cloudflare Worker`);
     // Try a different genre that's popular
     const subjects = ["fantasy", "science_fiction", "thriller", "romance"];
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
+    // FIX: Keep the correct path format for alternative subjects
+    const response = await fetch(`${API_BASE_URL}/subjects/${randomSubject}.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {
@@ -366,11 +383,12 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
   }
 
   try {
-    console.log(`Fetching recent books from OpenLibrary API`);
+    console.log(`Fetching recent books from Cloudflare Worker`);
     // Using the new subjects/new.json endpoint as specified
-    const response = await fetch(`${BASE_URL}/subjects/new.json?limit=${limit}`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/new.json?limit=${limit}`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     // If the endpoint fails, use alternative method
@@ -436,15 +454,16 @@ export async function getRecentBooks(limit: number = 10): Promise<Book[]> {
  */
 async function getAlternativeRecentBooks(limit: number = 10): Promise<Book[]> {
   try {
-    console.log(`Using alternative recent books method`);
+    console.log(`Using alternative recent books method via Cloudflare Worker`);
     // Try a different genre/subject that's less common than fiction
     const subjects = ["literature", "fantasy", "mystery", "biography"];
     const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
     
     console.log(`Using subject: ${randomSubject}`);
-    const response = await fetch(`${BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`, {
+    // Fix the URL format to use the correct path structure
+    const response = await fetch(`${API_BASE_URL}/subjects/${randomSubject}.json?limit=${limit}&sort=new`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
+      cache: 'default'
     });
     
     if (!response.ok) {

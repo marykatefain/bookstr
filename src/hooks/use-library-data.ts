@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Book, Post, BookReview } from "@/lib/nostr/types";
+import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ export const useLibraryData = () => {
       if (!isLoggedIn() || !user?.pubkey) {
         return { tbr: [], reading: [], read: [] };
       }
-      
+
       try {
         console.log("Fetching user books data for library");
         const userBooks = await fetchUserBooks(user.pubkey);
@@ -34,8 +35,7 @@ export const useLibraryData = () => {
         const deduplicatedWithinLists = deduplicateBooksWithinLists(userBooks);
         
         // Then deduplicate books across lists
-        const dedupedBooks = deduplicateBookLists(deduplicatedWithinLists);
-        return dedupedBooks;
+        return deduplicateBookLists(deduplicatedWithinLists);        
       } catch (error) {
         console.error("Error fetching user books:", error);
         throw error;

@@ -3,13 +3,16 @@ import { useBookData } from "./book/use-book-data";
 import { useBookReviews } from "./book/use-book-reviews";
 import { useBookActions } from "./book/use-book-actions";
 import { useBookActivity } from "./book/use-book-activity";
+import { useCallback } from "react";
 
 export const useBookDetail = (isbn: string | undefined) => {
   const { 
     book, 
     loading, 
     isRead, 
-    setIsRead 
+    setIsRead,
+    error,
+    refetch 
   } = useBookData(isbn);
 
   const { 
@@ -35,19 +38,38 @@ export const useBookDetail = (isbn: string | undefined) => {
     setActiveTab, 
     bookActivity, 
     loadingActivity,
-    refreshTrigger // Make sure we're accessing the refreshTrigger property
+    refreshTrigger
   } = useBookActivity(isbn);
 
   // Combine the hooks with book-specific wrappers
-  const handleMarkAsRead = () => markAsRead(book, setIsRead);
-  const handleRateBookWrapper = (rating: number) => handleRateBook(book, rating);
-  const handleSubmitReviewWrapper = () => handleSubmitReview(book);
-  const handleReactToReview = (reviewId: string) => handleReactToContent(reviewId);
-  const handleReactToActivity = (activityId: string) => handleReactToContent(activityId);
+  const handleMarkAsRead = useCallback(() => {
+    if (!book) return;
+    return markAsRead(book, setIsRead);
+  }, [markAsRead, book, setIsRead]);
+  
+  const handleRateBookWrapper = useCallback((rating: number) => {
+    if (!book) return;
+    return handleRateBook(book, rating);
+  }, [handleRateBook, book]);
+  
+  const handleSubmitReviewWrapper = useCallback(() => {
+    if (!book) return;
+    return handleSubmitReview(book);
+  }, [handleSubmitReview, book]);
+  
+  const handleReactToReview = useCallback((reviewId: string) => {
+    return handleReactToContent(reviewId);
+  }, [handleReactToContent]);
+  
+  const handleReactToActivity = useCallback((activityId: string) => {
+    return handleReactToContent(activityId);
+  }, [handleReactToContent]);
 
   return {
     book,
     loading,
+    error,
+    refetch,
     reviews,
     ratings,
     userRating,
@@ -60,7 +82,7 @@ export const useBookDetail = (isbn: string | undefined) => {
     setActiveTab,
     bookActivity,
     loadingActivity,
-    refreshTrigger, // Add this to the returned object
+    refreshTrigger,
     handleMarkAsRead,
     handleRateBook: handleRateBookWrapper,
     handleSubmitReview: handleSubmitReviewWrapper,

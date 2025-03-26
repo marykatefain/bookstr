@@ -1,116 +1,272 @@
 
-import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
+// Cache for ISBN lookup by edition key
+const isbnCache: Record<string, string> = {};
+
+// Cache for ISBN lookup by title and author
+const titleAuthorIsbnCache: Record<string, string> = {};
+
+// Cache for author details to reduce duplicate requests
+const authorCache: Record<string, { name: string; timestamp: number }> = {};
+const AUTHOR_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+
 /**
- * Get cover URL for a book
+ * Generate the most appropriate cover URL for a book
  */
 export function getCoverUrl(isbn: string, coverId?: number): string {
   if (coverId) {
-    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+    return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
   } else if (isbn) {
-    return `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-  } else {
-    return '/placeholder.svg';
+    return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
   }
+  return "";
 }
 
 /**
- * Convert OpenLibrary doc to Book object
- */
-export function docToBook(doc: any): Book {
-  // Try to get ISBN from different possible sources
-  let isbn = "";
-  if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
-    isbn = doc.isbn[0];
-  }
-  
-  return {
-    id: doc.key || `ol:${Math.random().toString(36).slice(2, 10)}`,
-    title: doc.title || "Unknown Title",
-    author: doc.author_name?.[0] || "Unknown Author",
-    isbn: isbn,
-    coverUrl: getCoverUrl(isbn || "", doc.cover_i),
-    description: doc.description || "",
-    pubDate: doc.first_publish_year?.toString() || "",
-    pageCount: doc.number_of_pages_median || 0,
-    categories: doc.subject?.slice(0, 3)?.map((s: string) => 
-      s.charAt(0).toUpperCase() + s.slice(1)
-    ) || [],
-    author_name: doc.author_name || []
-  };
-}
-
-/**
- * Fetch ISBN from an edition key
+ * Fetch ISBN from edition key
  */
 export async function fetchISBNFromEditionKey(editionKey: string): Promise<string> {
+  // Check cache first
+  if (isbnCache[editionKey]) {
+    return isbnCache[editionKey];
+  }
+  
   try {
-    // Add error handling for empty or invalid edition keys
-    if (!editionKey || typeof editionKey !== 'string') {
-      console.warn("Invalid edition key:", editionKey);
-      return "";
-    }
+    // Convert OL12345M to just 12345 if needed
+    const key = editionKey.startsWith('OL') ? editionKey : `OL${editionKey}`;
     
-    // Normalize the edition key format
-    const normalizedKey = editionKey.startsWith('/books/') ? editionKey : `/books/${editionKey}`;
-    
-    const response = await fetch(`${BASE_URL}${normalizedKey}.json`, {
-      // Add timeout and better fetch options
+    // FIX: Use the correct path structure for books endpoint
+    const response = await fetch(`${API_BASE_URL}/books/${key}.json`, {
       headers: { 'Accept': 'application/json' },
-      cache: 'no-store',
-      // Add a timeout to prevent hanging requests
-      signal: AbortSignal.timeout(5000)
+      cache: 'default'
     });
     
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`Failed to fetch edition data: ${response.status}`);
     }
     
     const data = await response.json();
     
-    // Try to extract ISBN from various fields (prioritize ISBN-13 over ISBN-10)
-    let isbn = "";
+    // Check all possible ISBN locations
+    let isbn = '';
     
-    // Check for ISBN-13 first (preferred)
-    if (data.isbn_13 && Array.isArray(data.isbn_13) && data.isbn_13.length > 0) {
+    // Try ISBN 13 first (preferred)
+    if (data.isbn_13 && data.isbn_13.length > 0) {
       isbn = data.isbn_13[0];
     }
-    // If no ISBN-13, try ISBN-10
-    else if (data.isbn_10 && Array.isArray(data.isbn_10) && data.isbn_10.length > 0) {
+    // Then try ISBN 10
+    else if (data.isbn_10 && data.isbn_10.length > 0) {
       isbn = data.isbn_10[0];
     }
-    // Check if ISBN exists in identifiers object
+    // Then check identifiers object
     else if (data.identifiers) {
       if (data.identifiers.isbn_13 && data.identifiers.isbn_13.length > 0) {
         isbn = data.identifiers.isbn_13[0];
-      } else if (data.identifiers.isbn_10 && data.identifiers.isbn_10.length > 0) {
+      }
+      else if (data.identifiers.isbn_10 && data.identifiers.isbn_10.length > 0) {
         isbn = data.identifiers.isbn_10[0];
       }
     }
     
-    console.log(`Found ISBN ${isbn} for edition ${editionKey}`);
+    // Cache the result (even if empty)
+    isbnCache[editionKey] = isbn;
+    
     return isbn;
   } catch (error) {
-    console.error("Error fetching ISBN from edition key:", error);
-    return "";
+    console.error(`Error fetching ISBN for edition key ${editionKey}:`, error);
+    return '';
   }
 }
 
 /**
- * Fetch author details using author key
+ * Fetch ISBN for a book by title and author
  */
-export async function fetchAuthorDetails(authorKey: string): Promise<string> {
+export async function fetchISBNByTitleAuthor(title: string, author?: string): Promise<string> {
+  if (!title) {
+    return '';
+  }
+  
+  // Generate a cache key from title and author
+  const cacheKey = `${title.toLowerCase()}-${(author || '').toLowerCase()}`;
+  
+  // Check cache first
+  if (titleAuthorIsbnCache[cacheKey]) {
+    return titleAuthorIsbnCache[cacheKey];
+  }
+  
   try {
-    const response = await fetch(`${BASE_URL}${authorKey}.json`);
+    // Create search query
+    const searchTerms = author ? `${title} ${author}` : title;
+    const encodedQuery = encodeURIComponent(searchTerms);
+    
+    // FIX: Ensure search.json is in the path
+    const response = await fetch(
+      `${API_BASE_URL}/search.json?q=${encodedQuery}&fields=key,title,author_name,editions,editions.key,editions.title,editions.ebook_access,editions.isbn`, 
+      {
+        headers: { 'Accept': 'application/json' },
+        cache: 'default'
+      }
+    );
+    
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`Search API error: ${response.status}`);
     }
     
     const data = await response.json();
-    return data.name || "Unknown Author";
+    
+    if (!data.docs || data.docs.length === 0) {
+      return '';
+    }
+    
+    // Find the first document that looks like a good match
+    let isbn = '';
+    
+    for (const doc of data.docs) {
+      // Check for exact title match
+      if (doc.title.toLowerCase() === title.toLowerCase()) {
+        // If we have editions with ISBNs, use the first one
+        if (doc.editions && Array.isArray(doc.editions)) {
+          for (const edition of doc.editions) {
+            if (edition.isbn && Array.isArray(edition.isbn) && edition.isbn.length > 0) {
+              isbn = edition.isbn[0];
+              break;
+            }
+          }
+        }
+        
+        // If we found an ISBN, break out of the loop
+        if (isbn) break;
+      }
+    }
+    
+    // If we didn't find an exact match, just use the first result with an ISBN
+    if (!isbn && data.docs.length > 0) {
+      for (const doc of data.docs) {
+        if (doc.editions && Array.isArray(doc.editions)) {
+          for (const edition of doc.editions) {
+            if (edition.isbn && Array.isArray(edition.isbn) && edition.isbn.length > 0) {
+              isbn = edition.isbn[0];
+              break;
+            }
+          }
+        }
+        
+        // If we found an ISBN, break out of the loop
+        if (isbn) break;
+      }
+    }
+    
+    // Cache the result (even if empty)
+    titleAuthorIsbnCache[cacheKey] = isbn;
+    
+    return isbn;
   } catch (error) {
-    console.error("Error fetching author details:", error);
+    console.error(`Error fetching ISBN for title "${title}":`, error);
+    return '';
+  }
+}
+
+/**
+ * Fetch author details from an author key
+ * Returns author name as a string, with fallback to "Unknown Author"
+ */
+export async function fetchAuthorDetails(authorKey: string): Promise<string> {
+  if (!authorKey) {
+    console.log("Empty author key provided");
     return "Unknown Author";
   }
+  
+  // Normalize the author key
+  let normalizedKey = authorKey;
+  
+  // Make sure the key starts with a slash if it's not a full URL
+  if (!normalizedKey.startsWith('/') && !normalizedKey.startsWith('http')) {
+    normalizedKey = `/${normalizedKey}`;
+  }
+  
+  // Return from cache if available
+  const now = Date.now();
+  const cachedAuthor = authorCache[normalizedKey];
+  if (cachedAuthor && now - cachedAuthor.timestamp < AUTHOR_CACHE_TTL) {
+    console.log(`Using cached author data for ${normalizedKey}: ${cachedAuthor.name}`);
+    return cachedAuthor.name;
+  }
+  
+  try {
+    console.log(`Fetching author details for key: ${normalizedKey}`);
+    
+    // Ensure we're using the right format for the API call
+    const response = await fetch(`${API_BASE_URL}${normalizedKey}.json`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'default'
+    });
+    
+    if (!response.ok) {
+      console.warn(`Failed to fetch author details for ${normalizedKey}: ${response.status}`);
+      return "Unknown Author";
+    }
+    
+    const data = await response.json();
+    
+    if (!data || typeof data !== 'object') {
+      console.warn(`Invalid author data format for ${normalizedKey}`);
+      return "Unknown Author";
+    }
+    
+    // Extract author name from response
+    const authorName = data.name || "Unknown Author";
+    console.log(`Found author name: "${authorName}" for key ${normalizedKey}`);
+    
+    // Cache the result
+    authorCache[normalizedKey] = { 
+      name: authorName, 
+      timestamp: now 
+    };
+    
+    return authorName;
+  } catch (error) {
+    console.error(`Error fetching author details for ${normalizedKey}:`, error);
+    return "Unknown Author";
+  }
+}
+
+/**
+ * Convert an OpenLibrary doc to a Book object
+ */
+export function docToBook(doc: any) {
+  // Get the best available cover URL
+  const coverUrl = doc.cover_i 
+    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
+    : (doc.cover_edition_key 
+      ? `https://covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
+      : "");
+  
+  // Extract the first available ISBN - try to get all possible ISBN sources
+  let isbn = "";
+  
+  // Check many possible sources for ISBN
+  if (doc.isbn_13 && Array.isArray(doc.isbn_13) && doc.isbn_13.length > 0) {
+    isbn = doc.isbn_13[0];
+  } else if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+    isbn = doc.isbn[0];
+  } else if (doc.availability && doc.availability.isbn) {
+    isbn = doc.availability.isbn;
+  }
+  
+  return {
+    id: doc.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
+    title: doc.title || "Unknown Title",
+    author: doc.author_name?.[0] || doc.authors?.[0]?.name || "Unknown Author",
+    isbn: isbn,
+    coverUrl: coverUrl,
+    description: doc.description?.value || doc.description || "",
+    pubDate: doc.first_publish_year?.toString() || doc.publish_date?.[0] || "",
+    pageCount: doc.number_of_pages_median || 0,
+    categories: doc.subject?.slice(0, 3) || [],
+    author_name: doc.author_name || (doc.authors ? doc.authors.map((a: any) => a.name).filter(Boolean) : [])
+  };
 }

@@ -3,6 +3,9 @@ import { Book } from "@/lib/nostr/types";
 import { BASE_URL, OpenLibrarySearchResult } from './types';
 import { docToBook, fetchISBNFromEditionKey } from './utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Enhanced cache for search results with longer TTL
 const searchCache: Record<string, { data: Book[], timestamp: number }> = {};
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes cache (increased from 15)
@@ -43,15 +46,17 @@ export async function searchBooks(query: string, limit: number = 20): Promise<Bo
     // Create a new request promise and store it
     const requestPromise = (async () => {
       try {
-        // Use the OpenLibrary search API with proper parameters
+        // Use the OpenLibrary search API via Cloudflare Worker with proper parameters
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
         
+        // FIX: Ensure search.json is explicitly in the path
         const response = await fetch(
-          `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
+          `${API_BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=key,title,author_name,author_key,isbn,cover_i,cover_edition_key,edition_key,publish_date,first_publish_year,number_of_pages_median,subject,description`,
           {
             headers: { 'Accept': 'application/json' },
-            cache: 'no-store',
+            // Use browser cache with a default strategy for search
+            cache: 'default',
             signal: controller.signal
           }
         );

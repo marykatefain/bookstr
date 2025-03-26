@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -10,12 +10,17 @@ import { BookReviewSection } from "@/components/book/BookReviewSection";
 import { BookActivitySection } from "@/components/book/BookActivitySection";
 import { BookDetailSkeleton } from "@/components/book/BookDetailSkeleton";
 import { BookNotFound } from "@/components/book/BookNotFound";
+import { useToast } from "@/hooks/use-toast";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
+  const { toast } = useToast();
+  
+  // Use the hook with the ISBN from params
   const {
     book,
     loading,
+    error,
     reviews,
     ratings,
     userRating,
@@ -37,6 +42,41 @@ const BookDetail = () => {
     handleAddBookToList
   } = useBookDetail(isbn);
 
+  // Show error toast when we have an error
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading book details",
+        description: "Please try again later or search for another book",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
+
+  // Log debug data about the book
+  useEffect(() => {
+    if (book) {
+      console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
+      
+      // Check for incomplete data
+      if (!book.title || !book.author) {
+        console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
+        toast({
+          title: "Limited book information",
+          description: "We could only find partial details for this book",
+          variant: "warning"
+        });
+      }
+    } else if (!loading && isbn) {
+      console.warn(`No book data found for ISBN: ${isbn}`);
+    }
+  }, [book, loading, isbn, toast]);
+
+  // Calculate average rating 
+  const avgRating = ratings.length > 0
+    ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
+    : 0;
+
   if (loading) {
     return (
       <Layout>
@@ -53,15 +93,19 @@ const BookDetail = () => {
     );
   }
 
-  const avgRating = ratings.length > 0
-    ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
-    : 0;
+  // Use fallback title/author if missing
+  const displayTitle = book.title || `Book (ISBN: ${book.isbn || "Unknown"})`;
+  const displayAuthor = book.author || "Unknown Author";
 
   return (
     <Layout>
       <div className="container px-4 py-8">
         <BookDetailHeader
-          book={book}
+          book={{
+            ...book,
+            title: displayTitle,
+            author: displayAuthor
+          }}
           avgRating={avgRating}
           ratingsCount={ratings.length}
           isRead={isRead}
