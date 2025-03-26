@@ -3,13 +3,146 @@
 **Project Description:**  
 Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to allow users to track their reading lists, discover new books, and engage with the reading community. 
 
-**Tech Stack:**  
-- Frontend: React + Tailwind + Vite  
-- Data Sources: Nostr relays (ex. wss://ditto.pub/relay), Open Library API ([https://openlibrary.org/developers/api](https://openlibrary.org/developers/api))
+## Table of Contents
+
+- [1. Architecture Overview](#1-architecture-overview)
+  - [Core Components](#core-components)
+  - [Key Modules](#key-modules)
+  - [Data Flow](#data-flow)
+  - [Caching Strategy](#caching-strategy)
+  - [Error Handling](#error-handling)
+  - [Security Considerations](#security-considerations)
+- [2. Book Look Up with Open Library API](#2-book-look-up-with-open-library-api)
+  - [Open Library Search API](#open-library-search-api)
+  - [ISBN API](#isbn-api)
+  - [Book Cover API](#book-cover-api)
+  - [Rate Limiting](#rate-limiting)
+- [3. User Engagement with Book Tracking, Rating, Reviewing, and more - over Nostr](#3-user-engagement-with-book-tracking-rating-reviewing-and-more---over-nostr)
+  - [Nostr Events and Relays](#nostr-events-and-relays)
+  - [Updating Book Lists: Kinds `10075`, `10074`, and `10073`](#updating-book-lists-kinds-10075-10074-and-10073)
+  - [Ratings and Reviews: Kind 31985](#ratings-and-reviews-kind-31985)
+  - [Posts, replies, and reactions](#posts-replies-and-reactions)
 
 ---
 
-## Book Look Up with Open Library API
+## 1. Architecture Overview
+
+**Bookstr Architecture**
+
+Bookstr is a React-based web application that leverages the decentralized Nostr protocol for social features and the Open Library API for book data. Here's a breakdown of the system architecture:
+
+### Core Components
+
+1. **Frontend Framework**
+   - React + TypeScript for the UI layer
+   - React Router for navigation and routing
+   - TanStack Query for data fetching, caching, and state management
+   - Tailwind CSS + Shadcn UI for styling
+
+2. **Data Sources**
+   - Nostr Relays: Primary data store for user-generated content (reviews, reading lists, posts)
+   - Open Library API: External API for book metadata and search functionality
+   - Browser LocalStorage: Persistent storage for user session, relay preferences
+
+### Key Modules
+
+1. **Nostr Module** (`/src/lib/nostr/`)
+   - `user.ts`: Handles user authentication and profile management
+   - `publish.ts`: Manages event creation and publishing to relays
+   - `fetch/`: Collection of specialized fetching utilities for different data types
+   - `relay/`: Connection management and communication with Nostr relays
+   - `types/`: TypeScript definitions for Nostr-related data structures
+
+2. **Open Library Module** (`/src/lib/openlibrary/`)
+   - `search.ts`: Book search functionality
+   - `bookDetails.ts`: Retrieving detailed book information
+   - `trending.ts`: Fetching trending/popular books
+   - `genres.ts`: Genre-based book discovery
+   - Local caching layer to reduce API calls and rate limiting issues
+
+3. **UI Components** (`/src/components/`)
+   - Layout components for page structure
+   - Reusable UI elements (cards, buttons, etc.)
+   - Feature-specific components organized by domain (book, social, user)
+   - Shadcn UI components for consistent design
+
+4. **Pages** (`/src/pages/`)
+   - Container components that compose the application's main views
+   - Integration of data fetching, state management, and UI components
+
+5. **Hooks** (`/src/hooks/`)
+   - Custom React hooks for reusable logic and data access
+   - Feature-specific hooks that abstract complex operations
+
+### Data Flow
+
+1. **Book Data**
+   - User initiates search or selects a book
+   - App checks local cache for existing data
+   - If not found, request is made to Open Library API via Cloudflare proxy
+   - Data is parsed, normalized, and stored in cache
+   - UI components consume and display the data
+
+2. **User-Generated Content**
+   - User creates content (review, post, list update)
+   - Content is formatted as a Nostr event with appropriate tags
+   - Event is signed using the user's Nostr extension
+   - Signed event is published to multiple relays
+   - On success, UI updates optimistically
+
+3. **Content Retrieval**
+   - App connects to configured Nostr relays
+   - Sends filtered subscription requests based on content type
+   - Processes incoming events, deduplicates them
+   - For book-related events, enhances data with Open Library information
+   - Updates UI with the combined data
+
+4. **Social Interactions**
+   - Follows same pattern as content creation
+   - Special event types for reactions, replies, follows
+   - UI updates optimistically while publishing occurs in background
+
+### Caching Strategy
+
+1. **In-Memory Cache**
+   - TanStack Query provides request-level caching
+   - Custom cache implementations for frequent operations
+
+2. **Local Storage**
+   - User profile and authentication state
+   - Relay configurations and preferences
+
+3. **API Response Caching**
+   - Cloudflare proxy for Open Library API requests
+   - Local caching with TTL for book metadata
+
+### Error Handling
+
+1. **API Failures**
+   - Fallback to cached data when possible
+   - Graceful degradation with placeholder content
+   - Retry mechanisms with exponential backoff
+
+2. **Network Issues**
+   - Detection of relay connection problems
+   - Automatic reconnection attempts
+   - User feedback through toast notifications
+
+### Security Considerations
+
+1. **Authentication**
+   - Leverages Nostr protocol's public key cryptography
+   - No server-side sessions or tokens to manage
+   - Client-side signature verification
+
+2. **Data Integrity**
+   - Verification of event signatures
+   - Deduplication of events from multiple relays
+   - Validation of data structures before rendering
+
+---
+
+## 2. Book Look Up with Open Library API
 Using Open Library API, users can search for books. ISBN is the source of truth for each book, and we need the ISBN to make everything work, so it important to prioritize fetching that. 
 
 Open Library lookup data is being cached via cloudflare at `https://bookstr.xyz/api/openlibrary`
@@ -21,7 +154,7 @@ Open Library has several APIs for accessing Book data.
 - The ISBN API (by ISBN)
 - The Books API (generic)
 
-**Open Library Search Api**
+### Open Library Search Api
 
 The Open Library Search API is one of the most convenient and complete ways to retrieve book data on Open Library. The API:
 
@@ -175,7 +308,7 @@ https://openlibrary.org/search.json?q=crime+and+punishment&fields=key,title,auth
 ```
 
 
-**ISBN API**
+### ISBN API
 The ISBN API is a special case and alternative approach to arriving at an Editions page. Instead of "/books", a path of "/isbn" is used, followed by a valid ISBN 10 or 13.
 
 Here is an example: https://openlibrary.org/isbn/9780140328721
@@ -184,7 +317,7 @@ In this example, entering this URL will result in a redirect to the appropriate 
 
 Just like an Edition or Work page, we may add ".json" to the end of the URL to request the response in json instead of as HTML, e.g.: https://openlibrary.org/isbn/9780140328721.json
 
-**Book Cover API**
+### Book Cover API
 Book covers can be accessed using Cover ID (internal cover ID), OLID (Open Library ID), ISBN, OCLC, and LCCN.
 
 The covers are available in 3 sizes:
@@ -243,7 +376,7 @@ const h = img.height
 
 This one way one won't need to make two separate requests per image! The browser won't make a second request for the image if you set the src of your visible <img> element after fetching it in this way.
 
-**Rate Limiting**
+### Rate Limiting
 The cover access by ids other than CoverID and OLID are rate-limited. Currently only 100 requests/IP are allowed for every 5 minutes.
 
 If any IP tries to access more that the allowed limit, the service will return "403 Forbidden" status.
@@ -254,9 +387,9 @@ The full docs of the Open Library API can he found [here](https://openlibrary.or
 
 ---
 
-## User Engagement with Book Tracking, Rating, Reviewing, and more - over Nostr
+## 3. User Engagement with Book Tracking, Rating, Reviewing, and more - over Nostr
 
-**Nostr Events and Relays**
+### Nostr Events and Relays
 
 The user's actions on books are stored as Nostr events, which are then published and read from Nostr relays. Here are a few Nostr relays: 
 
@@ -266,7 +399,7 @@ The user's actions on books are stored as Nostr events, which are then published
 
 The Nostr protocol is standardized with NIPS, the documentation of which can be found [here](https://github.com/nostr-protocol/nips)
 
-**Updating Book Lists: Kinds `10075`, `10074`, and `10073`**
+### Updating Book Lists: Kinds `10075`, `10074`, and `10073`
 
 These are new event kinds created specifically for Bookstr. They are replacable lists which should be fully updated with each action to either add or remove the respective books isbn from the list. 
 
@@ -295,9 +428,10 @@ Example Event for "Add to TBR" :
 See [NIP 51](https://github.com/nostr-protocol/nips/blob/master/51.md) for general information on user-created lists. 
 
 
-**Ratings and Reviews: Kind 31985**
+### Ratings and Reviews: Kind 31985
 
-For ratings/reviews Bookstr uses Kind 31985, a new proposed event kind. 
+**For ratings/reviews Bookstr uses Kind 31985, a new proposed event kind.** 
+
 - Kind `31985`
 - `d` tag = the isbn of the book being reviewed
 - `k` tag = "isbn"
@@ -334,9 +468,10 @@ Example Review event:
 See [NIP 73](https://github.com/nostr-protocol/nips/blob/master/73.md) for basic information about External Content IDs ex. i tag for isbn)
 
 
-**Posts, replies, and reactions**
+### Posts, replies, and reactions
 
-For user profiles, posts, replies, and reactions we use regular Nostr event Kinds 0, 1, 7, and 1111
+**For user profiles, posts, replies, and reactions we use regular Nostr event Kinds 0, 1, 7, and 1111**
+
 - See [NIP 01](https://github.com/nostr-protocol/nips/blob/master/01.md) for user profiles (Kind 0) and Nostr basics
 - See [NIP 10](https://github.com/nostr-protocol/nips/blob/master/10.md) for Kind 1 text notes and replies
 - See [NIP 25](https://github.com/nostr-protocol/nips/blob/master/25.md) for Kind 7 reactions
@@ -357,3 +492,19 @@ Example Post that includes a book reference (i tag with isbn) and #bookstr (t ta
   "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d"
 }
 ```
+
+---
+
+## 4. AI Tips
+
+- Use `/src/lib/nostr/` for anything Nostr-related.
+- Use `/src/lib/openlibrary/` for book data functions.
+- Book ISBN is always the **source of truth** – all user actions on books should use ISBN.
+- Ratings are **0–1 float**, not 1–5 stars. Always normalize or denormalize accordingly.
+- All book list updates must **overwrite the full list** (replacable events per NIP-51).
+
+Do NOT:
+- Create server-based auth — we use Nostr signatures only.
+- Store user data server-side — use localStorage or Nostr events.
+- Mix up the `d` and `i` tags for ISBNs - they're used in different contexts.
+- Implement direct API calls to OpenLibrary without using the caching proxy.
