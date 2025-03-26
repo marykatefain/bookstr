@@ -121,9 +121,14 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 
   const renderRatingStars = () => {
+    console.log("Rendering rating stars with rating:", rating);
     const starCount = 5;
-    const displayRating = rating ? Math.round(rating * 5) : 0;
+    // If rating is on 0-1 scale, multiply by 5 to get the star count (1-5)
+    const displayRating = rating !== undefined ? 
+      (rating <= 1 ? Math.round(rating * 5) : Math.min(5, Math.round(rating))) : 0;
     const hoverRating = ratingHover !== null ? ratingHover : displayRating;
+    
+    console.log("Display rating:", displayRating, "Hover rating:", hoverRating);
     
     return (
       <div 
@@ -174,6 +179,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const actionButton = () => {
     if (isFinished) {
       // Show star rating for finished books
+      // Use renderRatingStars to handle the rating display
       return renderRatingStars();
     } else if (onReadAction) {
       // Show mark as read button for unfinished books
