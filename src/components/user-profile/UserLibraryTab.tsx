@@ -97,7 +97,8 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
       };
     },
     enabled: userBooks.tbr.length > 0 || userBooks.reading.length > 0 || userBooks.read.length > 0,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false // Prevent unnecessary refetches
   });
 
   // Use enhanced books if available, otherwise fall back to original userBooks

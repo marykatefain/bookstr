@@ -55,7 +55,13 @@ export async function enhanceBooksWithDetails(
     const bookDetailsMap = new Map<string, Book>();
     bookDetails.forEach(book => {
       if (book?.isbn) {
-        bookDetailsMap.set(book.isbn, book);
+        // Only add books with valid title and author to the map
+        if (book.title && book.title !== 'Unknown Title' && 
+            book.author && book.author !== 'Unknown Author') {
+          bookDetailsMap.set(book.isbn, book);
+        } else {
+          console.log(`Skipping incomplete book details for ISBN ${book.isbn}: title="${book.title}", author="${book.author}"`);
+        }
       }
     });
     
@@ -72,16 +78,24 @@ export async function enhanceBooksWithDetails(
       
       const details = bookDetailsMap.get(book.isbn);
       if (!details) {
-        console.log(`No OpenLibrary details found for book ISBN: ${book.isbn}, keeping original data:`, {
+        console.log(`No valid OpenLibrary details found for book ISBN: ${book.isbn}, keeping original data:`, {
           title: book.title || 'No Title', 
           author: book.author || 'No Author'
         });
-        // Return book with placeholders if needed
-        return {
-          ...book,
-          title: book.title || 'Unknown Title',
-          author: book.author || 'Unknown Author'
-        };
+        
+        // If the book doesn't have a title or author, try fetching it individually
+        if (!book.title || book.title === 'Unknown Title' || 
+            !book.author || book.author === 'Unknown Author') {
+          // We'll handle this by fetching individually later
+          // For now, return book with placeholders
+          return {
+            ...book,
+            title: book.title || 'Unknown Title',
+            author: book.author || 'Unknown Author'
+          };
+        }
+        
+        return book;
       }
       
       // Debug log to see what we're working with
@@ -92,32 +106,11 @@ export async function enhanceBooksWithDetails(
         newAuthor: details.author || 'None'
       });
       
-      // Only use OpenLibrary data if it's better than what we have
-      // For title, use OpenLibrary's if it's not "Unknown Title" and our current title is missing or also "Unknown Title"
-      const hasValidExistingTitle = book.title && book.title !== 'Unknown Title';
-      const hasValidDetailsTitle = details.title && details.title !== 'Unknown Title';
-      
-      const useTitle = hasValidDetailsTitle 
-        ? details.title 
-        : hasValidExistingTitle 
-          ? book.title
-          : (book.title || details.title || 'Unknown Title');
-      
-      // For author, similar logic - use OpenLibrary's if it's not "Unknown Author" and our current author is missing or also "Unknown Author"
-      const hasValidExistingAuthor = book.author && book.author !== 'Unknown Author';
-      const hasValidDetailsAuthor = details.author && details.author !== 'Unknown Author';
-      
-      const useAuthor = hasValidDetailsAuthor
-        ? details.author
-        : hasValidExistingAuthor
-          ? book.author
-          : (book.author || details.author || 'Unknown Author');
-      
       // Create an enhanced book object with OpenLibrary data
       const enhancedBook = {
         ...book, // Start with original book to preserve all fields
-        title: useTitle,
-        author: useAuthor,
+        title: details.title, // Use OpenLibrary title directly
+        author: details.author, // Use OpenLibrary author directly
         coverUrl: details.coverUrl || book.coverUrl || '',
         description: details.description || book.description || '',
         // Explicitly preserve reading status and rating
