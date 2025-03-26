@@ -88,7 +88,7 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
     enabled: userBooks.tbr.length > 0 || userBooks.reading.length > 0 || userBooks.read.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
-    keepPreviousData: true, // Show previous data while loading new data
+    placeholderData: userBooks // Use userBooks as placeholder while loading new data
   });
 
   // Use enhanced books if available, otherwise fall back to original userBooks

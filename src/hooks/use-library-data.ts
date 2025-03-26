@@ -47,7 +47,7 @@ export const useLibraryData = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
     refetchOnWindowFocus: false, // Only refetch manually or on mount
     refetchOnMount: true,
-    keepPreviousData: true // Keep showing previous data while fetching
+    placeholderData: { tbr: [], reading: [], read: [] } // Placeholder data while loading
   });
   
   // Memoized function to deduplicate books within the same list
@@ -135,7 +135,7 @@ export const useLibraryData = () => {
     enabled: !!user?.pubkey && isLoggedIn(),
     staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
     refetchOnWindowFocus: false,
-    keepPreviousData: true
+    placeholderData: [] // Placeholder data while loading
   });
   
   // Create memoized ratings map from reviews for efficient lookup
@@ -209,7 +209,7 @@ export const useLibraryData = () => {
     enabled: !!user?.pubkey && isLoggedIn(),
     staleTime: 10 * 60 * 1000, // 10 minutes (increased from 5)
     refetchOnWindowFocus: false,
-    keepPreviousData: true
+    placeholderData: [] // Placeholder data while loading
   });
   
   useEffect(() => {
