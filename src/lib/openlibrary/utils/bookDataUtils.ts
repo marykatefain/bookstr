@@ -27,10 +27,23 @@ export function docToBook(doc: any) {
     isbn = doc.availability.isbn;
   }
   
+  // Make sure we have valid title and author data
+  const title = doc.title || "Unknown Title";
+  
+  // Get author name from various possible sources
+  let author = "Unknown Author";
+  if (doc.author_name && Array.isArray(doc.author_name) && doc.author_name.length > 0) {
+    author = doc.author_name[0];
+  } else if (doc.authors && Array.isArray(doc.authors) && doc.authors.length > 0) {
+    author = doc.authors[0].name || "Unknown Author";
+  }
+  
+  console.log(`docToBook processing: ISBN=${isbn}, title="${title}", author="${author}"`);
+  
   return {
     id: doc.key || `ol_${Math.random().toString(36).substring(2, 10)}`,
-    title: doc.title || "Unknown Title",
-    author: doc.author_name?.[0] || doc.authors?.[0]?.name || "Unknown Author",
+    title: title,
+    author: author,
     isbn: isbn,
     coverUrl: coverUrl,
     description: doc.description?.value || doc.description || "",
