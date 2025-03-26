@@ -31,33 +31,36 @@ export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
 /**
  * Enhance books with additional details from OpenLibrary
  * While preserving the original reading status and ratings
+ * 
+ * Optimized version: processes books in a single pass and minimizes object creation
  */
 export async function enhanceBooksWithDetails(
   books: Book[], 
   isbns: string[]
 ): Promise<Book[]> {
   try {
-    console.log(`Enhancing ${books.length} books with OpenLibrary data for ${isbns.length} ISBNs`);
-    
-    // If no books to enhance, return early
+    // Early return if nothing to process
     if (books.length === 0 || isbns.length === 0) {
       return books;
     }
     
-    // Fetch detailed book data using our optimized batch fetcher
-    console.log(`Fetching data from OpenLibrary for ${isbns.length} books`);
+    console.log(`Enhancing ${books.length} books with OpenLibrary data for ${isbns.length} ISBNs`);
+    
+    // Create a map of existing books by ISBN for quick lookup
+    const booksByIsbn: Record<string, Book> = {};
+    for (const book of books) {
+      if (book.isbn) {
+        booksByIsbn[book.isbn] = book;
+      }
+    }
+    
+    // Fetch all book details in a single batch operation
     const booksMap = await batchFetchBooksWithPlaceholders(isbns);
     
-    // Enhance books with OpenLibrary data while preserving ratings and reading status
-    const enhancedBooks = books.map(book => {
+    // Process all books in a single pass
+    return books.map(book => {
       // Skip books without ISBN
       if (!book.isbn) {
-        return book;
-      }
-      
-      const details = booksMap[book.isbn];
-      if (!details) {
-        // If no details found, ensure book has at least placeholder values
         return {
           ...book,
           title: book.title || 'Unknown Title',
@@ -65,36 +68,40 @@ export async function enhanceBooksWithDetails(
         };
       }
       
-      // Select the best title to use
-      const bestTitle = (details.title && details.title !== 'Unknown Title') 
-        ? details.title 
-        : (book.title && book.title !== 'Unknown Title') 
-          ? book.title 
-          : 'Unknown Title';
+      // Get the details for this book
+      const details = booksMap[book.isbn];
+      if (!details) {
+        // Use existing data or placeholders
+        return {
+          ...book,
+          title: book.title || 'Unknown Title',
+          author: book.author || 'Unknown Author'
+        };
+      }
       
-      // Select the best author to use
-      const bestAuthor = (details.author && details.author !== 'Unknown Author') 
-        ? details.author 
-        : (book.author && book.author !== 'Unknown Author') 
-          ? book.author 
-          : 'Unknown Author';
-      
-      // Create an enhanced book object with the best available data
+      // Create an enriched book with best available data
+      // Only update fields if the new data is better than what we already have
       return {
-        ...book, // Start with original book to preserve all fields
-        title: bestTitle,
-        author: bestAuthor,
+        ...book,
+        title: (details.title && details.title !== 'Unknown Title') 
+          ? details.title 
+          : (book.title && book.title !== 'Unknown Title') 
+            ? book.title 
+            : 'Unknown Title',
+        author: (details.author && details.author !== 'Unknown Author') 
+          ? details.author 
+          : (book.author && book.author !== 'Unknown Author') 
+            ? book.author 
+            : 'Unknown Author',
         coverUrl: details.coverUrl || book.coverUrl || '',
         description: details.description || book.description || '',
         categories: details.categories || book.categories || [],
         pubDate: details.pubDate || book.pubDate || '',
         pageCount: details.pageCount || book.pageCount || 0,
-        // Explicitly preserve reading status and rating
+        // Preserve reading status
         readingStatus: book.readingStatus
       };
     });
-    
-    return enhancedBooks;
   } catch (error) {
     console.error('Error enhancing books with OpenLibrary data:', error);
     // Return the original books with placeholders for missing titles/authors

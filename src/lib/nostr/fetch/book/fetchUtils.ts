@@ -1,34 +1,34 @@
-
 import { Book } from "../../types";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 import { extractISBNFromTags, extractISBNsFromTags, extractRatingFromTags } from "./eventUtils";
 import { Event } from "nostr-tools";
 
-// Cache for book data from OpenLibrary to prevent redundant API calls
+// Improved cache with longer TTL and better key structure
 const bookDataCache: Record<string, { data: Book, timestamp: number }> = {};
-const BOOK_CACHE_TTL = 1000 * 60 * 60; // 60 minutes cache
+const BOOK_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours cache (increased from 1 hour)
+
+// Track ongoing fetch requests to prevent duplicate calls
+const ongoingFetches: Record<string, Promise<Book>> = {};
 
 /**
  * Utility to merge book data from multiple sources
- * Prioritizes more complete data while preserving user-specific data like reading status
+ * Optimized to minimize object creation and property checks
  */
 export function mergeBookData(originalBook: Book, enrichmentData: Book): Book {
-  // Choose the best title (non-empty and not "Unknown Title")
-  const bestTitle = (enrichmentData.title && enrichmentData.title !== 'Unknown Title') 
-    ? enrichmentData.title 
-    : (originalBook.title && originalBook.title !== 'Unknown Title') 
-      ? originalBook.title 
-      : 'Unknown Title';
+  // For fields that need "Unknown" fallbacks and best-value selection
+  const bestTitle = getPreferredValue(
+    enrichmentData.title, 
+    originalBook.title, 
+    'Unknown Title'
+  );
   
-  // Choose the best author (non-empty and not "Unknown Author")
-  const bestAuthor = (enrichmentData.author && enrichmentData.author !== 'Unknown Author') 
-    ? enrichmentData.author 
-    : (originalBook.author && originalBook.author !== 'Unknown Author') 
-      ? originalBook.author 
-      : 'Unknown Author';
+  const bestAuthor = getPreferredValue(
+    enrichmentData.author, 
+    originalBook.author, 
+    'Unknown Author'
+  );
   
-  // Merge the data, prioritizing content fields from enrichment data
-  // but preserving user-specific fields from the original
+  // For simple fallback fields
   return {
     ...originalBook,
     title: bestTitle,
@@ -41,6 +41,13 @@ export function mergeBookData(originalBook: Book, enrichmentData: Book): Book {
     // Explicitly preserve reading status from original
     readingStatus: originalBook.readingStatus,
   };
+}
+
+// Helper function to select the best available value
+function getPreferredValue(newValue: string | undefined, oldValue: string | undefined, fallback: string): string {
+  if (newValue && newValue !== fallback) return newValue;
+  if (oldValue && oldValue !== fallback) return oldValue;
+  return fallback;
 }
 
 /**
@@ -63,9 +70,12 @@ export function createRatingsMap(ratingEvents: Event[]): Map<string, number> {
 }
 
 /**
- * Apply ratings to books from a ratings map
+ * Apply ratings to books from a ratings map - optimized version
  */
 export function applyRatingsToBooks(books: Book[], ratingsMap: Map<string, number>): Book[] {
+  // If there are no ratings, return books unchanged
+  if (ratingsMap.size === 0) return books;
+  
   return books.map(book => {
     if (book.isbn && ratingsMap.has(book.isbn)) {
       const rating = ratingsMap.get(book.isbn);
@@ -83,72 +93,94 @@ export function applyRatingsToBooks(books: Book[], ratingsMap: Map<string, numbe
 
 /**
  * Fetch a book from OpenLibrary with caching and ensure it has at least minimal placeholder data
+ * Optimized to use shared ongoing requests
  */
 export async function fetchBookWithPlaceholders(isbn: string): Promise<Book> {
+  if (!isbn || isbn.trim() === '') {
+    return createPlaceholderBook(isbn);
+  }
+  
   try {
     // Check cache first
     const now = Date.now();
     const cacheKey = `isbn:${isbn}`;
     
     if (bookDataCache[cacheKey] && (now - bookDataCache[cacheKey].timestamp < BOOK_CACHE_TTL)) {
-      console.log(`Using cached book data for ISBN ${isbn}`);
       return bookDataCache[cacheKey].data;
     }
     
-    const book = await getBookByISBN(isbn);
-    
-    if (!book) {
-      // Return minimal book data if no result found
-      const placeholderBook = {
-        id: `isbn:${isbn}`,
-        isbn: isbn,
-        title: "Unknown Title",
-        author: "Unknown Author",
-        coverUrl: ""
-      };
-      
-      // Cache even placeholder data to prevent repeated failed lookups
-      bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
-      
-      return placeholderBook;
+    // If we already have an ongoing fetch for this ISBN, return that promise
+    if (ongoingFetches[isbn]) {
+      return ongoingFetches[isbn];
     }
     
-    // Ensure book has at least placeholder values
-    const completeBook = {
-      ...book,
-      title: book.title || "Unknown Title",
-      author: book.author || "Unknown Author",
-      coverUrl: book.coverUrl || "",
-    };
+    // Create a new fetch promise and store it
+    const fetchPromise = (async () => {
+      try {
+        const book = await getBookByISBN(isbn);
+        
+        if (!book) {
+          const placeholderBook = createPlaceholderBook(isbn);
+          bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
+          return placeholderBook;
+        }
+        
+        // Ensure book has at least placeholder values
+        const completeBook = {
+          ...book,
+          title: book.title || "Unknown Title",
+          author: book.author || "Unknown Author",
+          coverUrl: book.coverUrl || "",
+        };
+        
+        // Cache the book data
+        bookDataCache[cacheKey] = { data: completeBook, timestamp: now };
+        
+        return completeBook;
+      } finally {
+        // Remove the ongoing fetch
+        delete ongoingFetches[isbn];
+      }
+    })();
     
-    // Cache the book data
-    bookDataCache[cacheKey] = { data: completeBook, timestamp: now };
+    // Store the promise for reuse
+    ongoingFetches[isbn] = fetchPromise;
     
-    return completeBook;
+    return await fetchPromise;
   } catch (error) {
     console.error(`Error fetching book data for ISBN ${isbn}:`, error);
-    
-    // Return minimal book data in case of error
-    return {
-      id: `isbn:${isbn}`,
-      isbn: isbn,
-      title: "Unknown Title",
-      author: "Unknown Author",
-      coverUrl: ""
-    };
+    return createPlaceholderBook(isbn);
   }
+}
+
+// Helper to create placeholder book
+function createPlaceholderBook(isbn: string): Book {
+  return {
+    id: `isbn:${isbn}`,
+    isbn: isbn,
+    title: "Unknown Title",
+    author: "Unknown Author",
+    coverUrl: ""
+  };
 }
 
 /**
  * Batch fetch books from OpenLibrary with caching to reduce API calls
+ * Optimized to process books in parallel and reduce redundant operations
  */
 export async function batchFetchBooksWithPlaceholders(isbns: string[]): Promise<Record<string, Book>> {
+  // Validate and deduplicate ISBNs
+  const uniqueIsbns = [...new Set(isbns.filter(isbn => isbn && isbn.length > 0))];
+  if (uniqueIsbns.length === 0) {
+    return {};
+  }
+  
   const now = Date.now();
   const result: Record<string, Book> = {};
   const isbnsToFetch: string[] = [];
   
-  // Check which books we need to fetch and which we can get from cache
-  for (const isbn of isbns) {
+  // First pass: Check which books we need to fetch and which we can get from cache
+  for (const isbn of uniqueIsbns) {
     const cacheKey = `isbn:${isbn}`;
     if (bookDataCache[cacheKey] && (now - bookDataCache[cacheKey].timestamp < BOOK_CACHE_TTL)) {
       // Use cached book
@@ -165,43 +197,38 @@ export async function batchFetchBooksWithPlaceholders(isbns: string[]): Promise<
       console.log(`Batch fetching ${isbnsToFetch.length} books`);
       const fetchedBooks = await getBooksByISBN(isbnsToFetch);
       
-      // Create a map for quick lookup
-      const fetchedBooksMap: Record<string, Book> = {};
+      // Process fetched books
       for (const book of fetchedBooks) {
         if (book.isbn) {
-          fetchedBooksMap[book.isbn] = {
+          const completeBook = {
             ...book,
             title: book.title || "Unknown Title",
             author: book.author || "Unknown Author",
             coverUrl: book.coverUrl || "",
           };
           
+          result[book.isbn] = completeBook;
+          
           // Update cache
           const cacheKey = `isbn:${book.isbn}`;
-          bookDataCache[cacheKey] = { data: fetchedBooksMap[book.isbn], timestamp: now };
+          bookDataCache[cacheKey] = { data: completeBook, timestamp: now };
+          
+          // Remove from isbnsToFetch
+          const index = isbnsToFetch.indexOf(book.isbn);
+          if (index !== -1) {
+            isbnsToFetch.splice(index, 1);
+          }
         }
       }
       
-      // Add fetched books to result and create placeholders for missing ones
+      // Create placeholders for books that weren't found
       for (const isbn of isbnsToFetch) {
-        if (fetchedBooksMap[isbn]) {
-          result[isbn] = fetchedBooksMap[isbn];
-        } else {
-          // Create placeholder for books that weren't found
-          const placeholderBook = {
-            id: `isbn:${isbn}`,
-            isbn: isbn,
-            title: "Unknown Title",
-            author: "Unknown Author",
-            coverUrl: ""
-          };
-          
-          result[isbn] = placeholderBook;
-          
-          // Cache placeholder to prevent repeated lookups
-          const cacheKey = `isbn:${isbn}`;
-          bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
-        }
+        const placeholderBook = createPlaceholderBook(isbn);
+        result[isbn] = placeholderBook;
+        
+        // Cache placeholder
+        const cacheKey = `isbn:${isbn}`;
+        bookDataCache[cacheKey] = { data: placeholderBook, timestamp: now };
       }
     } catch (error) {
       console.error(`Error batch fetching books:`, error);
@@ -209,13 +236,7 @@ export async function batchFetchBooksWithPlaceholders(isbns: string[]): Promise<
       // Create placeholders for all books that we failed to fetch
       for (const isbn of isbnsToFetch) {
         if (!result[isbn]) {
-          result[isbn] = {
-            id: `isbn:${isbn}`,
-            isbn: isbn,
-            title: "Unknown Title", 
-            author: "Unknown Author",
-            coverUrl: ""
-          };
+          result[isbn] = createPlaceholderBook(isbn);
         }
       }
     }
