@@ -1,4 +1,3 @@
-
 import {
   publishToNostr,
   fetchEventById,
@@ -219,8 +218,19 @@ export async function markBookAsRead(book: any): Promise<string | null> {
 
 /**
  * Rate a book
+ * @param book The book object or ISBN string
+ * @param rating The rating value (0-1)
+ * @returns The ID of the rating event if successful
  */
-export async function rateBook(isbn: string, rating: number): Promise<string | null> {
+export async function rateBook(book: any | string, rating: number): Promise<string | null> {
+  // Handle both book object and direct ISBN string
+  const isbn = typeof book === 'string' ? book : book?.isbn;
+  
+  if (!isbn) {
+    console.error("Cannot rate book: No ISBN provided");
+    return null;
+  }
+  
   // Implementation (placeholder)
   console.log(`Rating book ${isbn} with ${rating} stars`);
   return "event-id";
