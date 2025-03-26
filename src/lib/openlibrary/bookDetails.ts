@@ -1,4 +1,3 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './utils';
@@ -48,10 +47,31 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       throw new Error(`API error: ${response.status}`);
     }
     
+    // Parse the response as JSON and handle different response formats
     const data = await response.json();
     console.log(`Got book data for ISBN ${isbn}:`, data);
     
-    const workKey = data.works?.[0]?.key;
+    // Handle the case where we might get an unexpected format
+    if (!data || typeof data !== 'object') {
+      console.error(`Invalid data format received for ISBN ${isbn}`);
+      throw new Error("Invalid data format");
+    }
+    
+    // If data is an array or has a docs property, it might be a search result
+    // Otherwise, treat it as a flat book metadata object
+    const bookData = Array.isArray(data) 
+      ? data[0] 
+      : data.docs 
+        ? data.docs[0] 
+        : data;
+    
+    if (!bookData) {
+      console.error(`No book data found in response for ISBN ${isbn}`);
+      throw new Error("No book data in response");
+    }
+    
+    // Extract work key from the book data - works for both formats
+    const workKey = bookData.works?.[0]?.key || bookData.key;
     
     let workData = null;
     if (workKey) {
@@ -82,8 +102,9 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     let authorNames: string[] = [];
     let authorName = "Unknown Author";
     
-    if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
-      const authorPromises = data.authors.map(async (author: any) => {
+    // Handle different author data formats
+    if (bookData.authors && Array.isArray(bookData.authors) && bookData.authors.length > 0) {
+      const authorPromises = bookData.authors.map(async (author: any) => {
         if (author.key) {
           const authorDetail = await fetchAuthorDetails(author.key);
           return authorDetail;
@@ -104,19 +125,38 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       
       authorNames = await Promise.all(authorPromises);
       authorName = authorNames[0] || "Unknown Author";
+    } else if (bookData.author_name && Array.isArray(bookData.author_name)) {
+      // Handle author_name array format (sometimes used in search results)
+      authorNames = bookData.author_name;
+      authorName = authorNames[0] || "Unknown Author";
+    } else if (typeof bookData.author === 'string') {
+      // Handle flat author string
+      authorName = bookData.author;
+      authorNames = [authorName];
     }
+    
+    // Extract or generate a book ID
+    const bookId = workData?.key || bookData.key || `isbn:${isbn}`;
+    
+    // Get the title from the most specific source
+    const bookTitle = bookData.title || workData?.title || "Unknown Title";
+    
+    // Extract the cover ID or use the ISBN for cover URL generation
+    const coverId = bookData.covers?.[0] || workData?.covers?.[0];
     
     // Create book object with available data
     const book: Book = {
-      id: workData?.key || `isbn:${isbn}`,
-      title: data.title || "Unknown Title",
+      id: bookId,
+      title: bookTitle,
       author: authorName,
       author_name: authorNames.length > 0 ? authorNames : undefined,
       isbn: isbn,
-      coverUrl: getCoverUrl(isbn, data.covers?.[0]),
-      description: typeof workData?.description === 'string' ? workData.description : workData?.description?.value || "",
-      pubDate: data.publish_date || workData?.first_publish_date || "",
-      pageCount: data.number_of_pages || 0,
+      coverUrl: getCoverUrl(isbn, coverId),
+      description: typeof workData?.description === 'string' 
+        ? workData.description 
+        : workData?.description?.value || bookData.description || "",
+      pubDate: bookData.publish_date || workData?.first_publish_date || "",
+      pageCount: bookData.number_of_pages || 0,
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
 

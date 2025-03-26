@@ -1,86 +1,108 @@
 
-import { type Event } from "nostr-tools";
+import { Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../../types";
-import { getReadingStatusFromEventKind, extractRatingFromTags as extractRatingFromTagsUtil } from "../../utils/eventUtils";
+import { extractFirstEventTag } from "../../utils/eventUtils";
 
 /**
- * Extract all ISBNs from the tags of an event
- */
-export function extractISBNsFromTags(event: Event): string[] {
-  const isbnTags = event.tags.filter(([name, value]) => {
-    if (event.kind === NOSTR_KINDS.REVIEW) {
-      return name === 'd' && value?.startsWith('isbn:');
-    } else {
-      return name === 'i' && value?.startsWith('isbn:');
-    }
-  });
-
-  return isbnTags.map(([, isbn]) => isbn.replace(/^isbn:/, ''));
-}
-
-/**
- * Extract a single ISBN from tags (used for backward compatibility)
+ * Extract ISBN from event tags
  */
 export function extractISBNFromTags(event: Event): string | null {
-  return extractISBNsFromTags(event)[0] || null;
+  const isbn = extractFirstEventTag(event, 'k', 'isbn');
+  return isbn;
 }
 
 /**
- * Extract rating from tags
- * Re-exported from utils/eventUtils for convenience
+ * Extract multiple ISBNs from event tags
+ */
+export function extractISBNsFromTags(event: Event): string[] {
+  const isbns: string[] = [];
+  if (!event.tags) return isbns;
+  
+  for (const tag of event.tags) {
+    if (tag[0] === 'k' && tag[1] === 'isbn' && tag[2]) {
+      isbns.push(tag[2]);
+    }
+  }
+  
+  return isbns;
+}
+
+/**
+ * Extract rating value from event tags
  */
 export function extractRatingFromTags(event: Event): number | undefined {
-  return extractRatingFromTagsUtil(event);
-}
-
-/**
- * Convert a Nostr event to a Book object
- */
-export function eventToBook(event: Event, isbn: string): Book | null {
-  try {
-    if (!isbn) {
-      console.warn('Missing ISBN for event:', event);
-      return null;
+  if (!event.tags) return undefined;
+  
+  for (const tag of event.tags) {
+    if (tag[0] === 'rating' && tag[1]) {
+      const rating = parseInt(tag[1], 10);
+      return isNaN(rating) ? undefined : rating;
     }
-    
-    // Default book with required fields
-    const book: Book = {
-      id: `${event.id}-${isbn}`, // Make ID unique for each book-isbn combination
-      title: "", // Will be filled in later
-      author: "", // Will be filled in later
-      isbn,
-      coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
-      description: "",
-      pubDate: "",
-      pageCount: 0,
-      categories: []
-    };
-    
-    // Extract rating if this is a review/rating event
-    let rating;
-    if (event.kind === NOSTR_KINDS.REVIEW) {
-      rating = extractRatingFromTags(event);
-      console.log(`Extracted rating ${rating} from event`, event);
-    }
-    
-    // Add event creation date as reading status date
-    const readingStatus = {
-      status: getReadingStatusFromEventKind(event.kind),
-      dateAdded: event.created_at * 1000,
-      rating: rating !== undefined ? rating : undefined
-    };
-    
-    return { ...book, readingStatus };
-  } catch (error) {
-    console.error('Error parsing book from event:', error);
-    return null;
   }
+  
+  return undefined;
 }
 
 /**
- * Simple placeholder for backward compatibility
+ * Convert an event into a Book object
  */
-export async function ensureBookMetadata(book: Book): Promise<string | null> {
-  console.log("Book metadata is no longer needed in the simplified approach");
-  return "placeholder"; // Return a non-null value to avoid errors
+export function eventToBook(event: Event, isbn?: string): Book | null {
+  if (!event) return null;
+
+  // Try to get ISBN from event if not provided as parameter
+  const bookIsbn = isbn || extractISBNFromTags(event);
+  if (!bookIsbn) return null;
+
+  // Get author name from the event tags (if present)
+  let author = null;
+  for (const tag of event.tags) {
+    if (tag[0] === 'author' && tag[1]) {
+      author = tag[1];
+      break;
+    }
+  }
+
+  // Get book title from the event tags (if present)
+  let title = null;
+  for (const tag of event.tags) {
+    if (tag[0] === 'title' && tag[1]) {
+      title = tag[1];
+      break;
+    }
+  }
+
+  // Determine the reading status based on the event kind
+  let status: 'tbr' | 'reading' | 'finished' | undefined;
+  const eventKind = event.kind;
+
+  if (eventKind === NOSTR_KINDS.BOOK_TBR) {
+    status = 'tbr';
+  } else if (eventKind === NOSTR_KINDS.BOOK_READING) {
+    status = 'reading';
+  } else if (eventKind === NOSTR_KINDS.BOOK_READ) {
+    status = 'finished';
+  }
+
+  // Extract rating if present in tags
+  const rating = extractRatingFromTags(event);
+
+  // Create the basic book object
+  const book: Book = {
+    id: `isbn:${bookIsbn}`,
+    isbn: bookIsbn,
+    title: title || undefined,
+    author: author || undefined,
+    readingStatus: status ? {
+      status,
+      dateAdded: event.created_at * 1000, // Convert UNIX timestamp to milliseconds
+      rating: rating
+    } : undefined
+  };
+
+  return book;
 }
+
+// Re-export all functions for use elsewhere
+export { 
+  extractRatingFromTags 
+};
