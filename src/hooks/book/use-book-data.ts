@@ -9,12 +9,30 @@ export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
   const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
+  const [partialBookData, setPartialBookData] = useState<any>(null);
 
   // Get book from library with optimized memoization
   const libraryBook = useCallback(() => {
     if (!isbn) return null;
     return getBookByISBN(isbn);
   }, [isbn, getBookByISBN]);
+
+  // Check for library book immediately to show partial data
+  useEffect(() => {
+    const userBook = libraryBook();
+    if (userBook) {
+      setPartialBookData(userBook);
+    } else if (isbn) {
+      // Create minimal placeholder if we at least have an ISBN
+      setPartialBookData({
+        id: `isbn:${isbn}`,
+        isbn: isbn,
+        title: "Loading...",
+        author: "Loading...",
+        coverUrl: ""
+      });
+    }
+  }, [isbn, libraryBook]);
 
   // Optimized query using a single fetching strategy with fallbacks
   const { 
@@ -117,15 +135,26 @@ export const useBookData = (isbn: string | undefined) => {
   const bookWithRating = findBookWithRating();
   const userRating = bookWithRating?.readingStatus?.rating;
 
-  // Update the book object with the reading status and rating - optimized to reduce object creation
-  const enrichedBook = book ? {
-    ...book,
-    readingStatus: readingStatus ? {
-      status: readingStatus,
-      dateAdded: Date.now(),
-      rating: userRating !== undefined ? userRating : book.readingStatus?.rating
-    } : book.readingStatus
-  } : null;
+  // Merge book data with user's reading status and rating
+  const processBookData = useCallback((bookData: any | null) => {
+    if (!bookData) return null;
+    
+    return {
+      ...bookData,
+      readingStatus: readingStatus ? {
+        status: readingStatus,
+        dateAdded: Date.now(),
+        rating: userRating !== undefined ? userRating : bookData.readingStatus?.rating
+      } : bookData.readingStatus
+    };
+  }, [readingStatus, userRating]);
+
+  // Process both full and partial book data
+  const enrichedBook = processBookData(book);
+  const enrichedPartialBook = processBookData(partialBookData);
+
+  // Final data to return - use full data if available, otherwise partial
+  const finalBookData = enrichedBook || enrichedPartialBook;
 
   // Reduce unnecessary refetches
   useEffect(() => {
@@ -137,14 +166,15 @@ export const useBookData = (isbn: string | undefined) => {
 
   // Set read status when book data is available
   useEffect(() => {
-    if (enrichedBook) {
-      setIsRead(enrichedBook.readingStatus?.status === 'finished');
+    if (finalBookData) {
+      setIsRead(finalBookData.readingStatus?.status === 'finished');
     }
-  }, [enrichedBook]);
+  }, [finalBookData]);
 
   return {
-    book: enrichedBook,
-    loading: isLoading,
+    book: finalBookData,
+    loading: isLoading && !partialBookData,
+    partialData: !book && !!partialBookData,
     isRead,
     setIsRead,
     error,
