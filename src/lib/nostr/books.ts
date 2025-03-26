@@ -1,3 +1,4 @@
+
 import {
   publishToNostr,
   fetchEventById,
@@ -126,4 +127,157 @@ export async function fetchReactions(eventId: string): Promise<{ count: number; 
     console.error("Error fetching reactions:", error);
     return { count: 0, userReacted: false };
   }
+}
+
+/**
+ * Fetch replies for a specific event
+ * @param eventId The ID of the event to fetch replies for
+ * @returns An array of replies
+ */
+export async function fetchReplies(eventId: string): Promise<any[]> {
+  if (!eventId) {
+    console.error("Cannot fetch replies: No event ID provided");
+    return [];
+  }
+
+  const relays = getUserRelays();
+  const pool = getSharedPool();
+  
+  try {
+    // Create a filter to find replies to this event
+    const filter: Filter = {
+      kinds: [NOSTR_KINDS.POST_REPLY],
+      "#e": [eventId]
+    };
+    
+    const events = await pool.querySync(relays, filter);
+    
+    // Process the replies
+    const replies = await Promise.all(events.map(async (event) => {
+      try {
+        // Try to get the author's profile
+        const authorProfile = await fetchUserProfile(event.pubkey);
+        
+        return {
+          id: event.id,
+          pubkey: event.pubkey,
+          content: event.content,
+          createdAt: event.created_at * 1000,
+          parentId: eventId,
+          author: authorProfile ? {
+            name: authorProfile.name || authorProfile.display_name || "Unknown",
+            picture: authorProfile.picture,
+            npub: event.pubkey
+          } : undefined
+        };
+      } catch (error) {
+        console.error("Error processing reply:", error);
+        return {
+          id: event.id,
+          pubkey: event.pubkey,
+          content: event.content,
+          createdAt: event.created_at * 1000,
+          parentId: eventId
+        };
+      }
+    }));
+    
+    // Sort by timestamp, newest first
+    return replies.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error fetching replies:", error);
+    return [];
+  }
+}
+
+/**
+ * Add a book to TBR list
+ */
+export async function addBookToTBR(book: any): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log("Adding book to TBR:", book);
+  return "event-id";
+}
+
+/**
+ * Mark a book as reading
+ */
+export async function markBookAsReading(book: any): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log("Marking book as reading:", book);
+  return "event-id";
+}
+
+/**
+ * Mark a book as read
+ */
+export async function markBookAsRead(book: any): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log("Marking book as read:", book);
+  return "event-id";
+}
+
+/**
+ * Rate a book
+ */
+export async function rateBook(isbn: string, rating: number): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log(`Rating book ${isbn} with ${rating} stars`);
+  return "event-id";
+}
+
+/**
+ * Review a book
+ */
+export async function reviewBook(book: any, reviewText: string, rating?: number): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log(`Reviewing book ${book.isbn} with text: ${reviewText}, rating: ${rating}`);
+  return "event-id";
+}
+
+/**
+ * Add a book to a specific list
+ */
+export async function addBookToList(book: any, listType: string): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log(`Adding book ${book.isbn} to list: ${listType}`);
+  return "event-id";
+}
+
+/**
+ * Update a book in a specific list
+ */
+export async function updateBookInList(book: any, listType: string): Promise<boolean> {
+  // Implementation (placeholder)
+  console.log(`Updating book ${book.isbn} in list: ${listType}`);
+  return true;
+}
+
+/**
+ * Remove a book from a specific list
+ */
+export async function removeBookFromList(book: any, listType: string): Promise<boolean> {
+  // Implementation (placeholder)
+  console.log(`Removing book ${book.isbn} from list: ${listType}`);
+  return true;
+}
+
+/**
+ * Follow a user
+ */
+export async function followUser(pubkey: string): Promise<string | null> {
+  // Implementation (placeholder)
+  console.log(`Following user: ${pubkey}`);
+  return "event-id";
+}
+
+/**
+ * External reference to fetchUserProfile, prevent circular imports
+ */
+// This is just a placeholder, as we need to prevent circular imports
+let fetchUserProfile: (pubkey: string) => Promise<any> = async () => null;
+
+// Set the real fetchUserProfile function later to avoid circular dependencies
+export function setFetchUserProfileFn(fn: (pubkey: string) => Promise<any>) {
+  fetchUserProfile = fn;
 }

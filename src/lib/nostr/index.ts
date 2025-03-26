@@ -1,3 +1,4 @@
+
 // Export types
 export * from "./types";
 
@@ -44,7 +45,12 @@ export {
   reviewBook,
   reactToContent,
   replyToContent,
-  fetchReactions
+  fetchReactions,
+  fetchReplies,
+  addBookToList,
+  updateBookInList,
+  removeBookFromList,
+  followUser
 } from "./books";
 
 // Export fetch functions
