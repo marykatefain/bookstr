@@ -1,3 +1,4 @@
+
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, fetchAuthorDetails } from './utils';
@@ -49,7 +50,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     
     // Parse the response as JSON and handle different response formats
     const data = await response.json();
-    console.log(`Got book data for ISBN ${isbn}:`, data);
+    console.log(`Raw book data for ISBN ${isbn}:`, JSON.stringify(data));
     
     // Handle the case where we might get an unexpected format
     if (!data || typeof data !== 'object') {
@@ -104,35 +105,47 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     
     // Handle different author data formats
     if (bookData.authors && Array.isArray(bookData.authors) && bookData.authors.length > 0) {
+      console.log(`Found authors array in book data:`, bookData.authors);
       const authorPromises = bookData.authors.map(async (author: any) => {
         if (author.key) {
           const authorDetail = await fetchAuthorDetails(author.key);
           return authorDetail;
-        }
-        return author.name || "Unknown Author";
-      });
-      
-      authorNames = await Promise.all(authorPromises);
-      authorName = authorNames[0] || "Unknown Author";
-    } else if (workData?.authors && Array.isArray(workData.authors)) {
-      const authorPromises = workData.authors.map(async (author: any) => {
-        if (author.author?.key) {
-          const authorDetail = await fetchAuthorDetails(author.author.key);
-          return authorDetail;
+        } else if (author.name) {
+          return author.name;
         }
         return "Unknown Author";
       });
       
       authorNames = await Promise.all(authorPromises);
       authorName = authorNames[0] || "Unknown Author";
+      console.log(`Resolved author names: ${authorNames.join(', ')}`);
+    } else if (workData?.authors && Array.isArray(workData.authors)) {
+      console.log(`Found authors array in work data:`, workData.authors);
+      const authorPromises = workData.authors.map(async (author: any) => {
+        if (author.author?.key) {
+          const authorDetail = await fetchAuthorDetails(author.author.key);
+          return authorDetail;
+        } else if (author.name) {
+          return author.name;
+        }
+        return "Unknown Author";
+      });
+      
+      authorNames = await Promise.all(authorPromises);
+      authorName = authorNames[0] || "Unknown Author";
+      console.log(`Resolved author names from work data: ${authorNames.join(', ')}`);
     } else if (bookData.author_name && Array.isArray(bookData.author_name)) {
       // Handle author_name array format (sometimes used in search results)
       authorNames = bookData.author_name;
       authorName = authorNames[0] || "Unknown Author";
+      console.log(`Using author_name array: ${authorNames.join(', ')}`);
     } else if (typeof bookData.author === 'string') {
       // Handle flat author string
       authorName = bookData.author;
       authorNames = [authorName];
+      console.log(`Using flat author string: ${authorName}`);
+    } else {
+      console.log(`No author information found in data for ISBN ${isbn}, using default`);
     }
     
     // Extract or generate a book ID
@@ -140,6 +153,7 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
     
     // Get the title from the most specific source
     const bookTitle = bookData.title || workData?.title || "Unknown Title";
+    console.log(`Extracted title: ${bookTitle}`);
     
     // Extract the cover ID or use the ISBN for cover URL generation
     const coverId = bookData.covers?.[0] || workData?.covers?.[0];
@@ -154,13 +168,20 @@ export async function getBookByISBN(isbn: string): Promise<Book | null> {
       coverUrl: getCoverUrl(isbn, coverId),
       description: typeof workData?.description === 'string' 
         ? workData.description 
-        : workData?.description?.value || bookData.description || "",
+        : workData?.description?.value || 
+          (typeof bookData.description === 'string' 
+            ? bookData.description 
+            : bookData.description?.value || ""),
       pubDate: bookData.publish_date || workData?.first_publish_date || "",
       pageCount: bookData.number_of_pages || 0,
       categories: workData?.subjects?.slice(0, 3).map((s: string) => s.replace(/^./, (c: string) => c.toUpperCase())) || []
     };
 
-    console.log(`Successfully processed book data for ISBN ${isbn}`, book);
+    console.log(`Processed book data for ISBN ${isbn}:`, {
+      title: book.title,
+      author: book.author,
+      description: book.description ? book.description.substring(0, 100) + '...' : 'No description'
+    });
 
     // Cache the result
     bookCache[isbn] = { data: book, timestamp: now };
@@ -262,6 +283,8 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
     return [];
   }
 
+  console.log(`getBooksByISBN called for ${validIsbns.length} ISBNs:`, validIsbns);
+
   // Check cache first for all books
   const now = Date.now();
   const cachedBooks: Book[] = [];
@@ -270,6 +293,7 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   validIsbns.forEach(isbn => {
     const cached = bookCache[isbn];
     if (cached && cached.data && (now - cached.timestamp < CACHE_TTL)) {
+      console.log(`Using cached data for ISBN ${isbn}`);
       cachedBooks.push(cached.data);
     } else {
       isbnsToFetch.push(isbn);
@@ -278,13 +302,22 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   // If all books are cached, return them immediately
   if (isbnsToFetch.length === 0) {
+    console.log(`All ${cachedBooks.length} books found in cache`);
     return cachedBooks;
   }
+  
+  console.log(`Fetching ${isbnsToFetch.length} books from API`);
   
   // Fetch missing books with concurrency limit
   const fetchBook = async (isbn: string): Promise<Book | null> => {
     try {
-      return await getBookByISBN(isbn);
+      const book = await getBookByISBN(isbn);
+      if (book) {
+        console.log(`Successfully fetched book for ISBN ${isbn}: ${book.title} by ${book.author}`);
+      } else {
+        console.log(`Failed to fetch book for ISBN ${isbn}`);
+      }
+      return book;
     } catch (error) {
       console.error(`Error fetching book ${isbn}:`, error);
       return null;
@@ -297,9 +330,16 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   for (let i = 0; i < isbnsToFetch.length; i += batchSize) {
     const batch = isbnsToFetch.slice(i, i + batchSize);
+    console.log(`Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(isbnsToFetch.length/batchSize)}: ${batch.join(', ')}`);
     const batchResults = await Promise.all(batch.map(fetchBook));
-    fetchedBooks.push(...batchResults.filter((book): book is Book => book !== null));
+    const validResults = batchResults.filter((book): book is Book => book !== null);
+    console.log(`Batch ${Math.floor(i/batchSize) + 1} results: ${validResults.length}/${batch.length} books`);
+    fetchedBooks.push(...validResults);
   }
   
-  return [...cachedBooks, ...fetchedBooks];
+  const allBooks = [...cachedBooks, ...fetchedBooks];
+  console.log(`Returning ${allBooks.length} books (${cachedBooks.length} from cache, ${fetchedBooks.length} from API)`);
+  
+  return allBooks;
 }
+

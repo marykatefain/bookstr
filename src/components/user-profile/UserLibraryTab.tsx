@@ -30,6 +30,14 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
       ].filter(Boolean) as string[];
 
       console.log(`Starting enhancement process for ${allIsbns.length} books`);
+      
+      // Log the original books to verify what we're starting with
+      console.log('Original TBR books:', userBooks.tbr.map(b => ({
+        isbn: b.isbn,
+        title: b.title || 'No Title',
+        author: b.author || 'No Author',
+        hasRating: b.readingStatus?.rating !== undefined
+      })));
 
       // Enhanced books - passing in both books and their ISBNs to get details
       // Processing each category separately to maintain structure
@@ -55,7 +63,8 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
           title: b.title, 
           author: b.author,
           hasTitle: b.title !== 'Unknown Title',
-          hasAuthor: b.author !== 'Unknown Author'
+          hasAuthor: b.author !== 'Unknown Author',
+          hasRating: b.readingStatus?.rating !== undefined
         }))
       );
       
@@ -65,7 +74,8 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
           title: b.title, 
           author: b.author,
           hasTitle: b.title !== 'Unknown Title',
-          hasAuthor: b.author !== 'Unknown Author'
+          hasAuthor: b.author !== 'Unknown Author',
+          hasRating: b.readingStatus?.rating !== undefined
         }))
       );
       
@@ -75,7 +85,8 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
           title: b.title, 
           author: b.author,
           hasTitle: b.title !== 'Unknown Title',
-          hasAuthor: b.author !== 'Unknown Author'
+          hasAuthor: b.author !== 'Unknown Author',
+          hasRating: b.readingStatus?.rating !== undefined
         }))
       );
 
@@ -96,7 +107,22 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
   useEffect(() => {
     if (enhancedUserBooks) {
       console.log('Rendering Currently Reading section with', enhancedUserBooks.reading.length, 'books');
+      console.log('Reading books with titles:', enhancedUserBooks.reading.map(book => ({
+        isbn: book.isbn,
+        title: book.title,
+        author: book.author,
+        hasTitle: book.title !== 'Unknown Title',
+        hasAuthor: book.author !== 'Unknown Author'
+      })));
+      
       console.log('Rendering To Be Read section with', enhancedUserBooks.tbr.length, 'books');
+      console.log('TBR books with titles:', enhancedUserBooks.tbr.map(book => ({
+        isbn: book.isbn,
+        title: book.title,
+        author: book.author,
+        hasTitle: book.title !== 'Unknown Title',
+        hasAuthor: book.author !== 'Unknown Author'
+      })));
       
       const tbrBooksWithRatings = enhancedUserBooks.tbr.filter(book => 
         book.readingStatus?.rating !== undefined
@@ -113,6 +139,13 @@ export const UserLibraryTab: React.FC<UserLibraryTabProps> = ({ userBooks }) => 
       }
       
       console.log('Rendering Read section with', enhancedUserBooks.read.length, 'books');
+      console.log('Read books with titles:', enhancedUserBooks.read.map(book => ({
+        isbn: book.isbn,
+        title: book.title,
+        author: book.author,
+        hasTitle: book.title !== 'Unknown Title',
+        hasAuthor: book.author !== 'Unknown Author'
+      })));
       
       const readBooksWithRatings = enhancedUserBooks.read.filter(book => 
         book.readingStatus?.rating !== undefined

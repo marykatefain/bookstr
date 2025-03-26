@@ -44,14 +44,16 @@ export async function enhanceBooksWithDetails(
     const bookDetails = await getBooksByISBN(isbns);
     console.log('Received book details from OpenLibrary:', bookDetails.map(book => ({ 
       isbn: book.isbn, 
-      title: book.title || 'No Title', 
-      author: book.author || 'No Author' 
+      title: book.title, 
+      author: book.author,
+      hasTitle: book.title !== 'Unknown Title',
+      hasAuthor: book.author !== 'Unknown Author' 
     })));
     
     // Create a map for quick lookup
     const bookDetailsMap = new Map<string, Book>();
     bookDetails.forEach(book => {
-      if (book.isbn) {
+      if (book?.isbn) {
         bookDetailsMap.set(book.isbn, book);
       }
     });
@@ -80,11 +82,15 @@ export async function enhanceBooksWithDetails(
         newAuthor: details.author || 'None'
       });
       
+      // Only use OpenLibrary data if it's better than what we have
+      const useTitle = (details.title && details.title !== 'Unknown Title') ? details.title : (book.title || 'Unknown Title');
+      const useAuthor = (details.author && details.author !== 'Unknown Author') ? details.author : (book.author || 'Unknown Author');
+      
       // Create an enhanced book object with OpenLibrary data
       const enhancedBook = {
         ...book, // Start with original book to preserve all fields
-        title: details.title || book.title || 'Unknown Title',
-        author: details.author || book.author || 'Unknown Author',
+        title: useTitle,
+        author: useAuthor,
         coverUrl: details.coverUrl || book.coverUrl || '',
         description: details.description || book.description || '',
         readingStatus: book.readingStatus // Preserve reading status and rating
@@ -93,7 +99,9 @@ export async function enhanceBooksWithDetails(
       // Log the enhanced book for debugging
       console.log(`Enhanced book ${book.isbn} result:`, {
         title: enhancedBook.title,
-        author: enhancedBook.author
+        author: enhancedBook.author,
+        hasGoodTitle: enhancedBook.title !== 'Unknown Title',
+        hasGoodAuthor: enhancedBook.author !== 'Unknown Author'
       });
       
       return enhancedBook;
@@ -102,7 +110,9 @@ export async function enhanceBooksWithDetails(
     console.log('Final enhanced books:', enhancedBooks.map(book => ({ 
       isbn: book.isbn, 
       title: book.title, 
-      author: book.author 
+      author: book.author,
+      hasGoodTitle: book.title !== 'Unknown Title',
+      hasGoodAuthor: book.author !== 'Unknown Author' 
     })));
     
     return enhancedBooks;
