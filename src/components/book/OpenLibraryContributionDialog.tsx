@@ -26,14 +26,8 @@ export const OpenLibraryContributionDialog: React.FC<OpenLibraryContributionDial
   missingFields
 }) => {
   const handleContribute = () => {
-    // Construct the OpenLibrary URL for editing this book
-    let openLibraryUrl = "https://openlibrary.org/books/add";
-    
-    // If we have an ISBN, add it to the URL as a query parameter
-    if (book.isbn) {
-      // Check if the URL already has parameters
-      openLibraryUrl += `?isbn=${book.isbn}`;
-    }
+    // Just point to the OpenLibrary homepage
+    const openLibraryUrl = "https://openlibrary.org";
     
     // Open the URL in a new tab
     window.open(openLibraryUrl, "_blank", "noopener,noreferrer");
