@@ -69,7 +69,7 @@ function reactionReducer(state: ReactionState, action: ReactionAction): Reaction
     case 'RESET_REACTIONS':
       return {
         reactions: {},
-        pendingReactions: new Set()
+        pendingReactions: new Set<string>()
       };
     default:
       return state;
@@ -80,7 +80,7 @@ function reactionReducer(state: ReactionState, action: ReactionAction): Reaction
 export function ReactionProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reactionReducer, {
     reactions: {},
-    pendingReactions: new Set()
+    pendingReactions: new Set<string>()
   });
   
   const { toast } = useToast();
