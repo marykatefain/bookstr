@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
-import { rateBook } from "@/lib/nostr";
+import { rateBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
@@ -77,12 +78,28 @@ export const BookCover: React.FC<BookCoverProps> = ({
         onRatingChange(newRating);
       } else {
         // If no callback is provided, we'll handle the rating ourselves
-        // But we should still check for previous review content to preserve
+        // We need to preserve any existing review content
+        let existingContent = '';
         
-        // Since we're in BookCover component, we don't have direct access to reviews
-        // We'll use the rateBook function directly with the empty content
-        // The rateBook function in lib/nostr/books.ts will need to be updated separately
-        await rateBook(bookIsbn, newRating);
+        try {
+          const reviews = await fetchBookReviews(bookIsbn);
+          if (reviews.length > 0) {
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+              const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
+              
+              if (userPreviousReview && userPreviousReview.content && userPreviousReview.content.trim()) {
+                console.log("Found previous review content, preserving it:", userPreviousReview.content);
+                existingContent = userPreviousReview.content;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching previous reviews:", error);
+        }
+        
+        // Now pass the existing content as well to preserve it
+        await rateBook(bookIsbn, newRating, existingContent);
         
         toast({
           title: "Rating saved",

@@ -116,6 +116,12 @@ const BookDetail = () => {
     }
   }, [book, loading, isbn, openContributionDialog]);
 
+  const handleRateBookWrapper = (rating: number) => {
+    if (book) {
+      handleRateBook(book, rating);
+    }
+  };
+
   const handleRemoveFromReadList = () => {
     if (book) {
       handleRemoveBookFromList(book, 'finished');
@@ -161,7 +167,7 @@ const BookDetail = () => {
           handleMarkAsRead={handleMarkAsRead}
           addBookToList={handleAddBookToList}
           handleRemove={isRead ? handleRemoveFromReadList : undefined}
-          handleRateBook={handleRateBook}
+          handleRateBook={handleRateBookWrapper}
         />
         
         <Separator className="my-8" />
@@ -181,7 +187,7 @@ const BookDetail = () => {
               setReviewText={setReviewText}
               submitting={submitting}
               handleSubmitReview={handleSubmitReview}
-              handleRateBook={handleRateBook}
+              handleRateBook={handleRateBookWrapper}
               handleReactToReview={handleReactToActivity}
               isSpoiler={isSpoiler}
               setIsSpoiler={setIsSpoiler}

@@ -6,7 +6,8 @@ export * from './profile';
 // Don't export everything from './publish'
 export {
   publishToNostr,
-  updateNostrEvent
+  updateNostrEvent,
+  reactToContent  // Make sure reactToContent is exported here
 } from './publish';
 export * from './relay';
 
@@ -72,7 +73,7 @@ import {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
-  rateBook,
+  rateBook as rateBookFromBooks,  // Renamed to be clear that it's from books
   reviewBook,
   replyToContent,
   updateBookInList,
@@ -93,7 +94,7 @@ export {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
-  rateBook,
+  rateBookFromBooks as rateBook,  // Export as rateBook for backward compatibility
   reviewBook,
   replyToContent,
   updateBookInList,

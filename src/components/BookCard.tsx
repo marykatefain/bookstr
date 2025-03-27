@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -223,9 +224,11 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
 
     try {
+      // Use the previous review content if available
       const content = previousReview || '';
       
-      await rateBook(book.isbn, rating);
+      // Pass the content as the third parameter to preserve it
+      await rateBook(book.isbn, rating, content);
       
       toast({
         title: "Rating saved",

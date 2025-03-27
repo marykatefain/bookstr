@@ -187,8 +187,8 @@ export const useBookActions = () => {
         console.error("Error fetching previous reviews:", error);
       }
       
-      // Fix the argument count - check the API signature
-      await rateBook(book.isbn, rating);
+      // Pass the reviewContent as the third parameter to preserve it
+      await rateBook(book.isbn, rating, reviewContent);
       
       toast({
         title: "Rating saved",
