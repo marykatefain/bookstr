@@ -16,15 +16,15 @@ export * from './types';
 
 // Handle conflicting exports by re-exporting with different names
 // Re-export posts functions, but handle the naming conflict
-import { fetchBookPosts as fetchBookPostsFromPosts } from './posts';
+import { fetchBookPosts } from './posts';
 export { 
-  fetchBookPostsFromPosts as fetchBookPostsByUserFromPosts,
+  fetchBookPosts as fetchBookPostsByUserFromPosts,
   // Export all other functions from posts except fetchBookPosts to avoid conflict
   createBookPost,
   fetchUserPosts
 } from './posts';
 
-// Re-export fetchEventById from fetch and books with different names to avoid conflicts
+// Re-export fetchEventById from fetch/social/fetchEvent with a different name to avoid conflicts
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
 export { fetchEventByIdFromFetch };
 
