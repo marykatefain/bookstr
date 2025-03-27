@@ -5,6 +5,7 @@ import { BookOpen, Check, Star, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookCover } from "@/components/book/BookCover";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BookCoverSectionProps {
   book: Book;
@@ -28,6 +29,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   const isReading = readingStatus === 'reading';
   const isFinished = readingStatus === 'finished';
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const showActionButtons = !isFinished;
   
@@ -96,7 +98,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
                 ) : (
                   <Star className="mr-2 h-4 w-4" />
                 )}
-                {isReading ? "Currently Reading" : "Start Reading"}
+                {isReading ? "Reading" : "Start Reading"}
               </Button>
             </div>
           )}
