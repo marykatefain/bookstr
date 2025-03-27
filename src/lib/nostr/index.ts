@@ -6,7 +6,8 @@ export * from './publish';
 export * from './relay';
 
 // Re-export fetch utility
-export * from './fetch';
+// Don't re-export everything from ./fetch - we'll handle specific exports to avoid conflicts
+// export * from './fetch';
 
 // Re-export reactions and replies functions
 export * from './fetch/social/interactions';
@@ -23,6 +24,38 @@ export {
   createBookPost,
   fetchUserPosts
 } from './posts';
+
+// Re-export specific functions from fetch to avoid conflicts
+import { 
+  fetchUserBooks, 
+  fetchBooksByISBN, 
+  fetchBookByISBN,
+  fetchBookReviews,
+  fetchBookRatings,
+  fetchUserReviews,
+  fetchFollowingList,
+  fetchUserProfile,
+  fetchSocialFeed,
+  fetchGlobalSocialFeed,
+  fetchBookPosts as fetchBookPostsFromFetch,
+  fetchBookActivity
+} from './fetch';
+
+// Re-export them all individually
+export {
+  fetchUserBooks, 
+  fetchBooksByISBN, 
+  fetchBookByISBN,
+  fetchBookReviews,
+  fetchBookRatings,
+  fetchUserReviews,
+  fetchFollowingList,
+  fetchUserProfile,
+  fetchSocialFeed,
+  fetchGlobalSocialFeed,
+  fetchBookPostsFromFetch,
+  fetchBookActivity
+};
 
 // Re-export fetchEventById from fetch/social/fetchEvent with a different name to avoid conflicts
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
