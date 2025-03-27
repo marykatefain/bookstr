@@ -34,17 +34,11 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
     
     // Construct the API URL
     const apiUrl = `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
-    
-    // Set up request with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
-    
+  
     const response = await fetch(apiUrl, {
-      signal: controller.signal
+      signal: AbortSignal.timeout(quickMode ? 5000 : 8000)
     });
-    
-    clearTimeout(timeoutId);
-    
+      
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -189,16 +183,10 @@ export async function searchBooksByGenre(
     // Construct the API URL with sort=new to prioritize newer books
     const apiUrl = `${BASE_URL}/subjects/${encodeURIComponent(formattedGenre)}.json?limit=${limit * 2}&sort=new`;
     
-    // Set up request with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
-    
     const response = await fetch(apiUrl, {
-      signal: controller.signal
+      signal: AbortSignal.timeout(quickMode ? 5000 : 8000),
     });
-    
-    clearTimeout(timeoutId);
-    
+      
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
