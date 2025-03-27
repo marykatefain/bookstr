@@ -13,7 +13,6 @@ import { fetchReplies } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { getBookByISBN } from "@/lib/openlibrary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 const ReviewDetail = () => {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -180,8 +179,7 @@ const ReviewDetail = () => {
     );
   }
 
-  const displayRating = convertRawRatingToDisplayRating(review.rating);
-  console.log("Raw rating:", review.rating, "Display rating:", displayRating);
+  const rating = review.rating;
 
   return (
     <Layout>
@@ -218,13 +216,13 @@ const ReviewDetail = () => {
                 </div>
               </div>
               
-              {displayRating !== undefined && (
+              {rating !== undefined && (
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < displayRating
+                        i < rating
                           ? "text-bookverse-highlight fill-bookverse-highlight"
                           : "text-muted-foreground"
                       }`}

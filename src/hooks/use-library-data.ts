@@ -5,6 +5,7 @@ import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
 import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 export const useLibraryData = () => {
   const [user, setUser] = useState(getCurrentUser());
@@ -107,32 +108,7 @@ export const useLibraryData = () => {
     };
   };
   
-  const {
-    data: posts = [],
-    isLoading: postsLoading,
-    error: postsError
-  } = useQuery({
-    queryKey: ['userPosts', user?.pubkey],
-    queryFn: async () => {
-      if (!isLoggedIn() || !user?.pubkey) {
-        return [];
-      }
-      
-      try {
-        console.log("Fetching book posts for user:", user.pubkey);
-        const userPosts = await fetchBookPosts(user.pubkey, false);
-        console.log("Fetched posts:", userPosts);
-        return userPosts;
-      } catch (error) {
-        console.error("Error fetching user posts:", error);
-        throw error;
-      }
-    },
-    enabled: !!user?.pubkey && isLoggedIn(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true
-  });
-  
+  // Fetch reviews to get the ratings
   const {
     data: reviews = [],
     isLoading: reviewsLoading,
@@ -151,6 +127,77 @@ export const useLibraryData = () => {
         return userReviews;
       } catch (error) {
         console.error("Error fetching user reviews:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true
+  });
+  
+  // Merge ratings into the book objects
+  useEffect(() => {
+    if (reviews.length > 0 && booksData) {
+      console.log("Adding ratings to books from reviews");
+      
+      // Create a map of isbn -> rating for quick lookup
+      const ratingsMap = new Map<string, number>();
+      reviews.forEach(review => {
+        if (review.bookIsbn && review.rating !== undefined) {
+          const displayRating = convertRawRatingToDisplayRating(review.rating);
+          ratingsMap.set(review.bookIsbn, displayRating);
+        }
+      });
+      
+      console.log(`Found ${ratingsMap.size} ratings to apply to books`);
+      
+      // Apply ratings to books
+      const applyRatingsToBooks = (bookList: Book[]): Book[] => {
+        return bookList.map(book => {
+          if (book.isbn && ratingsMap.has(book.isbn)) {
+            console.log(`Applying rating ${ratingsMap.get(book.isbn)} to book ${book.title} (${book.isbn})`);
+            return {
+              ...book,
+              readingStatus: {
+                ...book.readingStatus!,
+                rating: ratingsMap.get(book.isbn)
+              }
+            };
+          }
+          return book;
+        });
+      };
+      
+      // Apply ratings to all book categories
+      const updatedReadBooks = applyRatingsToBooks(booksData.read);
+      const updatedReadingBooks = applyRatingsToBooks(booksData.reading);
+      const updatedTbrBooks = applyRatingsToBooks(booksData.tbr);
+      
+      // Update the books data with ratings
+      booksData.read = updatedReadBooks;
+      booksData.reading = updatedReadingBooks;
+      booksData.tbr = updatedTbrBooks;
+    }
+  }, [reviews, booksData]);
+  
+  const {
+    data: posts = [],
+    isLoading: postsLoading,
+    error: postsError
+  } = useQuery({
+    queryKey: ['userPosts', user?.pubkey],
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return [];
+      }
+      
+      try {
+        console.log("Fetching book posts for user:", user.pubkey);
+        const userPosts = await fetchBookPosts(user.pubkey, false);
+        console.log("Fetched posts:", userPosts);
+        return userPosts;
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
         throw error;
       }
     },

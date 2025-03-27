@@ -26,9 +26,6 @@ export function BookReviewActivity({
 }: BookReviewActivityProps) {
   const [imageError, setImageError] = useState(false);
   
-  // Convert rating to a number between 1-5 if it exists
-  const displayRating = rating !== undefined ? Math.round(rating) : undefined;
-  
   return (
     <div className="flex gap-3">
       {bookCover && !imageError && (
@@ -63,12 +60,12 @@ export function BookReviewActivity({
             </Link>
           )}
         </div>
-        {displayRating && (
+        {rating && (
           <div className="flex items-center mt-1">
             {Array(5).fill(0).map((_, index) => (
               <Star
                 key={index}
-                className={`h-4 w-4 ${index < displayRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                className={`h-4 w-4 ${index < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
               />
             ))}
           </div>

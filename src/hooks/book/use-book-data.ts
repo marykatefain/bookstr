@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
@@ -8,24 +9,32 @@ export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
   const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
+  const [partialBookData, setPartialBookData] = useState<any>(null);
 
-  // First try to get the book from the user's library which might have more data
+  // Get book from library with optimized memoization
   const libraryBook = useCallback(() => {
     if (!isbn) return null;
-    const book = getBookByISBN(isbn);
-    
-    if (book) {
-      console.log(`Found book in user's library for ISBN ${isbn}:`, {
-        hasTitle: !!book.title && book.title !== 'Unknown Title',
-        hasAuthor: !!book.author && book.author !== 'Unknown Author',
-        title: book.title,
-        author: book.author
-      });
-    }
-    
-    return book;
+    return getBookByISBN(isbn);
   }, [isbn, getBookByISBN]);
 
+  // Check for library book immediately to show partial data
+  useEffect(() => {
+    const userBook = libraryBook();
+    if (userBook) {
+      setPartialBookData(userBook);
+    } else if (isbn) {
+      // Create minimal placeholder if we at least have an ISBN
+      setPartialBookData({
+        id: `isbn:${isbn}`,
+        isbn: isbn,
+        title: "Loading...",
+        author: "Loading...",
+        coverUrl: ""
+      });
+    }
+  }, [isbn, libraryBook]);
+
+  // Optimized query using a single fetching strategy with fallbacks
   const { 
     data: book = null, 
     isLoading,
@@ -35,89 +44,52 @@ export const useBookData = (isbn: string | undefined) => {
     queryKey: ['book', isbn],
     queryFn: async () => {
       if (!isbn) return null;
-      console.log(`Fetching book details for ISBN: ${isbn}`);
       
-      // First check if the book is in the user's library
+      // First check if the book is in the user's library with complete data
       const userBook = libraryBook();
       
-      // Only use user's book if it has complete data
-      if (userBook && userBook.title && userBook.author && 
-          userBook.title !== 'Unknown Title' && userBook.author !== 'Unknown Author') {
-        console.log(`Using user's library book data for ISBN: ${isbn}`, userBook);
+      if (userBook && isBookDataComplete(userBook)) {
         return userBook;
-      } else if (userBook) {
-        console.log(`User's library book data for ISBN: ${isbn} is incomplete:`, {
-          hasTitle: !!userBook.title && userBook.title !== 'Unknown Title',
-          hasAuthor: !!userBook.author && userBook.author !== 'Unknown Author'
-        });
       }
       
       try {
-        // First try with fetchBookByISBN from Nostr
+        // Fetch book data from Nostr network
         const nostrResult = await fetchBookByISBN(isbn);
         
-        // If we get a complete result from Nostr, use it
-        if (nostrResult && nostrResult.title && nostrResult.author && 
-            nostrResult.title !== 'Unknown Title' && nostrResult.author !== 'Unknown Author') {
-          console.log(`Book data loaded successfully from Nostr for ISBN: ${isbn}:`, {
-            title: nostrResult.title,
-            author: nostrResult.author
-          });
-          return nostrResult;
-        } else if (nostrResult) {
-          console.log(`Nostr data incomplete for ISBN: ${isbn}:`, {
-            hasTitle: !!nostrResult.title && nostrResult.title !== 'Unknown Title',
-            hasAuthor: !!nostrResult.author && nostrResult.author !== 'Unknown Author'
-          });
-        }
-        
-        // If Nostr data is incomplete, try fetching directly from OpenLibrary
-        console.log(`Fetching directly from OpenLibrary for ISBN: ${isbn}`);
-        const openLibraryResult = await getBookByISBN(isbn);
-        
-        if (openLibraryResult && openLibraryResult.title && openLibraryResult.author) {
-          console.log(`Book data loaded successfully from OpenLibrary for ISBN: ${isbn}:`, {
-            title: openLibraryResult.title,
-            author: openLibraryResult.author
-          });
-          
-          // If we have an incomplete userBook, merge the OpenLibrary data with it
+        // If we get complete data from Nostr, use it
+        if (nostrResult && isBookDataComplete(nostrResult)) {
+          // If we have a user book, merge the complete Nostr data with user's reading status
           if (userBook) {
-            console.log(`Merging OpenLibrary data with user's library book for ISBN: ${isbn}`);
             return {
-              ...userBook,
-              title: openLibraryResult.title || userBook.title || 'Unknown Title',
-              author: openLibraryResult.author || userBook.author || 'Unknown Author',
-              coverUrl: userBook.coverUrl || openLibraryResult.coverUrl || '',
-              description: userBook.description || openLibraryResult.description || ''
+              ...nostrResult,
+              readingStatus: userBook.readingStatus
             };
           }
-          
-          // Otherwise return the OpenLibrary result
-          return openLibraryResult;
+          return nostrResult;
         }
         
-        if (!openLibraryResult) {
-          console.error(`No data returned for ISBN: ${isbn} from any source`);
-          // Return a minimal book object with the ISBN but placeholders for missing data
-          return {
-            id: `isbn:${isbn}`,
-            isbn: isbn,
-            title: "Unknown Title",
-            author: "Unknown Author",
-            coverUrl: ""
-          };
+        // If we have partial data from both sources, merge them
+        if (userBook && nostrResult) {
+          return mergeBookData(userBook, nostrResult);
         }
         
-        // Ensure we have at least placeholder values for title and author
-        const enrichedResult = {
-          ...openLibraryResult,
-          title: openLibraryResult.title || "Unknown Title",
-          author: openLibraryResult.author || "Unknown Author"
+        // If we only have partial data from one source, use it
+        if (userBook) {
+          return ensureMinimalBookData(userBook);
+        }
+        
+        if (nostrResult) {
+          return ensureMinimalBookData(nostrResult);
+        }
+        
+        // If we have no data at all, return a minimal book object
+        return {
+          id: `isbn:${isbn}`,
+          isbn: isbn,
+          title: "Unknown Title",
+          author: "Unknown Author",
+          coverUrl: ""
         };
-        
-        console.log(`Book data loaded with placeholders for ISBN: ${isbn}:`, enrichedResult);
-        return enrichedResult;
       } catch (err) {
         console.error(`Error fetching book data for ISBN: ${isbn}:`, err);
         toast({
@@ -125,8 +97,9 @@ export const useBookData = (isbn: string | undefined) => {
           description: "Could not load book details. Please try again later.",
           variant: "destructive"
         });
-        // Return a minimal book object in case of errors
-        return {
+        
+        // Return user's book data if available, otherwise minimal object
+        return userBook ? ensureMinimalBookData(userBook) : {
           id: `isbn:${isbn}`,
           isbn: isbn,
           title: "Unknown Title",
@@ -137,80 +110,121 @@ export const useBookData = (isbn: string | undefined) => {
     },
     enabled: !!isbn,
     staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours (increased for better caching)
-    retry: 3, // Increased retries to handle potential API issues
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
+    retry: 2, // Reduced retries to improve performance while still handling issues
+    refetchOnWindowFocus: false,
   });
 
   // Get the reading status from the user's library
   const readingStatus = getBookReadingStatus(isbn);
 
-  // Find the book in user's library to get its rating
+  // Find the book in user's library to get its rating - optimized to check only once
   const findBookWithRating = useCallback(() => {
     if (!isbn || !books) return null;
     
-    // Check each list for the book with matching ISBN
-    const bookInTbr = books.tbr.find(b => b.isbn === isbn);
-    if (bookInTbr?.readingStatus?.rating !== undefined) return bookInTbr;
-    
-    const bookInReading = books.reading.find(b => b.isbn === isbn);
-    if (bookInReading?.readingStatus?.rating !== undefined) return bookInReading;
-    
-    const bookInRead = books.read.find(b => b.isbn === isbn);
-    if (bookInRead?.readingStatus?.rating !== undefined) return bookInRead;
+    // First check the book we already have from getBookByISBN
+    const bookFromLibrary = getBookByISBN(isbn);
+    if (bookFromLibrary?.readingStatus?.rating !== undefined) {
+      return bookFromLibrary;
+    }
     
     return null;
-  }, [isbn, books]);
+  }, [isbn, books, getBookByISBN]);
 
   // Get user's rating from their library if available
   const bookWithRating = findBookWithRating();
   const userRating = bookWithRating?.readingStatus?.rating;
 
-  // Update the book object with the reading status and rating
-  const enrichedBook = book ? {
-    ...book,
-    readingStatus: readingStatus ? {
-      status: readingStatus,
-      dateAdded: Date.now(), // Add the required dateAdded property
-      rating: userRating !== undefined ? userRating : book.readingStatus?.rating
-    } : book.readingStatus
-  } : null;
+  // Merge book data with user's reading status and rating
+  const processBookData = useCallback((bookData: any | null) => {
+    if (!bookData) return null;
+    
+    return {
+      ...bookData,
+      readingStatus: readingStatus ? {
+        status: readingStatus,
+        dateAdded: Date.now(),
+        rating: userRating !== undefined ? userRating : bookData.readingStatus?.rating
+      } : bookData.readingStatus
+    };
+  }, [readingStatus, userRating]);
 
-  // Force a refetch if we have an ISBN but no book details after loading
+  // Process both full and partial book data
+  const enrichedBook = processBookData(book);
+  const enrichedPartialBook = processBookData(partialBookData);
+
+  // Final data to return - use full data if available, otherwise partial
+  const finalBookData = enrichedBook || enrichedPartialBook;
+
+  // Reduce unnecessary refetches
   useEffect(() => {
-    if (!isLoading && isbn && (!book || book.title === 'Unknown Title' || book.author === 'Unknown Author')) {
-      console.log(`Book data for ISBN ${isbn} is missing or incomplete, triggering a refetch`, book);
+    if (!isLoading && isbn && book && !isBookDataComplete(book)) {
+      console.log(`Book data for ISBN ${isbn} is incomplete, triggering a refetch`);
       refetch();
     }
   }, [isbn, isLoading, book, refetch]);
 
   // Set read status when book data is available
   useEffect(() => {
-    if (enrichedBook) {
-      setIsRead(enrichedBook.readingStatus?.status === 'finished');
+    if (finalBookData) {
+      setIsRead(finalBookData.readingStatus?.status === 'finished');
     }
-  }, [enrichedBook]);
-
-  // Log the final enriched book for debugging
-  useEffect(() => {
-    if (enrichedBook) {
-      console.log("Final enriched book data:", {
-        isbn: enrichedBook.isbn,
-        title: enrichedBook.title,
-        author: enrichedBook.author,
-        hasReadingStatus: !!enrichedBook.readingStatus,
-        readingStatus: enrichedBook.readingStatus?.status,
-        rating: enrichedBook.readingStatus?.rating
-      });
-    }
-  }, [enrichedBook]);
+  }, [finalBookData]);
 
   return {
-    book: enrichedBook,
-    loading: isLoading,
+    book: finalBookData,
+    loading: isLoading && !partialBookData,
+    partialData: !book && !!partialBookData,
     isRead,
     setIsRead,
     error,
     refetch
   };
 };
+
+// Helper function to check if book data is complete
+function isBookDataComplete(book: any): boolean {
+  return book && 
+         book.title && 
+         book.author && 
+         book.title !== 'Unknown Title' && 
+         book.author !== 'Unknown Author';
+}
+
+// Helper function to ensure book has at least minimal data
+function ensureMinimalBookData(book: any): any {
+  return {
+    ...book,
+    title: book.title || "Unknown Title",
+    author: book.author || "Unknown Author",
+    coverUrl: book.coverUrl || ""
+  };
+}
+
+// Helper function to merge book data from different sources
+function mergeBookData(userBook: any, apiBook: any): any {
+  const bestTitle = (apiBook.title && apiBook.title !== 'Unknown Title') 
+    ? apiBook.title 
+    : (userBook.title && userBook.title !== 'Unknown Title') 
+      ? userBook.title 
+      : 'Unknown Title';
+  
+  const bestAuthor = (apiBook.author && apiBook.author !== 'Unknown Author') 
+    ? apiBook.author 
+    : (userBook.author && userBook.author !== 'Unknown Author') 
+      ? userBook.author 
+      : 'Unknown Author';
+  
+  return {
+    ...userBook,
+    title: bestTitle,
+    author: bestAuthor,
+    coverUrl: apiBook.coverUrl || userBook.coverUrl || '',
+    description: apiBook.description || userBook.description || '',
+    categories: apiBook.categories || userBook.categories || [],
+    pubDate: apiBook.pubDate || userBook.pubDate || '',
+    pageCount: apiBook.pageCount || userBook.pageCount || 0,
+    // Preserve user's reading status
+    readingStatus: userBook.readingStatus
+  };
+}

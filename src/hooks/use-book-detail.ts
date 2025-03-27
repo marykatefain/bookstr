@@ -5,7 +5,12 @@ import { useBookActions } from "./book/use-book-actions";
 import { useBookActivity } from "./book/use-book-activity";
 import { useCallback } from "react";
 
+/**
+ * Hook that aggregates all book-related data and actions for a book detail page
+ * @param isbn The ISBN of the book to fetch data for
+ */
 export const useBookDetail = (isbn: string | undefined) => {
+  // Book data and reading status
   const { 
     book, 
     loading, 
@@ -15,6 +20,7 @@ export const useBookDetail = (isbn: string | undefined) => {
     refetch 
   } = useBookData(isbn);
 
+  // Reviews and ratings
   const { 
     reviews, 
     ratings, 
@@ -26,13 +32,16 @@ export const useBookDetail = (isbn: string | undefined) => {
     handleSubmitReview 
   } = useBookReviews(isbn);
 
+  // Book actions (mark as read, add to list, etc.)
   const { 
     pendingAction, 
     handleMarkAsRead: markAsRead, 
     handleAddBookToList, 
-    handleReactToContent 
+    handleReactToContent,
+    handleRemoveBookFromList: removeBookFromList
   } = useBookActions();
 
+  // Activity feed and tab management
   const { 
     activeTab, 
     setActiveTab, 
@@ -41,7 +50,7 @@ export const useBookDetail = (isbn: string | undefined) => {
     refreshTrigger
   } = useBookActivity(isbn);
 
-  // Combine the hooks with book-specific wrappers
+  // Book-specific action wrappers
   const handleMarkAsRead = useCallback(() => {
     if (!book) return;
     return markAsRead(book, setIsRead);
@@ -65,29 +74,44 @@ export const useBookDetail = (isbn: string | undefined) => {
     return handleReactToContent(activityId);
   }, [handleReactToContent]);
 
+  // Add a wrapper for removing a book from a list
+  const handleRemoveBookFromList = useCallback((book: any, listType: 'tbr' | 'reading' | 'finished') => {
+    return removeBookFromList(book, listType);
+  }, [removeBookFromList]);
+
   return {
+    // Book data
     book,
     loading,
     error,
     refetch,
+    
+    // Reviews and ratings
     reviews,
     ratings,
     userRating,
     reviewText,
     setReviewText,
     submitting,
+    
+    // Action states
     pendingAction,
     isRead,
+    
+    // Activity and tabs
     activeTab,
     setActiveTab,
     bookActivity,
     loadingActivity,
     refreshTrigger,
+    
+    // Action handlers
     handleMarkAsRead,
     handleRateBook: handleRateBookWrapper,
     handleSubmitReview: handleSubmitReviewWrapper,
     handleReactToReview,
     handleReactToActivity,
-    handleAddBookToList
+    handleAddBookToList,
+    handleRemoveBookFromList
   };
 };

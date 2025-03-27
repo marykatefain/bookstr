@@ -126,6 +126,23 @@ const BookCoverSection: React.FC<{
             </div>
           )}
           
+          {/* Add a Remove from "Read" list button when the book is finished */}
+          {isFinished && handleRemove && (
+            <Button 
+              variant="outline"
+              onClick={handleRemove}
+              className="w-full border-red-200 dark:border-red-800 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200"
+              disabled={pendingAction === 'finished'}
+            >
+              {pendingAction === 'finished' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <X className="mr-2 h-4 w-4" />
+              )}
+              Remove from Read List
+            </Button>
+          )}
+          
           <Button 
             variant="outline"
             onClick={handleBookshopSearch}
@@ -186,8 +203,7 @@ const BookCover: React.FC<{
 
   const renderRatingStars = () => {
     const starCount = 5;
-    const displayRating = rating ? Math.round(rating * 5) : 0;
-    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
+    const hoverRating = ratingHover !== null ? ratingHover : rating;
     
     return (
       <div 
@@ -198,7 +214,7 @@ const BookCover: React.FC<{
           <button
             key={i}
             className="p-0.5"
-            onClick={() => handleRateBook((i + 1) / 5)}
+            onClick={() => handleRateBook((i + 1))}
             onMouseEnter={() => setRatingHover(i + 1)}
             disabled={isRating}
             aria-label={`Rate ${i + 1} stars`}

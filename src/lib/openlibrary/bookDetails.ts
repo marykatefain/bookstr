@@ -372,3 +372,6 @@ export async function getBooksByISBN(isbns: string[]): Promise<Book[]> {
   
   return allBooks;
 }
+
+// For backward compatibility, also export getBookByISBN as getBookDetails
+export const getBookDetails = getBookByISBN;

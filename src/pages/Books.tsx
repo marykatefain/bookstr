@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Book as BookIcon, Search, Loader2, TrendingUp } from "lucide-react";
 import { Book } from "@/lib/nostr";
 import { searchBooks, searchBooksByGenre } from "@/lib/openlibrary";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { BookCard } from "@/components/BookCard";
 import { useDailyTrendingQuery } from "@/hooks/feed";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +22,8 @@ const Books = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [partialResults, setPartialResults] = useState<Book[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const {
     books: trendingBooks,
@@ -84,14 +87,16 @@ const Books = () => {
     setActiveCategory(category);
     setSearchQuery("");
     setDebouncedSearch("");
+    setPartialResults([]);
     
     if (category === "All" && !debouncedSearch) {
       setBooks([]);
     }
   }, [debouncedSearch]);
 
-  const displayedBooks = debouncedSearch || activeCategory !== "All" 
-    ? books 
+  // Display partial results first, fall back to full results, then trending books
+  const displayedBooks = (debouncedSearch || activeCategory !== "All") 
+    ? (partialResults.length > 0 ? partialResults : books)
     : enrichBooksWithReadingStatus(trendingBooks);
 
   useEffect(() => {
@@ -115,6 +120,7 @@ const Books = () => {
         }
         
         setBooks([]);
+        setPartialResults([]);
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
         return;
       }
@@ -122,6 +128,9 @@ const Books = () => {
       setIsSearching(true);
       if (books.length === 0) {
         setIsLoading(true);
+      } else {
+        // If we already have results, show them while loading more
+        setIsLoadingMore(true);
       }
 
       searchInProgressRef.current = true;
@@ -131,9 +140,30 @@ const Books = () => {
 
         if (debouncedSearch) {
           console.log(`Searching for books with query: "${debouncedSearch}"`);
+          
+          // Start with basic information to show immediately
+          const quickResults = await searchBooks(debouncedSearch, 20, true);
+          if (quickResults.length > 0) {
+            const enrichedQuickResults = enrichBooksWithReadingStatus(quickResults);
+            setPartialResults(enrichedQuickResults);
+            setIsLoading(false); // Stop initial loading when we have partial results
+          }
+          
+          // Then get full information
           results = await searchBooks(debouncedSearch, 20);
         } else if (activeCategory !== "All") {
           console.log(`Searching for books in category: "${activeCategory}"`);
+          
+          // For category searches, use the same pattern
+          // FIX HERE: For quick results (third argument is true) we need to ensure we're using the correct function that accepts 3 arguments
+          const quickResults = await searchBooksByGenre(activeCategory, 20, true);
+          if (quickResults.length > 0) {
+            const enrichedQuickResults = enrichBooksWithReadingStatus(quickResults);
+            setPartialResults(enrichedQuickResults);
+            setIsLoading(false); // Stop initial loading when we have partial results
+          }
+          
+          // Then for full results
           results = await searchBooksByGenre(activeCategory, 20);
         }
 
@@ -144,8 +174,10 @@ const Books = () => {
         if (results.length > 0) {
           const enrichedResults = enrichBooksWithReadingStatus(results);
           setBooks(enrichedResults);
+          setPartialResults([]); // Clear partial results when full results arrive
         } else {
           setBooks([]);
+          setPartialResults([]); // Clear partial results if no results
         }
       } catch (error) {
         console.error("Error searching books:", error);
@@ -155,8 +187,10 @@ const Books = () => {
           variant: "destructive"
         });
         setBooks([]);
+        setPartialResults([]); // Clear partial results on error
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
         searchInProgressRef.current = false;
       }
     };
@@ -178,8 +212,13 @@ const Books = () => {
     }
   };
 
-  const shouldShowLoadingSkeleton = (isLoading || (trendingLoading && activeCategory === "All" && !debouncedSearch)) &&
-    (displayedBooks.length === 0);
+  // Show loading skeleton only when we have no data to display
+  const shouldShowLoadingSkeleton = isLoading && 
+    (displayedBooks.length === 0) && 
+    ((activeCategory !== "All" || debouncedSearch) || (trendingLoading && activeCategory === "All" && !debouncedSearch));
+
+  // Separate indicator for loading more results
+  const shouldShowLoadingMore = isLoadingMore && partialResults.length > 0;
 
   return (
     <Layout>
@@ -233,15 +272,26 @@ const Books = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
               {displayedBooks.length > 0 ? (
-                displayedBooks.map((book) => (
-                  <BookCard
-                    key={book.id}
-                    book={book}
-                    showDescription={false}
-                    size="medium"
-                    onUpdate={handleBookUpdate}
-                  />
-                ))
+                <>
+                  {displayedBooks.map((book) => (
+                    <BookCard
+                      key={book.id || (book.isbn ? `isbn-${book.isbn}` : `title-${book.title}`)}
+                      book={book}
+                      showDescription={false}
+                      size="medium"
+                      onUpdate={handleBookUpdate}
+                    />
+                  ))}
+                  
+                  {shouldShowLoadingMore && (
+                    <div className="col-span-full flex justify-center py-4">
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-bookverse-accent" />
+                        <span className="text-sm text-muted-foreground">Loading more results...</span>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                   {activeCategory === "All" && !debouncedSearch ? (

@@ -1,5 +1,6 @@
 
 import { BASE_URL } from './types';
+import { Book } from "@/lib/nostr/types";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -39,7 +40,7 @@ export async function fetchISBNFromEditionKey(editionKey: string): Promise<strin
     // Convert OL12345M to just 12345 if needed
     const key = editionKey.startsWith('OL') ? editionKey : `OL${editionKey}`;
     
-    // FIX: Use the correct path structure for books endpoint
+    // Use the correct path structure for books endpoint
     const response = await fetch(`${API_BASE_URL}/books/${key}.json`, {
       headers: { 'Accept': 'application/json' },
       cache: 'default'
@@ -237,7 +238,7 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
 /**
  * Convert an OpenLibrary doc to a Book object
  */
-export function docToBook(doc: any) {
+export function docToBook(doc: any): Book {
   // Get the best available cover URL
   const coverUrl = doc.cover_i 
     ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 

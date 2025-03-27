@@ -8,7 +8,8 @@ import {
   BarChart2,
   LogOut,
   Search,
-  Info
+  Info,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -35,7 +36,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
 
-  const filteredLinks = navLinks.filter(() => true); // All links are shown now since we removed requiresAuth
+  const filteredLinks = navLinks.filter(() => true); // All links are shown now
 
   const handleProfileClick = () => {
     if (user && user.pubkey) {
@@ -117,6 +118,22 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           <Info className="h-4 w-4" />
           <span>Learn more about Bookstr</span>
         </Link>
+      </div>
+      
+      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
+        <h3 className="font-medium text-sm">Open Library Data</h3>
+        <p className="text-xs text-muted-foreground">
+          Bookstr uses Open Library's API for book data. Help improve the ecosystem by contributing missing book information.
+        </p>
+        <a
+          href="https://openlibrary.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+        >
+          <Database className="h-4 w-4" />
+          <span>Visit Open Library</span>
+        </a>
       </div>
       
       <Separator className="my-4" />

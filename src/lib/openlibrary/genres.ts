@@ -1,7 +1,6 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
-import { getCoverUrl, fetchISBNFromEditionKey } from './utils';
+import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
 import { searchBooks } from './search';
 
 // Base URL for the Cloudflare Worker
@@ -15,8 +14,13 @@ const RATE_LIMIT_BACKOFF = 1000 * 60 * 15; // 15 minute backoff for rate limitin
 // Track ongoing requests to prevent duplicate concurrent requests
 const ongoingRequests: Record<string, Promise<Book[]>> = {};
 
+// Calculate the minimum publication year for the 5-year filter
+const CURRENT_YEAR = new Date().getFullYear();
+const MIN_PUB_YEAR = CURRENT_YEAR - 5;
+
 /**
  * Search books by genre/subject using the search API with rating sort
+ * Note: This version doesn't support quickMode - the search.ts version is preferred
  */
 export async function searchBooksByGenre(genre: string, limit: number = 20): Promise<Book[]> {
   if (!genre || genre.trim() === '') {
@@ -49,14 +53,13 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
       try {
         // Add timeout to prevent hanging requests
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 8)
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
-        // FIX: Use /search.json in the path when searching by subject
+        // Use /subjects endpoint with sort=new to prioritize newer books
         const response = await fetch(
-          `${API_BASE_URL}/search.json?q=subject:"${encodeURIComponent(formattedGenre)}"&sort=rating&limit=${limit}`,
+          `${API_BASE_URL}/subjects/${encodeURIComponent(formattedGenre)}.json?limit=${limit * 2}&sort=new`,
           {
             headers: { 'Accept': 'application/json' },
-            // Use browser cache
             cache: 'default',
             signal: controller.signal
           }
@@ -82,17 +85,41 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         }
         
         const data = await response.json();
-        console.log(`OpenLibrary genre search returned ${data.docs?.length || 0} results for "${genre}"`);
+        console.log(`OpenLibrary genre search returned ${data.works?.length || 0} results for "${genre}"`);
         
-        if (!data.docs || !Array.isArray(data.docs)) {
-          console.error("Invalid docs in genre search response:", data);
-          return [];
+        if (!data.works || !Array.isArray(data.works)) {
+          console.error("Invalid works in genre search response:", data);
+          return searchBooks(genre, limit); // Fallback to regular search
         }
         
-        // Pre-filter docs to reduce processing on empty results
-        const filteredDocs = data.docs.filter(doc => doc.isbn || doc.cover_i || doc.cover_edition_key);
-        if (filteredDocs.length === 0) {
-          console.log(`No valid results for genre "${genre}", using fallback`);
+        // Filter works by publication year and availability of complete data
+        const filteredWorks = data.works
+          .filter(work => {
+            // Keep books with a recent publication year (or with cover and ISBN)
+            const pubYear = work.first_publish_year || 0;
+            return pubYear >= MIN_PUB_YEAR || 
+                  (work.cover_id && work.availability?.isbn);
+          })
+          .sort((a, b) => {
+            // Prioritize books with complete data
+            const aComplete = Boolean(a.availability?.isbn && a.cover_id);
+            const bComplete = Boolean(b.availability?.isbn && b.cover_id);
+            
+            if (aComplete && !bComplete) return -1;
+            if (!aComplete && bComplete) return 1;
+            
+            // Then prioritize recent books
+            const aYear = a.first_publish_year || 0;
+            const bYear = b.first_publish_year || 0;
+            return bYear - aYear;
+          });
+        
+        // Get final books with limit applied
+        const finalWorks = filteredWorks.slice(0, limit);
+        
+        // If we have no valid results after filtering, fall back to search
+        if (finalWorks.length === 0) {
+          console.log(`No valid results for genre "${genre}" after filtering, using fallback`);
           const fallbackResults = await searchBooks(genre, limit);
           genreCache[cacheKey] = { data: fallbackResults, timestamp: now };
           return fallbackResults;
@@ -102,18 +129,16 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
         const processedBooks: Book[] = [];
         const batchSize = 5;
         
-        for (let i = 0; i < filteredDocs.length; i += batchSize) {
-          const batch = filteredDocs.slice(i, i + batchSize);
+        for (let i = 0; i < finalWorks.length; i += batchSize) {
+          const batch = finalWorks.slice(i, i + batchSize);
           const batchResults = await Promise.all(
-            batch.map(async (doc) => {
-              let isbn = "";
+            batch.map(async (work) => {
+              let isbn = work.availability?.isbn || "";
               
-              // Try to get ISBN from various possible sources
-              if (doc.isbn && doc.isbn.length > 0) {
-                isbn = doc.isbn[0];
-              } else if (doc.cover_edition_key) {
+              // If we don't have an ISBN and we have a cover_edition_key, try to fetch it
+              if (!isbn && work.cover_edition_key) {
                 try {
-                  const fetchedIsbn = await fetchISBNFromEditionKey(doc.cover_edition_key);
+                  const fetchedIsbn = await fetchISBNFromEditionKey(work.cover_edition_key);
                   if (fetchedIsbn) {
                     isbn = fetchedIsbn;
                   }
@@ -123,16 +148,23 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
                 }
               }
               
+              // Get the best available cover URL
+              const coverUrl = work.cover_id 
+                ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+                : (work.cover_edition_key 
+                  ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                  : "");
+              
               return {
-                id: doc.key || `genre-${genre}-${doc.title}-${doc.author_name?.[0] || "unknown"}`,
-                title: doc.title,
-                author: doc.author_name?.[0] || "Unknown Author",
+                id: work.key || `genre-${genre}-${work.title}-${work.authors?.[0]?.name || "unknown"}`,
+                title: work.title || "Unknown Title",
+                author: work.authors?.[0]?.name || "Unknown Author",
                 isbn: isbn,
-                coverUrl: getCoverUrl(isbn, doc.cover_i),
-                description: doc.description || "",
-                pubDate: doc.first_publish_year?.toString() || "",
-                pageCount: doc.number_of_pages_median || 0,
-                categories: doc.subject?.slice(0, 3) || [genre]
+                coverUrl: coverUrl,
+                description: work.description?.value || work.description || "",
+                pubDate: work.first_publish_year?.toString() || "",
+                pageCount: work.number_of_pages_median || 0,
+                categories: [genre]
               };
             })
           );

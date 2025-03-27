@@ -6,6 +6,7 @@ import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BookCoverProps {
   isbn?: string;
@@ -39,6 +40,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const { toast } = useToast();
   const [isRating, setIsRating] = useState(false);
   const [ratingHover, setRatingHover] = useState<number | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(!!coverUrl && coverUrl !== "");
+  const [imageError, setImageError] = useState(false);
   const isFinished = isRead;
   
   // We're not using these fixed height classes anymore
@@ -87,24 +90,43 @@ export const BookCover: React.FC<BookCoverProps> = ({
     }
   };
 
+  // The cover element now handles progressive loading
   const coverElement = (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      {(!imageLoaded || imageError) && (
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center rounded-t-lg">
+          {!imageError ? (
+            <Skeleton className="w-full h-full rounded-t-lg" />
+          ) : (
+            <div className="text-center p-2">
+              <p className="text-xs font-medium text-gray-600 line-clamp-3">{title}</p>
+              {author && <p className="text-xs text-gray-500 mt-1 line-clamp-1">{author}</p>}
+            </div>
+          )}
+        </div>
+      )}
       <img
-        src={coverUrl}
+        src={coverUrl || ""}
         alt={`${title} by ${author}`}
-        className="object-cover w-full h-full rounded-t-lg book-cover"
+        className={`object-cover w-full h-full rounded-t-lg book-cover ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        onLoad={() => setImageLoaded(true)}
         onError={(e) => {
-          e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+          console.log(`Image error loading: ${coverUrl}`);
+          setImageError(true);
+          setImageLoaded(true);
         }}
+        loading="lazy"
       />
     </div>
   );
 
   const renderRatingStars = () => {
+    console.log("MK Rendering rating stars with rating:", rating);
     const starCount = 5;
-    const displayRating = rating ? Math.round(rating * 5) : 0;
-    const hoverRating = ratingHover !== null ? ratingHover : displayRating;
     
+    // Use the utility function for consistent conversion
+    const hoverRating = ratingHover !== null ? ratingHover : rating;
+        
     return (
       <div 
         className="absolute top-2 right-2 p-1 bg-black/50 backdrop-blur-sm rounded-full flex items-center"
@@ -114,7 +136,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
           <button
             key={i}
             className="p-0.5"
-            onClick={() => handleRateBook((i + 1) / 5)}
+            onClick={() => handleRateBook((i + 1))}
             onMouseEnter={() => setRatingHover(i + 1)}
             disabled={isRating}
             aria-label={`Rate ${i + 1} stars`}
@@ -154,6 +176,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const actionButton = () => {
     if (isFinished) {
       // Show star rating for finished books
+      // Use renderRatingStars to handle the rating display
       return renderRatingStars();
     } else if (onReadAction) {
       // Show mark as read button for unfinished books

@@ -39,7 +39,7 @@ export function extractISBNFromTags(event: Event): string | null {
 export function extractRatingFromTags(event: Event): number | undefined {
   const ratingTag = event.tags.find(tag => tag[0] === 'rating');
   if (ratingTag && ratingTag[1]) {
-    const rating = parseInt(ratingTag[1], 10);
+    const rating = parseFloat(ratingTag[1]);
     if (!isNaN(rating)) {
       return rating;
     }
