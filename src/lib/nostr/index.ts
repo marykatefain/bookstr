@@ -122,14 +122,15 @@ import { reactToContent as reactToContentFromPublish } from './publish';
 export { reactToContentFromPublish };
 
 // Now export the base functions that components are directly using
-// Export fetchReactions directly for components to use (fixed - using the actual function name)
+// Export fetchReactions directly for components to use
 export { fetchReactions } from './fetch/social/interactions';
 
-// Export fetchReplies directly for components to use (fixed - using the actual function name)
+// Export fetchReplies directly for components to use
 export { fetchReplies } from './fetch/social/interactions';
 
 // Export fetchEventById directly for components to use
 export { fetchEventById } from './fetch/social/fetchEvent';
 
 // Export reactToContent directly for components to use
+// Make sure this is using the original function from publish.ts
 export { reactToContent } from './publish';
