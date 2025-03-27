@@ -14,7 +14,6 @@ interface BookCoverSectionProps {
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
   handleRemove?: () => void;
-  handleRateBook?: (rating: number) => void; // Added prop for rating
 }
 
 export const BookCoverSection: React.FC<BookCoverSectionProps> = ({ 
@@ -23,8 +22,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   pendingAction, 
   handleMarkAsRead, 
   addBookToList, 
-  handleRemove,
-  handleRateBook
+  handleRemove 
 }) => {
   const readingStatus = book.readingStatus?.status;
   const isTbr = readingStatus === 'tbr';
@@ -53,13 +51,6 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
     window.open(bookshopUrl, '_blank', 'noopener,noreferrer');
   };
   
-  // Handle rating changes with content preservation
-  const onRatingChange = (rating: number) => {
-    if (handleRateBook) {
-      handleRateBook(rating);
-    }
-  };
-  
   return (
     <div className="md:w-1/3">
       <div className="sticky top-20">
@@ -75,7 +66,6 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             onRemoveAction={handleRemove}
             readingStatus={readingStatus as 'tbr' | 'reading' | 'finished' | null}
             rating={book.readingStatus?.rating}
-            onRatingChange={onRatingChange}
             book={book}
             size="large"
           />

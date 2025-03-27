@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
-import { reviewBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
+import { rateBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
@@ -22,7 +22,7 @@ interface BookCoverProps {
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
   rating?: number;
   onRatingChange?: (rating: number) => void;
-  book?: Book;
+  book?: Book; // Add optional book prop for full book data
 }
 
 export const BookCover: React.FC<BookCoverProps> = ({
@@ -47,6 +47,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const [imageError, setImageError] = useState(false);
   const isFinished = isRead || readingStatus === 'finished';
   
+  // We're not using these fixed height classes anymore
+  // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
     xxsmall: "",
     xsmall: "",
@@ -56,6 +58,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   };
 
   const handleRateBook = async (newRating: number) => {
+    // Get ISBN from props or book object
     const bookIsbn = isbn || book?.isbn;
     
     if (!bookIsbn) {
@@ -73,36 +76,9 @@ export const BookCover: React.FC<BookCoverProps> = ({
       if (onRatingChange) {
         onRatingChange(newRating);
       } else {
-        let existingContent = '';
-        
-        try {
-          const reviews = await fetchBookReviews(bookIsbn);
-          if (reviews.length > 0) {
-            const currentUser = getCurrentUser();
-            if (currentUser) {
-              const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
-              
-              if (userPreviousReview && userPreviousReview.content && userPreviousReview.content.trim()) {
-                console.log("Found previous review content, preserving it:", userPreviousReview.content);
-                existingContent = userPreviousReview.content;
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching previous reviews:", error);
-        }
-        
-        // Create a complete Book object with all required properties
-        const bookObj: Book = book || {
-          id: `isbn:${bookIsbn}`,
-          isbn: bookIsbn,
-          title: title || `Book (ISBN: ${bookIsbn})`,
-          author: author || "Unknown Author",
-          coverUrl: coverUrl || ""
-        };
-        
-        await reviewBook(bookObj, existingContent, newRating);
-        
+        // Fallback direct rating if no callback provided
+        // Use the isbn string directly
+        await rateBook(bookIsbn, newRating);
         toast({
           title: "Rating saved",
           description: "Your rating has been saved and published to Nostr"
@@ -120,6 +96,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
     }
   };
 
+  // The cover element now handles progressive loading
   const coverElement = (
     <div className="w-full h-full relative">
       {(!imageLoaded || imageError) && (
@@ -152,6 +129,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const renderRatingStars = () => {
     const starCount = 5;
     
+    // Use the hover rating if available, otherwise use the prop rating
     const hoverRating = ratingHover !== null 
       ? ratingHover 
       : rating;
@@ -204,8 +182,10 @@ export const BookCover: React.FC<BookCoverProps> = ({
 
   const actionButton = () => {
     if (isFinished) {
+      // Show star rating for finished books
       return renderRatingStars();
     } else if (onReadAction) {
+      // Show mark as read button for unfinished books
       return (
         <button
           onClick={onReadAction}
@@ -241,6 +221,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 };
 
+// BookReadButton component for reuse
 export const BookReadButton: React.FC<{
   isRead: boolean;
   pendingAction: string | null;

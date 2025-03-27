@@ -6,10 +6,7 @@ import {
   updateBookInList,
   removeBookFromList,
   reactToContent,
-  isLoggedIn,
-  fetchBookReviews,
-  getCurrentUser,
-  reviewBook
+  isLoggedIn 
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +26,7 @@ export const useBookActions = () => {
 
     setPendingAction('finished');
     try {
+      // First, remove from other lists to avoid duplication
       await removeFromOtherLists(book, 'finished');
       
       const success = await updateBookInList(book, 'finished');
@@ -52,17 +50,23 @@ export const useBookActions = () => {
     }
   };
 
+  // Remove book from lists other than the target list
   const removeFromOtherLists = async (book: Book, targetList: BookActionType) => {
     if (!book || !book.isbn) return;
     
+    // Determine which lists to remove the book from
     const otherLists = ['tbr', 'reading', 'finished'].filter(list => list !== targetList) as BookActionType[];
     
+    // Remove from each list sequentially
     for (const listType of otherLists) {
       try {
+        // Attempt removal from all lists regardless of current status
+        // This helps clean up any potential duplicates
         console.log(`Removing book ${book.title} (${book.isbn}) from ${listType} list before adding to ${targetList} list`);
         await removeBookFromList(book, listType);
       } catch (error) {
         console.error(`Error removing book from ${listType} list:`, error);
+        // Continue with other lists even if one fails
       }
     }
   };
@@ -72,6 +76,7 @@ export const useBookActions = () => {
     
     setPendingAction(listType);
     try {
+      // First, remove from other lists to avoid duplication
       await removeFromOtherLists(book, listType);
       
       const success = await updateBookInList(book, listType);
@@ -157,58 +162,11 @@ export const useBookActions = () => {
     }
   };
 
-  const handleRateBook = async (book: Book, rating: number) => {
-    if (!book || !book.isbn || !isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in to rate books",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      let reviewContent = '';
-      
-      try {
-        const reviews = await fetchBookReviews(book.isbn);
-        if (reviews.length > 0) {
-          const currentUser = getCurrentUser();
-          if (!currentUser) return;
-          
-          const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
-          
-          if (userPreviousReview && userPreviousReview.content && userPreviousReview.content.trim()) {
-            console.log("Found previous review content, preserving it:", userPreviousReview.content);
-            reviewContent = userPreviousReview.content;
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching previous reviews:", error);
-      }
-      
-      await reviewBook(book, reviewContent, rating);
-      
-      toast({
-        title: "Rating saved",
-        description: "Your rating has been saved"
-      });
-    } catch (error) {
-      console.error("Error rating book:", error);
-      toast({
-        title: "Error",
-        description: "Could not save rating",
-        variant: "destructive"
-      });
-    }
-  };
-
   return {
     pendingAction,
     handleMarkAsRead,
     handleAddBookToList,
     handleRemoveBookFromList,
-    handleReactToContent,
-    handleRateBook
+    handleReactToContent
   };
 };

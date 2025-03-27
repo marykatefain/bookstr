@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -116,12 +117,6 @@ const BookDetail = () => {
     }
   }, [book, loading, isbn, openContributionDialog]);
 
-  const handleRateBookWrapper = (rating: number) => {
-    if (book) {
-      handleRateBook(rating);
-    }
-  };
-
   const handleRemoveFromReadList = () => {
     if (book) {
       handleRemoveBookFromList(book, 'finished');
@@ -167,7 +162,6 @@ const BookDetail = () => {
           handleMarkAsRead={handleMarkAsRead}
           addBookToList={handleAddBookToList}
           handleRemove={isRead ? handleRemoveFromReadList : undefined}
-          handleRateBook={handleRateBookWrapper}
         />
         
         <Separator className="my-8" />
@@ -186,8 +180,10 @@ const BookDetail = () => {
               reviewText={reviewText}
               setReviewText={setReviewText}
               submitting={submitting}
+              // Fix: Remove the book argument as it's passed in useBookDetail
               handleSubmitReview={handleSubmitReview}
-              handleRateBook={handleRateBookWrapper}
+              // Fix: Adjust handleRateBook to match expected signature
+              handleRateBook={handleRateBook}
               handleReactToReview={handleReactToActivity}
               isSpoiler={isSpoiler}
               setIsSpoiler={setIsSpoiler}

@@ -6,9 +6,7 @@ export * from './profile';
 // Don't export everything from './publish'
 export {
   publishToNostr,
-  updateNostrEvent,
-  // Only export reactToContent once
-  reactToContent
+  updateNostrEvent
 } from './publish';
 export * from './relay';
 
@@ -74,7 +72,7 @@ import {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
-  rateBook as rateBookFromBooks,  // Renamed to be clear that it's from books
+  rateBook,
   reviewBook,
   replyToContent,
   updateBookInList,
@@ -95,7 +93,7 @@ export {
   addBookToTBR,
   markBookAsReading,
   markBookAsRead,
-  rateBookFromBooks as rateBook,  // Export as rateBook for backward compatibility
+  rateBook,
   reviewBook,
   replyToContent,
   updateBookInList,
@@ -119,6 +117,10 @@ export {
   batchFetchReplies
 };
 
+// Import reactToContent from publish separately and re-export with a different name
+import { reactToContent as reactToContentFromPublish } from './publish';
+export { reactToContentFromPublish };
+
 // Now export the base functions that components are directly using
 // Export fetchReactions directly for components to use
 export { fetchReactions } from './fetch/social/interactions';
@@ -128,3 +130,7 @@ export { fetchReplies } from './fetch/social/interactions';
 
 // Export fetchEventById directly for components to use
 export { fetchEventById } from './fetch/social/fetchEvent';
+
+// Export reactToContent directly for components to use
+// Make sure this is using the original function from publish.ts
+export { reactToContent } from './publish';

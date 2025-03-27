@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, fetchBookReviews, getCurrentUser, reviewBook } from "@/lib/nostr";
+import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
@@ -36,7 +36,6 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
   const [localBook, setLocalBook] = useState<Book>(book);
-  const [previousReview, setPreviousReview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!book.title || !book.author) {
@@ -48,32 +47,6 @@ export const BookCard: React.FC<BookCardProps> = ({
     setLocalBook(book);
     setIsRead(book.readingStatus?.status === 'finished');
   }, [book]);
-
-  const fetchPreviousReview = async () => {
-    if (!book.isbn || !isLoggedIn()) return;
-    
-    try {
-      const reviews = await fetchBookReviews(book.isbn);
-      if (reviews.length > 0) {
-        const currentUser = getCurrentUser();
-        if (!currentUser) return;
-        
-        const userReview = reviews.find(review => 
-          review.pubkey === currentUser.pubkey
-        );
-        
-        if (userReview && userReview.content && userReview.content.trim()) {
-          setPreviousReview(userReview.content);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching previous review:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchPreviousReview();
-  }, [book.isbn]);
 
   const getCardClasses = () => {
     const baseClasses = "overflow-hidden h-full";
@@ -223,11 +196,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
 
     try {
-      // Use the previous review content if available
-      const content = previousReview || '';
-      
-      // Rating a book is essentially reviewing it with a rating
-      await reviewBook(book, content, rating);
+      await rateBook(book.isbn, rating);
       
       toast({
         title: "Rating saved",
