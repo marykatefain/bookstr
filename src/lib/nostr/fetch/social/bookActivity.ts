@@ -6,6 +6,7 @@ import { extractRatingFromTags } from "../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
+import { batchFetchReactions, batchFetchReplies } from "../social/interactions";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -44,8 +45,13 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     const events = await pool.querySync(relays, filter);
     console.log(`Found ${events.length} events for ISBN ${isbn}`);
     
+    // Filter out reply events (those with 'e' tags)
+    const nonReplyEvents = events.filter(event => 
+      !event.tags.some(tag => tag[0] === 'e')
+    );
+    
     // Get all unique pubkeys to fetch profiles
-    const uniquePubkeys = [...new Set(events.map(event => event.pubkey))];
+    const uniquePubkeys = [...new Set(nonReplyEvents.map(event => event.pubkey))];
     
     // Fetch profiles for these pubkeys
     const profiles = await fetchUserProfiles(uniquePubkeys);
@@ -73,7 +79,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     // Convert events to social activities
     const activities: SocialActivity[] = [];
     
-    for (const event of events) {
+    for (const event of nonReplyEvents) {
       // Determine activity type based on event kind
       let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
       
@@ -127,7 +133,32 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     }
     
     // Sort by creation date, newest first
-    return activities.sort((a, b) => b.createdAt - a.createdAt);
+    const sortedActivities = activities.sort((a, b) => b.createdAt - a.createdAt);
+    
+    // Take only the requested number of activities
+    const limitedActivities = sortedActivities.slice(0, limit);
+    
+    // Get all event IDs to batch fetch reactions and replies
+    const eventIds = limitedActivities.map(activity => activity.id);
+    
+    // Batch fetch reactions and replies
+    const [reactionsMap, repliesMap] = await Promise.all([
+      batchFetchReactions(eventIds),
+      batchFetchReplies(eventIds)
+    ]);
+    
+    // Add reactions and replies to each activity
+    for (const activity of limitedActivities) {
+      if (reactionsMap[activity.id]) {
+        activity.reactions = reactionsMap[activity.id];
+      }
+      
+      if (repliesMap[activity.id]) {
+        activity.replies = repliesMap[activity.id];
+      }
+    }
+    
+    return limitedActivities;
   } catch (error) {
     console.error("Error fetching book activity:", error);
     return [];

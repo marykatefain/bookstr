@@ -1,73 +1,14 @@
 
-// Export types
-export * from "./types";
+// Re-export core functions
+export * from './user';
+export * from './posts';
+export * from './profile';
+export * from './books';
+export * from './publish';
+export * from './relay';
 
-// Export user management functions
-export {
-  initNostr,
-  loginWithNostr,
-  logoutNostr,
-  getCurrentUser,
-  isLoggedIn
-} from "./user";
+// Re-export fetch utility
+export * from './fetch';
 
-// Export relay management functions
-export {
-  DEFAULT_RELAYS,
-  getUserRelays,
-  addRelay,
-  removeRelay,
-  resetRelays
-} from "./relay";
-
-// Export pool management functions
-export {
-  getSharedPool,
-  refreshSharedPool,
-  closeSharedPool
-} from "./utils/poolManager";
-
-// Export profile functions
-export { fetchProfileData, fetchUserProfiles } from "./profile";
-
-// Export publishing functions
-export { publishToNostr, updateNostrEvent } from "./publish";
-
-// Export posts functions
-export { createBookPost, fetchPosts, fetchUserPosts } from "./posts";
-
-// Export book-specific functions
-export {
-  addBookToTBR,
-  markBookAsReading,
-  markBookAsRead,
-  rateBook,
-  reviewBook,
-  reactToContent,
-  replyToContent,
-  fetchReplies,
-  fetchReactions,
-  followUser,
-  addBookToList,
-  updateBookInList,
-  removeBookFromList
-} from "./books";
-
-// Export fetch functions
-export {
-  fetchUserBooks,
-  fetchBooksByISBN,
-  fetchBookByISBN,
-  fetchBookReviews,
-  fetchBookRatings,
-  fetchFollowingList,
-  fetchUserProfile,
-  fetchSocialFeed,
-  fetchGlobalSocialFeed,
-  fetchUserReviews,
-  fetchBookActivity,
-  fetchEventById
-} from "./fetch";
-
-// Export mock data
-export { mockBooks } from "./mockData";
+// Re-export reactions and replies functions
+export * from './fetch/social/interactions';

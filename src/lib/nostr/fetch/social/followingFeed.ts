@@ -1,3 +1,4 @@
+
 import { type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -7,6 +8,7 @@ import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUti
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
+import { batchFetchReactions, batchFetchReplies } from "../interactions";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -89,34 +91,24 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     console.log(`Filtered out ${allEvents.length - nonReplyEvents.length} reply posts`);
     
     // Get all unique pubkeys to fetch profiles
-    const uniquePubkeys = [...new Set(allEvents.map(event => event.pubkey))];
+    const uniquePubkeys = [...new Set(nonReplyEvents.map(event => event.pubkey))];
     
     // Fetch profiles for these pubkeys
-    const profileFilter: Filter = {
-      kinds: [NOSTR_KINDS.SET_METADATA],
-      authors: uniquePubkeys
-    };
-    
-    const profileEvents = await pool.querySync(relays, profileFilter);
+    const profiles = await fetchUserProfiles(uniquePubkeys);
     
     // Create a map of pubkey to profile data
     const profileMap = new Map<string, { name?: string; picture?: string; npub?: string }>();
     
-    for (const profileEvent of profileEvents) {
-      try {
-        const profileData = JSON.parse(profileEvent.content);
-        profileMap.set(profileEvent.pubkey, {
-          name: profileData.name || profileData.display_name,
-          picture: profileData.picture,
-          npub: profileEvent.pubkey
-        });
-      } catch (e) {
-        console.error("Error parsing profile data:", e);
-      }
+    for (const profile of profiles) {
+      profileMap.set(profile.pubkey, {
+        name: profile.name || profile.display_name,
+        picture: profile.picture,
+        npub: profile.pubkey
+      });
     }
     
     // Extract all ISBNs to fetch book details
-    const isbns = allEvents
+    const isbns = nonReplyEvents
       .map(event => extractISBNFromTags(event))
       .filter((isbn): isbn is string => isbn !== null);
     
@@ -226,7 +218,32 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     }
     
     // Sort by creation date, newest first
-    return socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+    const sortedFeed = socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+    
+    // Limit the number of activities
+    const limitedFeed = sortedFeed.slice(0, limit);
+    
+    // Get all event IDs to batch fetch reactions and replies
+    const eventIds = limitedFeed.map(activity => activity.id);
+    
+    // Batch fetch reactions and replies
+    const [reactionsMap, repliesMap] = await Promise.all([
+      batchFetchReactions(eventIds),
+      batchFetchReplies(eventIds)
+    ]);
+    
+    // Add reactions and replies to each activity
+    for (const activity of limitedFeed) {
+      if (reactionsMap[activity.id]) {
+        activity.reactions = reactionsMap[activity.id];
+      }
+      
+      if (repliesMap[activity.id]) {
+        activity.replies = repliesMap[activity.id];
+      }
+    }
+    
+    return limitedFeed;
   } catch (error) {
     console.error("Error fetching social feed:", error);
     return [];
