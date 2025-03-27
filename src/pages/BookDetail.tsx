@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -11,10 +11,16 @@ import { BookActivitySection } from "@/components/book/BookActivitySection";
 import { BookDetailSkeleton } from "@/components/book/BookDetailSkeleton";
 import { BookNotFound } from "@/components/book/BookNotFound";
 import { useToast } from "@/hooks/use-toast";
+import { OpenLibraryContributionDialog } from "@/components/book/OpenLibraryContributionDialog";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
   const { toast } = useToast();
+  const [openContributionDialog, setOpenContributionDialog] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const previousIsbnRef = useRef<string | undefined>(isbn);
+  const dialogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogDismissedRef = useRef<boolean>(false);
   
   // Use the hook with the ISBN from params
   const {
@@ -54,24 +60,76 @@ const BookDetail = () => {
     }
   }, [error, toast]);
 
-  // Log debug data about the book
+  // Clean up timeout when component unmounts or when ISBN changes
   useEffect(() => {
-    if (book) {
-      console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
-      
-      // Check for incomplete data
-      if (!book.title || !book.author) {
-        console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
-        toast({
-          title: "Limited book information",
-          description: "We could only find partial details for this book",
-          variant: "warning"
-        });
+    return () => {
+      if (dialogTimeoutRef.current) {
+        clearTimeout(dialogTimeoutRef.current);
       }
-    } else if (!loading && isbn) {
-      console.warn(`No book data found for ISBN: ${isbn}`);
+    };
+  }, [isbn]);
+
+  // Handle dialog open state changes
+  const handleDialogOpenChange = (open: boolean) => {
+    setOpenContributionDialog(open);
+    
+    // If the user is explicitly closing the dialog, mark it as dismissed
+    if (open === false) {
+      dialogDismissedRef.current = true;
     }
-  }, [book, loading, isbn, toast]);
+  };
+
+  // Check for incomplete data only when the book data changes or when ISBN changes
+  useEffect(() => {
+    // Skip if we're still loading or don't have a book
+    if (loading || !book) return;
+    
+    // If the ISBN changed, reset the state to avoid carrying over old data
+    if (isbn !== previousIsbnRef.current) {
+      setMissingFields([]);
+      setOpenContributionDialog(false);
+      dialogDismissedRef.current = false;
+      previousIsbnRef.current = isbn;
+      return;
+    }
+    
+    // Skip further processing if we've already checked and opened the dialog
+    // or if the user has dismissed the dialog for this book
+    if (openContributionDialog || dialogDismissedRef.current) return;
+    
+    // Check for incomplete data
+    const missing: string[] = [];
+    
+    // Only consider a field missing if it's completely empty or matches the placeholder values
+    if (!book.title || book.title === 'Unknown Title') {
+      missing.push('Title');
+    }
+    
+    if (!book.author || book.author === 'Unknown Author') {
+      missing.push('Author');
+    }
+    
+    // Only consider cover missing if the field is empty (not just a placeholder image)
+    if (!book.coverUrl || book.coverUrl === '') {
+      missing.push('Cover Image');
+    }
+    
+    // Only consider description missing if it's completely empty
+    if (!book.description || book.description === '') {
+      missing.push('Description');
+    }
+    
+    // Only update state and show dialog if we actually have missing fields
+    if (missing.length > 0) {
+      setMissingFields(missing);
+      
+      // Small delay to ensure the user sees the page first
+      dialogTimeoutRef.current = setTimeout(() => {
+        setOpenContributionDialog(true);
+        dialogTimeoutRef.current = null;
+      }, 1500);
+    }
+  }, [book, loading, isbn, openContributionDialog]);
 
   // Handle removing book from the finished/read list
   const handleRemoveFromReadList = () => {
@@ -157,6 +215,14 @@ const BookDetail = () => {
           )}
         </div>
       </div>
+      
+      {/* Open Library Contribution Dialog */}
+      <OpenLibraryContributionDialog
+        open={openContributionDialog}
+        onOpenChange={handleDialogOpenChange}
+        book={book}
+        missingFields={missingFields}
+      />
     </Layout>
   );
 };
