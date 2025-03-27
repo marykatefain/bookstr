@@ -59,11 +59,6 @@ export {
   fetchBookActivity
 };
 
-// Import batchFetchUserProfiles from profileFetch directly
-import { batchFetchUserProfiles } from './fetch/profileFetch';
-// Export batchFetchUserProfiles
-export { batchFetchUserProfiles };
-
 // Re-export fetchEventById from fetch/social/fetchEvent with a different name to avoid conflicts
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
 export { fetchEventByIdFromFetch };

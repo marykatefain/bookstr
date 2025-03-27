@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Plus, AlertTriangle } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
-import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
+import { followUser, isLoggedIn, fetchFollowingList } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -15,15 +15,13 @@ interface UserProfileHeaderProps {
   following: boolean;
   setFollowing: (following: boolean) => void;
   currentUserPubkey?: string;
-  onFollow?: (pubkey: string) => Promise<void>;
 }
 
 export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   profile,
   following,
   setFollowing,
-  currentUserPubkey,
-  onFollow
+  currentUserPubkey
 }) => {
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowWarning, setShowFollowWarning] = useState(false);
@@ -58,25 +56,19 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         }
       }
       
-      if (onFollow) {
-        await onFollow(profile.pubkey);
-      } else {
-        // Keep original follow logic as fallback
-        // This code should be removed once all components use the new pattern
-        const result = await followUser(profile.pubkey);
+      const result = await followUser(profile.pubkey);
       
-        if (result !== null) {
-          setFollowing(true);
-          toast({
-            title: "Success",
-            description: `You are now following ${profile.name || 'this user'}`
-          });
-        } else if (following) {
-          toast({
-            title: "Already following",
-            description: `You already follow ${profile.name || 'this user'}`
-          });
-        }
+      if (result !== null) {
+        setFollowing(true);
+        toast({
+          title: "Success",
+          description: `You are now following ${profile.name || 'this user'}`
+        });
+      } else if (following) {
+        toast({
+          title: "Already following",
+          description: `You already follow ${profile.name || 'this user'}`
+        });
       }
     } catch (error) {
       console.error("Error following user:", error);

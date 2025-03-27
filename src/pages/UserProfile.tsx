@@ -7,45 +7,41 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  followUser,
+  fetchUserProfile, 
+  fetchUserBooks,
+  fetchUserReviews,
+  fetchFollowingList,
+  fetchUserPosts,
   isLoggedIn,
   getCurrentUser 
 } from "@/lib/nostr";
+import { NostrProfile, BookReview, Post } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
+import { nip19 } from "nostr-tools";
 import { UserProfileHeader } from "@/components/user-profile/UserProfileHeader";
 import { UserProfileStats } from "@/components/user-profile/UserProfileStats";
 import { UserProfileTabs } from "@/components/user-profile/UserProfileTabs";
 import { UserProfileContent } from "@/components/user-profile/UserProfileContent";
-import { useUserProfile } from "@/hooks/use-user-profile";
 
 const UserProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey: string }>();
+  const [profile, setProfile] = useState<NostrProfile | null>(null);
+  const [following, setFollowing] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
+  const [userBooks, setUserBooks] = useState({
+    tbr: [],
+    reading: [],
+    read: []
+  });
+  const [reviews, setReviews] = useState<BookReview[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
   const [redirected, setRedirected] = useState(false);
-  const [following, setFollowing] = useState<boolean>(false);
-
-  // Use our new hook for profile data
-  const {
-    profile,
-    following: followingStatus,
-    userBooks,
-    reviews,
-    posts,
-    isLoading,
-    postsLoading,
-    totalBooks
-  } = useUserProfile(pubkey);
-
-  // Set following state from query result
-  useEffect(() => {
-    if (followingStatus !== undefined) {
-      setFollowing(followingStatus);
-    }
-  }, [followingStatus]);
 
   // Handle redirect from /users/ to /user/ only once
   useEffect(() => {
@@ -56,37 +52,73 @@ const UserProfile = () => {
     }
   }, [location.pathname, navigate, redirected]);
 
-  // Handle follow action
-  const handleFollow = async (pubkeyToFollow: string) => {
-    if (!isLoggedIn() || !currentUser) {
-      toast({
-        title: "Login Required",
-        description: "You need to log in to follow users",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const result = await followUser(pubkeyToFollow);
-      if (result !== null) {
-        setFollowing(true);
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!pubkey || redirected) return;
+      
+      setLoading(true);
+      try {
+        let actualPubkey = pubkey;
+        
+        // Only try to decode if it starts with 'npub'
+        if (pubkey.startsWith('npub')) {
+          try {
+            const decoded = nip19.decode(pubkey);
+            if (decoded.type === 'npub') {
+              actualPubkey = decoded.data as string;
+            }
+          } catch (e) {
+            console.error("Error decoding npub:", e);
+          }
+        }
+        
+        const userProfile = await fetchUserProfile(actualPubkey);
+        if (userProfile) {
+          setProfile(userProfile);
+        }
+        
+        const books = await fetchUserBooks(actualPubkey);
+        setUserBooks(books);
+        
+        const userReviews = await fetchUserReviews(actualPubkey);
+        setReviews(userReviews);
+        
+        if (currentUser) {
+          const { follows } = await fetchFollowingList(currentUser.pubkey);
+          setFollowing(follows.includes(actualPubkey));
+        }
+        
+        setPostsLoading(true);
+        try {
+          const userPosts = await fetchUserPosts(actualPubkey, false);
+          setPosts(userPosts);
+        } catch (error) {
+          console.error("Error fetching user posts:", error);
+          toast({
+            title: "Error",
+            description: "Could not load user's posts",
+            variant: "destructive"
+          });
+        } finally {
+          setPostsLoading(false);
+        }
+        
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
         toast({
-          title: "Success",
-          description: `You are now following ${profile?.name || 'this user'}`
+          title: "Error",
+          description: "Could not load user profile",
+          variant: "destructive"
         });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error following user:", error);
-      toast({
-        title: "Error",
-        description: "Could not follow user",
-        variant: "destructive"
-      });
-    }
-  };
+    };
+    
+    fetchProfile();
+  }, [pubkey, toast, currentUser, navigate, redirected]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Layout>
         <div className="container px-4 py-8">
@@ -123,6 +155,8 @@ const UserProfile = () => {
       </Layout>
     );
   }
+
+  const totalBooks = userBooks.tbr.length + userBooks.reading.length + userBooks.read.length;
   
   return (
     <Layout>
@@ -133,7 +167,6 @@ const UserProfile = () => {
             following={following} 
             setFollowing={setFollowing}
             currentUserPubkey={currentUser?.pubkey}
-            onFollow={handleFollow}
           />
           
           <UserProfileStats 
