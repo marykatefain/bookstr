@@ -5,6 +5,7 @@ import { getUserRelays, getActiveConnections, ensureConnections } from "./relay"
 import { isLoggedIn, getCurrentUser } from "./user";
 import { NOSTR_KINDS } from "./types/constants";
 import { NostrEventData } from "./types/common";
+import { Book } from "./types/books";
 import { toast } from "@/hooks/use-toast";
 
 interface UpdateEventFilter {
@@ -416,13 +417,13 @@ export async function reviewBook(
       tags.push(["content-warning", `Spoiler: ${book.title}`]);
     }
 
-    const event = await getUser().publish({
+    const eventData = {
       kind: NOSTR_KINDS.REVIEW,
       tags,
       content
-    });
+    };
 
-    console.log('Published review event:', event);
+    await publishToNostr(eventData);
   } catch (error) {
     console.error('Error publishing review:', error);
     throw error;

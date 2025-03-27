@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -25,7 +26,7 @@ const BookDetail = () => {
     book,
     loading,
     error,
-    reviews: bookReviews,
+    reviews,
     ratings,
     userRating,
     reviewText,
@@ -44,7 +45,9 @@ const BookDetail = () => {
     handleReactToReview,
     handleReactToActivity,
     handleAddBookToList,
-    handleRemoveBookFromList
+    handleRemoveBookFromList,
+    isSpoiler,
+    setIsSpoiler
   } = useBookDetail(isbn);
 
   useEffect(() => {
@@ -167,21 +170,21 @@ const BookDetail = () => {
           <BookCommunityTabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            reviewsCount={bookReviews.reviews.length}
+            reviewsCount={reviews.length}
           />
           
           {activeTab === "reviews" && (
             <BookReviewSection
-              reviews={bookReviews.reviews}
-              userRating={bookReviews.userRating}
-              reviewText={bookReviews.reviewText}
-              setReviewText={bookReviews.setReviewText}
-              submitting={bookReviews.submitting}
-              handleSubmitReview={() => bookReviews.handleSubmitReview(book)}
-              handleRateBook={(rating) => bookReviews.handleRateBook(book, rating)}
+              reviews={reviews}
+              userRating={userRating}
+              reviewText={reviewText}
+              setReviewText={setReviewText}
+              submitting={submitting}
+              handleSubmitReview={() => handleSubmitReview(book)}
+              handleRateBook={(rating) => handleRateBook(book, rating)}
               handleReactToReview={handleReactToActivity}
-              isSpoiler={bookReviews.isSpoiler}
-              setIsSpoiler={bookReviews.setIsSpoiler}
+              isSpoiler={isSpoiler}
+              setIsSpoiler={setIsSpoiler}
             />
           )}
           

@@ -29,7 +29,9 @@ export const useBookDetail = (isbn: string | undefined) => {
     setReviewText, 
     submitting, 
     handleRateBook, 
-    handleSubmitReview 
+    handleSubmitReview,
+    isSpoiler,
+    setIsSpoiler
   } = useBookReviews(isbn);
 
   // Book actions (mark as read, add to list, etc.)
@@ -93,6 +95,8 @@ export const useBookDetail = (isbn: string | undefined) => {
     reviewText,
     setReviewText,
     submitting,
+    isSpoiler,
+    setIsSpoiler,
     
     // Action states
     pendingAction,

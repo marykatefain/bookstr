@@ -35,8 +35,8 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
       if (ratingTag && ratingTag[1]) {
         try {
           const normalizedRating = parseFloat(ratingTag[1]);
-          // Convert from 0-1 scale to 1-5 scale
-          rating = Math.round(normalizedRating * 5);
+          // Keep rating in the original 0-1 scale
+          rating = normalizedRating;
         } catch (e) {
           console.error("Error parsing rating:", e);
         }
