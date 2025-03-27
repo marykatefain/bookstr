@@ -18,13 +18,16 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus })
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
   
+  // Convert raw rating (0-1 scale) to display rating (1-5 scale)
+  const displayRating = convertRawRatingToDisplayRating(rating);
+  
   return (
     <div className="flex items-center space-x-1">
       {[...Array(5)].map((_, i) => (
         <Star
           key={i}
           className={`h-4 w-4 ${
-            i < rating 
+            i < (displayRating || 0)
               ? "text-bookverse-highlight fill-bookverse-highlight" 
               : "text-muted-foreground"
           }`}

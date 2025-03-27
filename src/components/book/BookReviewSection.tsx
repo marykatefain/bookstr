@@ -12,6 +12,7 @@ import { RepliesSection } from "@/components/social/RepliesSection";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { BookRating } from "./BookRating";
 import { Switch } from "@/components/ui/switch";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -41,7 +42,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   const [spoilerRevealed, setSpoilerRevealed] = useState<{[key: string]: boolean}>({});
   
   // Convert rating from 0-1 scale to 1-5 scale for display
-  const displayRating = userRating > 0 ? Math.round(userRating * 5) : 0;
+  const displayRating = userRating > 0 ? convertRawRatingToDisplayRating(userRating) : 0;
   
   return (
     <div className="space-y-6">
