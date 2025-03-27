@@ -2,10 +2,8 @@
 import React, { useEffect } from "react";
 import { useSocialFeed } from "@/hooks/use-social-feed";
 import { PostCard } from "@/components/post/PostCard";
-import { isLoggedIn, reactToContent } from "@/lib/nostr";
 import { ActivityCard } from "@/components/social/ActivityCard";
-import { SocialActivity } from "@/lib/nostr/types";
-import { toast } from "@/hooks/use-toast";
+import { useReaction } from "@/hooks/use-reaction";
 
 interface UserPostsFeedProps {
   refreshTrigger?: number;
@@ -25,46 +23,16 @@ export function UserPostsFeed({
     refreshTrigger
   });
 
+  // Use our new reaction hook
+  const { toggleReaction } = useReaction({
+    count: 0,
+    userReacted: false
+  });
+
   // Handle reactions for any activity
   const handleReaction = async (activityId: string) => {
     console.log(`UserPostsFeed: Handling reaction for activity: ${activityId}`);
-    
-    if (!isLoggedIn()) {
-      console.log("UserPostsFeed: User not logged in when trying to react");
-      toast({
-        title: "Login required",
-        description: "Please sign in to react to posts",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      console.log(`UserPostsFeed: Calling reactToContent with activityId: ${activityId}`);
-      const reactionId = await reactToContent(activityId);
-      
-      if (reactionId) {
-        console.log(`UserPostsFeed: Successfully published reaction (ID: ${reactionId})`);
-        toast({
-          title: "Reaction sent",
-          description: "You've reacted to this post"
-        });
-      } else {
-        console.error("UserPostsFeed: Failed to publish reaction - received null reaction ID");
-        toast({
-          title: "Error",
-          description: "Could not send reaction",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("UserPostsFeed: Error sending reaction:", error);
-      toast({
-        title: "Error",
-        description: "Could not send reaction",
-        variant: "destructive"
-      });
-    }
+    await toggleReaction(activityId);
   };
 
   // Fetch posts on initial render and when refresh is triggered

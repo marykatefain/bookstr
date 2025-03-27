@@ -1,74 +1,61 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, reactToContent } from "@/lib/nostr";
+import { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
+import { useReaction } from "@/hooks/use-reaction";
 
-export function useFeedReactions(activities: SocialActivity[], onActivitiesChanged?: (activities: SocialActivity[]) => void) {
+export function useFeedReactions(
+  activities: SocialActivity[], 
+  onActivitiesChanged?: (activities: SocialActivity[]) => void
+) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>(activities);
-  const { toast } = useToast();
+  
+  // When the input activities array changes, update the local state
+  useEffect(() => {
+    setLocalActivities(activities);
+  }, [activities]);
+
+  // We don't need the reaction state from useReaction
+  // since we manage the state per activity
+  const { toggleReaction } = useReaction();
 
   const handleReact = async (activityId: string) => {
     console.log(`useFeedReactions: handleReact called with activityId: ${activityId}`);
     
-    if (!isLoggedIn()) {
-      console.log("User not logged in - showing toast");
-      toast({
-        title: "Login required",
-        description: "Please sign in to react to posts",
-        variant: "destructive"
-      });
+    const activity = localActivities.find(a => a.id === activityId);
+    if (!activity) {
+      console.error(`Activity with ID ${activityId} not found`);
       return;
     }
-
-    try {
-      console.log(`Calling reactToContent from hook with eventId: ${activityId}`);
-      const reactionId = await reactToContent(activityId);
-      console.log(`Reaction result: ${reactionId ? 'Success' : 'Failed'}, ID: ${reactionId}`);
-      
-      if (reactionId) {
-        toast({
-          title: "Reaction sent",
-          description: "You've reacted to this post"
-        });
-        
-        const updatedActivities = localActivities.map(activity => {
-          if (activity.id === activityId) {
-            const currentUserReacted = activity.reactions?.userReacted || false;
-            const currentCount = activity.reactions?.count || 0;
-            
-            console.log(`Updating activity ${activityId}: currentUserReacted: ${currentUserReacted}, currentCount: ${currentCount}`);
-            
-            return {
-              ...activity,
-              reactions: {
-                count: currentUserReacted ? currentCount - 1 : currentCount + 1,
-                userReacted: !currentUserReacted
-              }
-            };
-          }
-          return activity;
-        });
-        
-        console.log("Updated activities after reaction");
-        setLocalActivities(updatedActivities);
-        
-        if (onActivitiesChanged) {
-          console.log("Calling onActivitiesChanged callback");
-          onActivitiesChanged(updatedActivities);
+    
+    const currentUserReacted = activity.reactions?.userReacted || false;
+    const currentCount = activity.reactions?.count || 0;
+    
+    // Call our centralized reaction hook
+    const success = await toggleReaction(activityId);
+    
+    if (success) {
+      const updatedActivities = localActivities.map(activity => {
+        if (activity.id === activityId) {
+          console.log(`Updating activity ${activityId}: currentUserReacted: ${currentUserReacted}, currentCount: ${currentCount}`);
+          
+          return {
+            ...activity,
+            reactions: {
+              count: currentUserReacted ? currentCount - 1 : currentCount + 1,
+              userReacted: !currentUserReacted
+            }
+          };
         }
-      } else {
-        // If we got null from reactToContent, something went wrong
-        console.error("Failed to publish reaction - received null reaction ID");
-        throw new Error("Failed to publish reaction");
-      }
-    } catch (error) {
-      console.error("Error reacting to post:", error);
-      toast({
-        title: "Error",
-        description: "Could not send reaction",
-        variant: "destructive"
+        return activity;
       });
+      
+      console.log("Updated activities after reaction");
+      setLocalActivities(updatedActivities);
+      
+      if (onActivitiesChanged) {
+        console.log("Calling onActivitiesChanged callback");
+        onActivitiesChanged(updatedActivities);
+      }
     }
   };
 

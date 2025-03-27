@@ -1,10 +1,9 @@
 
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useEffect } from "react";
 import { RepliesSection } from "./RepliesSection";
 import { Reply } from "@/lib/nostr/types";
 import { fetchReactions } from "@/lib/nostr";
+import { useReaction } from "@/hooks/use-reaction";
 
 interface ActivityFooterProps {
   bookIsbn: string;
@@ -25,16 +24,20 @@ export function ActivityFooter({
   onReaction,
   replies = []
 }: ActivityFooterProps) {
-  const isMobile = useIsMobile();
-  const [reactions, setReactions] = useState({
+  // Use our new reaction hook
+  const { 
+    reactionState,
+    updateReactionState,
+    toggleReaction
+  } = useReaction({
     count: reactionCount || 0,
     userReacted: userReacted || false
   });
-  const [loading, setLoading] = useState(false);
 
+  // Update the reaction state when props change
   useEffect(() => {
     if (reactionCount !== undefined) {
-      setReactions({
+      updateReactionState({
         count: reactionCount,
         userReacted: userReacted || false
       });
@@ -45,30 +48,23 @@ export function ActivityFooter({
 
   const fetchActivityReactions = async () => {
     console.log(`ActivityFooter: Fetching reactions for activity ${activityId}`);
-    setLoading(true);
     try {
       const result = await fetchReactions(activityId);
       console.log(`ActivityFooter: Fetched reactions for ${activityId}:`, result);
-      setReactions(result);
+      updateReactionState(result);
     } catch (error) {
       console.error("Error fetching activity reactions:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleReaction = (eventId: string) => {
+  const handleReaction = async (eventId: string) => {
     console.log(`ActivityFooter: Handling reaction for event ${eventId}`);
+    
+    // Call our centralized reaction handler
+    await toggleReaction(eventId);
+    
+    // Call the parent's onReaction callback
     onReaction(eventId);
-    // Update local state optimistically
-    setReactions(prev => {
-      const newState = {
-        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-        userReacted: !prev.userReacted
-      };
-      console.log(`ActivityFooter: Updated local reaction state for ${eventId}:`, newState);
-      return newState;
-    });
   };
 
   return (
@@ -79,8 +75,8 @@ export function ActivityFooter({
         initialReplies={replies}
         buttonLayout="horizontal"
         onReaction={handleReaction}
-        reactionCount={reactions.count}
-        userReacted={reactions.userReacted}
+        reactionCount={reactionState.count}
+        userReacted={reactionState.userReacted}
       />
     </div>
   );
