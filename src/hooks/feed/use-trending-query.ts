@@ -69,14 +69,14 @@ export function useTrendingQuery(limit: number = 20) {
           
           // Determine the best cover URL
           let coverUrl = work.cover_id 
-            ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+            ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
             : (work.cover_edition_key 
-              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+              ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
               : "");
           
           // If we have ISBN but no cover, try to use ISBN for cover
           if (!coverUrl && isbn) {
-            coverUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+            coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
           }
             
           return {
@@ -146,8 +146,8 @@ export function useTrendingQuery(limit: number = 20) {
       const booksPromises = data.docs?.map(async (doc: any) => {
         // Get the best available cover URL
         const coverUrl = doc.cover_i 
-          ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
-          : (doc.isbn && doc.isbn[0] ? `https://covers.openlibrary.org/b/isbn/${doc.isbn[0]}-M.jpg` : "");
+          ? `${API_BASE_URL}covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
+          : (doc.isbn && doc.isbn[0] ? `${API_BASE_URL}covers.openlibrary.org/b/isbn/${doc.isbn[0]}-M.jpg` : "");
         
         // Extract the first available ISBN (prioritize ISBN-13 if available)
         let isbn = "";

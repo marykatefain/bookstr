@@ -150,9 +150,9 @@ export async function searchBooksByGenre(genre: string, limit: number = 20): Pro
               
               // Get the best available cover URL
               const coverUrl = work.cover_id 
-                ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+                ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
                 : (work.cover_edition_key 
-                  ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                  ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
                   : "");
               
               return {

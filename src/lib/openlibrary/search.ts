@@ -4,6 +4,9 @@ import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
 import { throttlePromises } from '@/lib/utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Cache for search results with appropriate TTL
 const searchCache: Record<string, { data: Book[], timestamp: number }> = {};
 const SEARCH_CACHE_TTL = 1000 * 60 * 10; // 10 minutes cache for searches
@@ -228,9 +231,9 @@ export async function searchBooksByGenre(
       const processedBooks = finalWorks.map(work => {
         // Get the best available cover URL
         const coverUrl = work.cover_id 
-          ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+          ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
           : (work.cover_edition_key 
-              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+              ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
               : "");
         
         return {
@@ -258,9 +261,9 @@ export async function searchBooksByGenre(
       
       // Get the best available cover URL
       const coverUrl = work.cover_id 
-        ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+        ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
         : (work.cover_edition_key 
-            ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+            ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
             : "");
       
       // Create the basic book object
