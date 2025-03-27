@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
@@ -74,11 +73,17 @@ export const BookCover: React.FC<BookCoverProps> = ({
     
     try {
       if (onRatingChange) {
+        // Use the callback if provided (this will include the content preservation logic)
         onRatingChange(newRating);
       } else {
-        // Fallback direct rating if no callback provided
-        // Use the isbn string directly
+        // If no callback is provided, we'll handle the rating ourselves
+        // But we should still check for previous review content to preserve
+        
+        // Since we're in BookCover component, we don't have direct access to reviews
+        // We'll use the rateBook function directly with the empty content
+        // The rateBook function in lib/nostr/books.ts will need to be updated separately
         await rateBook(bookIsbn, newRating);
+        
         toast({
           title: "Rating saved",
           description: "Your rating has been saved and published to Nostr"

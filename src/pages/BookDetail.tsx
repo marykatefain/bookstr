@@ -162,6 +162,7 @@ const BookDetail = () => {
           handleMarkAsRead={handleMarkAsRead}
           addBookToList={handleAddBookToList}
           handleRemove={isRead ? handleRemoveFromReadList : undefined}
+          handleRateBook={(rating) => handleRateBook(book, rating)} // Pass the handleRateBook function
         />
         
         <Separator className="my-8" />
