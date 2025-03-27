@@ -1,14 +1,12 @@
-
 import { type Filter } from "nostr-tools";
-import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
+import { SocialActivity, NOSTR_KINDS } from "../../types";
 import { getUserRelays } from "../../relay";
-import { getCurrentUser } from "../../user";
-import { fetchFollowingList } from "../profileFetch";
-import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
-import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
-import { batchFetchReactions, batchFetchReplies } from "../interactions";
+import { processFeedEvents } from "./global/feedProcessor";
+import { fetchFollowingList } from "../../fetch";
+import { getCurrentUser } from "../../user";
+import { batchFetchReactions, batchFetchReplies } from "../../fetch/social/interactions";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";

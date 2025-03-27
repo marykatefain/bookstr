@@ -12,3 +12,6 @@ export * from './fetch';
 
 // Re-export reactions and replies functions
 export * from './fetch/social/interactions';
+
+// Re-export types
+export * from './types';

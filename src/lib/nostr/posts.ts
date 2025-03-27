@@ -7,7 +7,7 @@ import { mockPosts } from "./types";
 import { SimplePool, type Filter } from "nostr-tools";
 import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
-import { fetchBookPosts as fetchBookPostsByISBN } from "./fetch/socialFetch";
+import { fetchBookPostsByISBN } from "./fetch/socialFetch";
 import { getSharedPool } from "./utils/poolManager";
 
 // Base URL for the Cloudflare Worker

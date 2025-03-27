@@ -144,6 +144,7 @@ function formatReplyEvent(event: Event, authorName?: string, authorPicture?: str
     content: event.content,
     pubkey: event.pubkey,
     createdAt: event.created_at * 1000,
+    parentId: '', // Add empty string as default value
     author: {
       name: authorName || event.pubkey.slice(0, 8),
       picture: authorPicture,
@@ -226,7 +227,9 @@ export async function fetchRepliesForEvent(eventId: string): Promise<Reply[]> {
   // Format events into replies
   const replies: Reply[] = events.map(event => {
     const profile = profileMap.get(event.pubkey);
-    return formatReplyEvent(event, profile?.name, profile?.picture);
+    const reply = formatReplyEvent(event, profile?.name, profile?.picture);
+    reply.parentId = eventId; // Set the parentId to the current eventId
+    return reply;
   });
   
   // Sort by creation time, newest first
@@ -324,6 +327,7 @@ export async function batchFetchReplies(eventIds: string[]): Promise<Record<stri
       
       const profile = profileMap.get(event.pubkey);
       const reply = formatReplyEvent(event, profile?.name, profile?.picture);
+      reply.parentId = targetEventId;
       
       repliesByEvent[targetEventId].push(reply);
     }
