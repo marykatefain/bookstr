@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post, SocialActivity } from "@/lib/nostr/types";
@@ -13,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { ImageViewerModal } from "./ImageViewerModal";
 
 interface PostCardProps {
   post: Post | SocialActivity;
@@ -23,6 +23,9 @@ export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [showAllMedia, setShowAllMedia] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
   const { toast } = useToast();
   
   const isSocialActivity = 'type' in post && post.type === 'post';
@@ -79,13 +82,18 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     setImageErrors(prev => ({ ...prev, [url]: true }));
   };
 
+  const openImageViewer = (images: string[], initialIndex: number) => {
+    setViewerImages(images);
+    setCurrentImageIndex(initialIndex);
+    setImageViewerOpen(true);
+  };
+
   const detectAndRenderMediaUrls = (content: string) => {
     const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|mov|webm))/gi;
     const urlMatches = content.match(urlRegex);
     
     if (!urlMatches) return null;
     
-    // Filter to only valid image and video URLs that haven't had loading errors
     const mediaUrls = urlMatches.filter(url => {
       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
       const isVideo = /\.(mp4|mov|webm)$/i.test(url);
@@ -94,11 +102,9 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     
     if (mediaUrls.length === 0) return null;
     
-    // Display grid for images, and videos separately after the image grid
     const imageUrls = mediaUrls.filter(url => /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
     const videoUrls = mediaUrls.filter(url => /\.(mp4|mov|webm)$/i.test(url));
     
-    // Determine how many images to show (all if showAllMedia, otherwise max 4)
     const displayImageUrls = showAllMedia ? imageUrls : imageUrls.slice(0, 4);
     const hasMoreImages = imageUrls.length > 4 && !showAllMedia;
     
@@ -111,7 +117,11 @@ export function PostCard({ post, onReaction }: PostCardProps) {
             'grid-cols-2 md:grid-cols-2'
           }`}>
             {displayImageUrls.map((url, index) => (
-              <div key={index} className="relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800">
+              <div 
+                key={index} 
+                className="relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => openImageViewer(imageUrls, index)}
+              >
                 <AspectRatio ratio={2/3}>
                   <img 
                     src={url} 
@@ -156,13 +166,15 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     );
   };
   
-  // Handle primary media attachment
   const renderPrimaryMedia = () => {
     if (!postData.mediaUrl) return null;
     
     if (postData.mediaType === 'image' && !imageErrors[postData.mediaUrl]) {
       return (
-        <div className="mt-3 relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800">
+        <div 
+          className="mt-3 relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => openImageViewer([postData.mediaUrl!], 0)}
+        >
           <AspectRatio ratio={2/3} className="max-w-md mx-auto">
             <img 
               src={postData.mediaUrl} 
@@ -224,75 +236,85 @@ export function PostCard({ post, onReaction }: PostCardProps) {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Link to={`/user/${postData.pubkey}`}>
-              <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
-                <AvatarImage src={postData.author?.picture} />
-                <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <div>
-              <Link 
-                to={`/user/${postData.pubkey}`} 
-                className="font-medium hover:underline"
-              >
-                {authorName}
+    <>
+      <Card>
+        <CardHeader className="pb-2 pt-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Link to={`/user/${postData.pubkey}`}>
+                <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
+                  <AvatarImage src={postData.author?.picture} />
+                  <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
               </Link>
-              <p className="text-xs text-muted-foreground">{timeAgo}</p>
+              <div>
+                <Link 
+                  to={`/user/${postData.pubkey}`} 
+                  className="font-medium hover:underline"
+                >
+                  {authorName}
+                </Link>
+                <p className="text-xs text-muted-foreground">{timeAgo}</p>
+              </div>
             </div>
+            
+            {postData.isSpoiler && (
+              <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full text-xs border border-amber-200 dark:border-amber-800">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Spoiler</span>
+              </div>
+            )}
           </div>
-          
-          {postData.isSpoiler && (
-            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full text-xs border border-amber-200 dark:border-amber-800">
-              <AlertTriangle className="h-3 w-3" />
-              <span>Spoiler</span>
+        </CardHeader>
+        
+        <CardContent className="py-2">
+          {postData.isSpoiler && !spoilerRevealed ? (
+            <div className="space-y-3">
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
+                <p className="text-amber-700 dark:text-amber-400 mb-2">
+                  This post contains spoilers
+                  {postData.taggedBook && ` for "${postData.taggedBook.title}"`}
+                </p>
+                <Button variant="outline" size="sm" onClick={handleRevealSpoiler} 
+                  className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700">
+                  <Eye className="mr-1 h-4 w-4 text-amber-600 dark:text-amber-500" />
+                  <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
+                </Button>
+              </div>
+              
+              {renderBookInfo()}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
+              
+              {renderPrimaryMedia()}
+              {detectAndRenderMediaUrls(postData.content)}
+              {postData.taggedBook && renderBookInfo()}
             </div>
           )}
-        </div>
-      </CardHeader>
+        </CardContent>
+        
+        <CardFooter className="pt-0 py-2 flex-col items-start">
+          <RepliesSection 
+            eventId={postData.id}
+            authorPubkey={postData.pubkey}
+            initialReplies={postData.replies}
+            buttonLayout="horizontal"
+            onReaction={handleReaction}
+            reactionCount={postData.reactions?.count}
+            userReacted={postData.reactions?.userReacted}
+          />
+        </CardFooter>
+      </Card>
       
-      <CardContent className="py-2">
-        {postData.isSpoiler && !spoilerRevealed ? (
-          <div className="space-y-3">
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
-              <p className="text-amber-700 dark:text-amber-400 mb-2">
-                This post contains spoilers
-                {postData.taggedBook && ` for "${postData.taggedBook.title}"`}
-              </p>
-              <Button variant="outline" size="sm" onClick={handleRevealSpoiler} 
-                className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700">
-                <Eye className="mr-1 h-4 w-4 text-amber-600 dark:text-amber-500" />
-                <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
-              </Button>
-            </div>
-            
-            {renderBookInfo()}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
-            
-            {renderPrimaryMedia()}
-            {detectAndRenderMediaUrls(postData.content)}
-            {postData.taggedBook && renderBookInfo()}
-          </div>
-        )}
-      </CardContent>
-      
-      <CardFooter className="pt-0 py-2 flex-col items-start">
-        <RepliesSection 
-          eventId={postData.id}
-          authorPubkey={postData.pubkey}
-          initialReplies={postData.replies}
-          buttonLayout="horizontal"
-          onReaction={handleReaction}
-          reactionCount={postData.reactions?.count}
-          userReacted={postData.reactions?.userReacted}
-        />
-      </CardFooter>
-    </Card>
+      <ImageViewerModal
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+        images={viewerImages}
+        currentIndex={currentImageIndex}
+        onNavigate={setCurrentImageIndex}
+      />
+    </>
   );
 }
