@@ -9,9 +9,6 @@ export * from './relay';
 // Don't re-export everything from ./fetch - we'll handle specific exports to avoid conflicts
 // export * from './fetch';
 
-// Re-export reactions and replies functions
-export * from './fetch/social/interactions';
-
 // Re-export types
 export * from './types';
 
@@ -67,3 +64,22 @@ import { fetchEventById as fetchEventByIdFromBooks } from './books';
 export { fetchEventByIdFromBooks };
 // Export everything else from books
 export * from './books';
+
+// Handle the conflict with interactions exports
+import { 
+  fetchReactions as fetchReactionsOriginal,
+  fetchReplies as fetchRepliesOriginal
+} from './fetch/social/interactions';
+
+// Re-export with different names to avoid ambiguity
+export { 
+  fetchReactionsOriginal as fetchReactionsFromInteractions,
+  fetchRepliesOriginal as fetchRepliesFromInteractions 
+};
+
+// Export the rest of the interactions module
+export * from './fetch/social/interactions';
+
+// Re-export reactToContent with a different name to avoid conflict with the one in ./publish
+import { reactToContent as reactToContentOriginal } from './publish';
+export { reactToContentOriginal as reactToContentInternal };
