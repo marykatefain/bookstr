@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -9,7 +8,8 @@ import {
   isLoggedIn,
   rateBook,
   fetchBookReviews,
-  getCurrentUser
+  getCurrentUser,
+  reviewBook
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -187,8 +187,7 @@ export const useBookActions = () => {
         console.error("Error fetching previous reviews:", error);
       }
       
-      // Pass the reviewContent as the third parameter to preserve it
-      await rateBook(book.isbn, rating, reviewContent);
+      await reviewBook(book, reviewContent, rating);
       
       toast({
         title: "Rating saved",

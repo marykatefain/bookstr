@@ -7,7 +7,8 @@ export * from './profile';
 export {
   publishToNostr,
   updateNostrEvent,
-  reactToContent  // Make sure reactToContent is exported here
+  // Only export reactToContent once
+  reactToContent
 } from './publish';
 export * from './relay';
 
@@ -132,6 +133,4 @@ export { fetchReplies } from './fetch/social/interactions';
 // Export fetchEventById directly for components to use
 export { fetchEventById } from './fetch/social/fetchEvent';
 
-// Export reactToContent directly for components to use
-// Make sure this is using the original function from publish.ts
-export { reactToContent } from './publish';
+// No need to re-export reactToContent again as we already did it at the top

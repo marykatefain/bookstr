@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
-import { rateBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
+import { rateBook, fetchBookReviews, getCurrentUser, reviewBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
@@ -22,7 +21,7 @@ interface BookCoverProps {
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
   rating?: number;
   onRatingChange?: (rating: number) => void;
-  book?: Book; // Add optional book prop for full book data
+  book?: Book;
 }
 
 export const BookCover: React.FC<BookCoverProps> = ({
@@ -47,8 +46,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const [imageError, setImageError] = useState(false);
   const isFinished = isRead || readingStatus === 'finished';
   
-  // We're not using these fixed height classes anymore
-  // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
     xxsmall: "",
     xsmall: "",
@@ -58,7 +55,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   };
 
   const handleRateBook = async (newRating: number) => {
-    // Get ISBN from props or book object
     const bookIsbn = isbn || book?.isbn;
     
     if (!bookIsbn) {
@@ -74,11 +70,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
     
     try {
       if (onRatingChange) {
-        // Use the callback if provided (this will include the content preservation logic)
         onRatingChange(newRating);
       } else {
-        // If no callback is provided, we'll handle the rating ourselves
-        // We need to preserve any existing review content
         let existingContent = '';
         
         try {
@@ -98,8 +91,13 @@ export const BookCover: React.FC<BookCoverProps> = ({
           console.error("Error fetching previous reviews:", error);
         }
         
-        // Now pass the existing content as well to preserve it
-        await rateBook(bookIsbn, newRating, existingContent);
+        const bookObj = book || {
+          isbn: bookIsbn,
+          title: title || `Book (ISBN: ${bookIsbn})`,
+          author: author || "Unknown Author"
+        };
+        
+        await reviewBook(bookObj, existingContent, newRating);
         
         toast({
           title: "Rating saved",
@@ -118,7 +116,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
     }
   };
 
-  // The cover element now handles progressive loading
   const coverElement = (
     <div className="w-full h-full relative">
       {(!imageLoaded || imageError) && (
@@ -151,7 +148,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const renderRatingStars = () => {
     const starCount = 5;
     
-    // Use the hover rating if available, otherwise use the prop rating
     const hoverRating = ratingHover !== null 
       ? ratingHover 
       : rating;
@@ -204,10 +200,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
 
   const actionButton = () => {
     if (isFinished) {
-      // Show star rating for finished books
       return renderRatingStars();
     } else if (onReadAction) {
-      // Show mark as read button for unfinished books
       return (
         <button
           onClick={onReadAction}
@@ -243,7 +237,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 };
 
-// BookReadButton component for reuse
 export const BookReadButton: React.FC<{
   isRead: boolean;
   pendingAction: string | null;

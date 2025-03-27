@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
+import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, fetchBookReviews, getCurrentUser, reviewBook } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
@@ -227,8 +226,8 @@ export const BookCard: React.FC<BookCardProps> = ({
       // Use the previous review content if available
       const content = previousReview || '';
       
-      // Pass the content as the third parameter to preserve it
-      await rateBook(book.isbn, rating, content);
+      // Rating a book is essentially reviewing it with a rating
+      await reviewBook(book, content, rating);
       
       toast({
         title: "Rating saved",
