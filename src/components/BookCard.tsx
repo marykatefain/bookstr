@@ -55,7 +55,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       const reviews = await fetchBookReviews(book.isbn);
       if (reviews.length > 0) {
-        const currentUser = isLoggedIn();
+        const currentUser = getCurrentUser();
         if (!currentUser) return;
         
         const userReview = reviews.find(review => 

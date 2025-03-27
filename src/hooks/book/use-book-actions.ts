@@ -8,7 +8,8 @@ import {
   reactToContent,
   isLoggedIn,
   rateBook,
-  fetchBookReviews
+  fetchBookReviews,
+  getCurrentUser
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 
@@ -172,7 +173,7 @@ export const useBookActions = () => {
       try {
         const reviews = await fetchBookReviews(book.isbn);
         if (reviews.length > 0) {
-          const currentUser = isLoggedIn();
+          const currentUser = getCurrentUser();
           if (!currentUser) return;
           
           const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
@@ -186,6 +187,7 @@ export const useBookActions = () => {
         console.error("Error fetching previous reviews:", error);
       }
       
+      // Pass the reviewContent as the third parameter
       await rateBook(book.isbn, rating, reviewContent);
       
       toast({
