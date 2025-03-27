@@ -1,24 +1,13 @@
-import { toast } from "@/hooks/use-toast";
-import { validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
-import { NostrEventData, NOSTR_KINDS } from "./types";
-import { getCurrentUser, isLoggedIn } from "./user";
-import { getUserRelays, ensureConnections, getActiveConnections } from "./relay";
-import { getSharedPool } from "./utils/poolManager";
-
-/**
- * Interface for event update filter
- */
-interface UpdateEventFilter {
-  kind: number;
-  isbn?: string;
-}
 
 /**
  * Publish an event to Nostr relays
  */
 export async function publishToNostr(event: Partial<NostrEventData>): Promise<string | null> {
   try {
+    console.log("publishToNostr called with event:", event);
+    
     if (!isLoggedIn()) {
+      console.log("User not logged in");
       toast({
         title: "Login required",
         description: "Please sign in with Nostr to perform this action",
@@ -28,6 +17,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     }
 
     if (typeof window.nostr === 'undefined') {
+      console.error("Nostr extension not found");
       toast({
         title: "Nostr extension not found",
         description: "Please install a Nostr extension like nos2x or Alby",
@@ -38,6 +28,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     
     const currentUser = getCurrentUser();
     if (!currentUser) {
+      console.error("No current user found despite isLoggedIn check passing");
       throw new Error("User not logged in");
     }
 
@@ -63,6 +54,15 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       }
     }
 
+    // For kind 7 (reactions), add a specific tag for bookstr reactions
+    if (event.kind === NOSTR_KINDS.REACTION) {
+      event.tags = event.tags || [];
+      // Add a t tag for bookstr reactions if it doesn't exist
+      if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
+        event.tags.push(["t", "bookstr"]);
+      }
+    }
+
     // Prepare the event
     const unsignedEvent: UnsignedEvent = {
       kind: event.kind || NOSTR_KINDS.TEXT_NOTE,
@@ -82,12 +82,14 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       // Verify we have active connections before proceeding
       const activeConnections = getActiveConnections();
       if (activeConnections.length === 0) {
+        console.error("No relay connections available");
         throw new Error("No relay connections available");
       }
       
       // Check that at least one connection is open
       const openConnections = activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
       if (openConnections.length === 0) {
+        console.error("All relay connections are closed");
         throw new Error("All relay connections are closed");
       }
       
@@ -104,9 +106,11 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
 
     // Sign the event with the extension
     try {
+      console.log("Calling window.nostr.signEvent");
       const signedEvent = await window.nostr.signEvent(unsignedEvent);
       
       if (!signedEvent) {
+        console.error("Failed to sign event - signedEvent is null or undefined");
         throw new Error("Failed to sign event");
       }
 
@@ -115,12 +119,14 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       // Validate the event
       const eventHash = getEventHash(signedEvent);
       if (eventHash !== signedEvent.id) {
+        console.error(`Event hash mismatch: ${eventHash} !== ${signedEvent.id}`);
         throw new Error("Event validation failed: incorrect hash");
       }
 
       const isValid = validateEvent(signedEvent);
       
       if (!isValid) {
+        console.error("Event validation failed: invalid signature");
         throw new Error("Event validation failed: invalid signature");
       }
 

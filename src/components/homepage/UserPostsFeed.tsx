@@ -1,12 +1,16 @@
+
 import React, { useEffect } from "react";
 import { useSocialFeed } from "@/hooks/use-social-feed";
 import { PostCard } from "@/components/post/PostCard";
-import { isLoggedIn } from "@/lib/nostr";
+import { isLoggedIn, reactToContent } from "@/lib/nostr";
 import { ActivityCard } from "@/components/social/ActivityCard";
 import { SocialActivity } from "@/lib/nostr/types";
+import { toast } from "@/hooks/use-toast";
+
 interface UserPostsFeedProps {
   refreshTrigger?: number;
 }
+
 export function UserPostsFeed({
   refreshTrigger = 0
 }: UserPostsFeedProps) {
@@ -23,9 +27,42 @@ export function UserPostsFeed({
   });
 
   // Handle reactions for any activity
-  const handleReaction = (activityId: string) => {
-    // We don't need to refresh the feed here as the UI updates optimistically
-    console.log(`Reacted to activity: ${activityId}`);
+  const handleReaction = async (activityId: string) => {
+    console.log(`UserPostsFeed: Handling reaction for activity: ${activityId}`);
+    
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to react to posts",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const reactionId = await reactToContent(activityId);
+      if (reactionId) {
+        console.log(`Successfully published reaction (ID: ${reactionId})`);
+        toast({
+          title: "Reaction sent",
+          description: "You've reacted to this post"
+        });
+      } else {
+        console.error("Failed to publish reaction");
+        toast({
+          title: "Error",
+          description: "Could not send reaction",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error sending reaction:", error);
+      toast({
+        title: "Error",
+        description: "Could not send reaction",
+        variant: "destructive"
+      });
+    }
   };
 
   // Fetch posts on initial render and when refresh is triggered

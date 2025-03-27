@@ -38,6 +38,7 @@ export async function initNostr() {
 export async function loginWithNostr() {
   try {
     if (typeof window.nostr === 'undefined') {
+      console.error("Nostr extension not found");
       toast({
         title: "Nostr extension not found",
         description: "Please install a Nostr extension like nos2x or Alby",
@@ -46,9 +47,21 @@ export async function loginWithNostr() {
       return null;
     }
 
+    if (typeof window.nostr.signEvent !== 'function') {
+      console.error("Nostr extension missing signEvent function");
+      toast({
+        title: "Incompatible Nostr extension",
+        description: "Your Nostr extension doesn't support the required functions",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    console.log("Trying to get public key from Nostr extension");
     const pubkey = await window.nostr.getPublicKey();
     
     if (!pubkey) {
+      console.error("Failed to get public key from Nostr extension");
       toast({
         title: "Login failed",
         description: "Could not get public key from Nostr extension",
@@ -57,6 +70,7 @@ export async function loginWithNostr() {
       return null;
     }
 
+    console.log(`Got public key: ${pubkey}`);
     const npub = pubkeyToNpub(pubkey);
 
     let userProfile: NostrProfile = {
@@ -80,6 +94,7 @@ export async function loginWithNostr() {
     localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(userProfile));
     currentUser = userProfile;
 
+    console.log("Successfully logged in with Nostr:", userProfile);
     toast({
       title: "Login successful",
       description: "You're now logged in with Nostr",
@@ -100,6 +115,7 @@ export async function loginWithNostr() {
 export function logoutNostr() {
   localStorage.removeItem(NOSTR_USER_KEY);
   currentUser = null;
+  console.log("User logged out from Nostr");
   toast({
     title: "Logged out",
     description: "You've been logged out from Nostr",
@@ -111,15 +127,26 @@ export function getCurrentUser(): NostrProfile | null {
   
   const savedUser = localStorage.getItem(NOSTR_USER_KEY);
   if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    return currentUser;
+    try {
+      currentUser = JSON.parse(savedUser);
+      return currentUser;
+    } catch (e) {
+      console.error("Error parsing saved user:", e);
+      localStorage.removeItem(NOSTR_USER_KEY);
+      return null;
+    }
   }
   
   return null;
 }
 
 export function isLoggedIn(): boolean {
-  return getCurrentUser() !== null;
+  const user = getCurrentUser();
+  const result = user !== null;
+  if (!result) {
+    console.log("User is not logged in");
+  }
+  return result;
 }
 
 export function updateUserProfile(profileData: Partial<NostrProfile>): void {

@@ -57,6 +57,7 @@ export function ActivityFooter({
   };
 
   const handleReaction = (eventId: string) => {
+    console.log(`ActivityFooter: Handling reaction for event ${eventId}`);
     onReaction(eventId);
     // Update local state optimistically
     setReactions(prev => ({
