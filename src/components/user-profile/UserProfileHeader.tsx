@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Plus, AlertTriangle } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
-import { isLoggedIn, fetchFollowingList } from "@/lib/nostr";
+import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

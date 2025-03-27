@@ -37,7 +37,6 @@ import {
   fetchUserReviews,
   fetchFollowingList,
   fetchUserProfile,
-  batchFetchUserProfiles, // Add the new batch fetch function
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchBookPosts as fetchBookPostsFromFetch,
@@ -54,12 +53,16 @@ export {
   fetchUserReviews,
   fetchFollowingList,
   fetchUserProfile,
-  batchFetchUserProfiles, // Export the new function
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchBookPostsFromFetch,
   fetchBookActivity
 };
+
+// Import batchFetchUserProfiles from profileFetch directly
+import { batchFetchUserProfiles } from './fetch/profileFetch';
+// Export batchFetchUserProfiles
+export { batchFetchUserProfiles };
 
 // Re-export fetchEventById from fetch/social/fetchEvent with a different name to avoid conflicts
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
