@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, replyToContent } from "@/lib/nostr";
+import { isLoggedIn, replyToContent, getCurrentUser } from "@/lib/nostr";
 import { Reply } from "@/lib/nostr/types";
 
 interface CreateReplyProps {
@@ -43,16 +43,17 @@ export function CreateReply({ eventId, authorPubkey, onReplyCreated }: CreateRep
         });
         
         // Create a new reply object to add to the UI
+        const currentUser = getCurrentUser();
         const newReply: Reply = {
           id: replyId,
-          pubkey: isLoggedIn()?.pubkey || "",
+          pubkey: currentUser?.pubkey || "",
           content: replyText,
           createdAt: Date.now(),
           parentId: eventId,
           author: {
-            name: isLoggedIn()?.username || "",
-            picture: isLoggedIn()?.picture || "",
-            npub: isLoggedIn()?.pubkey || ""
+            name: currentUser?.name || "",
+            picture: currentUser?.picture || "",
+            npub: currentUser?.npub || ""
           }
         };
         
