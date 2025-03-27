@@ -55,7 +55,7 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
     // Add content-warning tag if spoiler is marked (using standard Nostr tag)
     if (params.isSpoiler) {
       const bookTitle = params.book?.title || "Book";
-      tags.push(["content-warning", `Spoiler: "${bookTitle}"`]);
+      tags.push(["content-warning", `Spoiler: ${bookTitle}`]);
     }
     
     // Create the event
