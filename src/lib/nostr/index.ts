@@ -1,5 +1,4 @@
 
-
 // Export types
 export * from "./types";
 
@@ -47,6 +46,7 @@ export {
   reactToContent,
   replyToContent,
   fetchReplies,
+  fetchReactions,
   followUser,
   addBookToList,
   updateBookInList,
@@ -69,9 +69,5 @@ export {
   fetchEventById
 } from "./fetch";
 
-// Export reaction functions
-export { fetchReactions } from "./fetch/social/fetchEvent";
-
 // Export mock data
 export { mockBooks } from "./mockData";
-

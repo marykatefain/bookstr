@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -183,6 +184,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
             initialReplies={review.replies}
             buttonLayout="horizontal"
             onReaction={handleReactToReview}
+            eventKind={NOSTR_KINDS.REVIEW}
           />
         </CardFooter>
       </Card>

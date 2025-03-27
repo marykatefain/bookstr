@@ -278,24 +278,15 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
  * React to content (review, rating, etc)
  */
 export async function reactToContent(eventId: string): Promise<string | null> {
-  try {
-    // Create a reaction event according to NIP-25
-    const event = {
-      kind: NOSTR_KINDS.REACTION,
-      content: "+", // "+" for like/upvote
-      tags: [
-        ["e", eventId], // reference to the event being reacted to
-      ]
-    };
-
-    // Publish the reaction event
-    const reactionId = await publishToNostr(event);
-    console.log("Published reaction:", reactionId);
-    return reactionId;
-  } catch (error) {
-    console.error("Error creating reaction:", error);
-    return null;
-  }
+  const event = {
+    kind: NOSTR_KINDS.REACTION,
+    tags: [
+      ["e", eventId]
+    ],
+    content: "+"
+  };
+  
+  return publishToNostr(event);
 }
 
 /**
@@ -308,7 +299,7 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
   }
 
   // Determine if this is a reply to a post or a book-related event
-  let kind = NOSTR_KINDS.TEXT_NOTE; // Default to text note kind
+  let kind = NOSTR_KINDS.BOOK_LIST_REPLY; // Default to book list reply
 
   try {
     // Fetch the original event to determine its kind
@@ -317,7 +308,7 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
     if (originalEvent) {
       // If the original event is a text note (kind 1), use kind 1 for the reply
       if (originalEvent.kind === NOSTR_KINDS.TEXT_NOTE) {
-        kind = NOSTR_KINDS.TEXT_NOTE;
+        kind = NOSTR_KINDS.POST_REPLY;
       }
     }
   } catch (error) {
@@ -409,7 +400,7 @@ export async function fetchReplies(eventId: string): Promise<Reply[]> {
   try {
     // Query for replies to this event (both kinds)
     const events = await pool.querySync(relayUrls, {
-      kinds: [NOSTR_KINDS.TEXT_NOTE],
+      kinds: [NOSTR_KINDS.BOOK_LIST_REPLY, NOSTR_KINDS.POST_REPLY],
       "#e": [eventId],
       limit: 50
     });
@@ -528,7 +519,7 @@ export async function followUser(pubkey: string): Promise<string | null> {
     
     // Create the event with all follows included
     const event = {
-      kind: NOSTR_KINDS.CONTACT_LIST,
+      kind: NOSTR_KINDS.CONTACTS,
       tags: followTags,
       content: ""
     };
