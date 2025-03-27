@@ -101,18 +101,18 @@ export {
   removeBookFromList
 };
 
-// Handle the conflict with interactions exports
+// Handle the conflict with interactions exports - get the actual function names from the file
 import { 
-  fetchReactions as fetchReactionsOriginal,
-  fetchReplies as fetchRepliesOriginal,
+  fetchReactions as fetchReactionsFromInteractions,
+  fetchReplies as fetchRepliesFromInteractions,
   batchFetchReactions,
   batchFetchReplies
 } from './fetch/social/interactions';
 
 // Re-export with different names to avoid ambiguity
 export { 
-  fetchReactionsOriginal as fetchReactionsFromInteractions,
-  fetchRepliesOriginal as fetchRepliesFromInteractions,
+  fetchReactionsFromInteractions,
+  fetchRepliesFromInteractions,
   batchFetchReactions,
   batchFetchReplies
 };
@@ -122,11 +122,11 @@ import { reactToContent as reactToContentFromPublish } from './publish';
 export { reactToContentFromPublish };
 
 // Now export the base functions that components are directly using
-// Export fetchReactions directly for components to use
-export { fetchReactionsOriginal as fetchReactions } from './fetch/social/interactions';
+// Export fetchReactions directly for components to use (fixed - using the actual function name)
+export { fetchReactions } from './fetch/social/interactions';
 
-// Export fetchReplies directly for components to use
-export { fetchRepliesOriginal as fetchReplies } from './fetch/social/interactions';
+// Export fetchReplies directly for components to use (fixed - using the actual function name)
+export { fetchReplies } from './fetch/social/interactions';
 
 // Export fetchEventById directly for components to use
 export { fetchEventById } from './fetch/social/fetchEvent';
