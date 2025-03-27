@@ -3,6 +3,7 @@ import { NostrProfile, NostrEventData } from "./types";
 import { connectToRelays } from "./relay";
 import { getUserRelays } from "./relay";
 import { getSharedPool } from "./utils/poolManager";
+import { batchFetchUserProfiles } from "./fetch/profileFetch";
 
 const parseProfileContent = (content: string): Partial<NostrProfile> => {
   try {
@@ -82,41 +83,14 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
 }
 
 /**
- * Fetch multiple user profiles at once
+ * Fetch multiple user profiles at once using the optimized batch fetching
  */
 export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<NostrProfile>[]> {
   if (!pubkeys.length) return [];
   
-  const relays = getUserRelays();
-  const pool = getSharedPool();
-  
   try {
-    const profileEvents = await pool.querySync(relays, {
-      kinds: [0],
-      authors: pubkeys
-    });
-    
-    const profiles: Partial<NostrProfile>[] = [];
-    
-    for (const event of profileEvents) {
-      try {
-        const profileData = JSON.parse(event.content);
-        
-        profiles.push({
-          npub: event.pubkey, // This will be converted to npub in UI
-          pubkey: event.pubkey,
-          name: profileData.name,
-          display_name: profileData.display_name,
-          picture: profileData.picture,
-          about: profileData.about,
-          relays: []
-        });
-      } catch (error) {
-        console.error("Error parsing profile:", error);
-      }
-    }
-    
-    return profiles;
+    const profilesMap = await batchFetchUserProfiles(pubkeys);
+    return Array.from(profilesMap.values());
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return [];

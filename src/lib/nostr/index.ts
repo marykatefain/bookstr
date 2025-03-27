@@ -37,6 +37,7 @@ import {
   fetchUserReviews,
   fetchFollowingList,
   fetchUserProfile,
+  batchFetchUserProfiles, // Add the new batch fetch function
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchBookPosts as fetchBookPostsFromFetch,
@@ -53,6 +54,7 @@ export {
   fetchUserReviews,
   fetchFollowingList,
   fetchUserProfile,
+  batchFetchUserProfiles, // Export the new function
   fetchSocialFeed,
   fetchGlobalSocialFeed,
   fetchBookPostsFromFetch,
