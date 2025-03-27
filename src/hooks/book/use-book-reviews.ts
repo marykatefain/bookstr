@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Book, BookReview } from "@/lib/nostr/types";
 import { 
@@ -82,8 +81,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     try {
       console.log(`Submitting review with rating: ${userRating}`);
       
-      // Submit both the review text and rating together
-      // Fix: Remove the 4th argument by passing isSpoiler correctly
+      // Fix: Pass isSpoiler as the 4th parameter correctly
       await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined, isSpoiler);
       toast({
         title: "Review submitted",
