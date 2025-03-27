@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
 import { NostrEventData, NOSTR_KINDS } from "./types";
@@ -331,6 +330,58 @@ export async function updateNostrEvent(
     toast({
       title: "Update failed",
       description: error instanceof Error ? error.message : "Unknown error",
+      variant: "destructive"
+    });
+    
+    return null;
+  }
+}
+
+/**
+ * React to a post or other content (Kind 7)
+ * @param eventId - The ID of the event to react to
+ * @param emoji - Optional emoji to use (defaults to "+")
+ * @returns The ID of the reaction event if successfully published, null otherwise
+ */
+export async function reactToContent(eventId: string, emoji: string = "+"): Promise<string | null> {
+  try {
+    if (!isLoggedIn()) {
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to react to content",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    // Create event tags - we need 'e' tag for the event we're reacting to
+    const tags = [
+      ["e", eventId]
+    ];
+
+    // Prepare event data
+    const eventData: Partial<NostrEventData> = {
+      kind: NOSTR_KINDS.REACTION,
+      content: emoji,  // Using "+" as default for a like reaction
+      tags: tags
+    };
+
+    // Publish the reaction
+    const reactionId = await publishToNostr(eventData);
+    
+    if (reactionId) {
+      console.log(`Successfully published reaction to event ${eventId}`);
+      return reactionId;
+    } else {
+      console.error(`Failed to publish reaction to event ${eventId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error creating reaction:", error);
+    
+    toast({
+      title: "Failed to react",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
       variant: "destructive"
     });
     

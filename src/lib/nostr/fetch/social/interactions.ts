@@ -12,6 +12,16 @@ const CACHE_TTL = 5 * 60 * 1000;
 /**
  * Fetch reactions (Kind 7) for a specific event
  */
+export async function fetchReactions(eventId: string): Promise<{
+  count: number;
+  userReacted: boolean;
+}> {
+  return fetchReactionsForEvent(eventId);
+}
+
+/**
+ * Fetch reactions (Kind 7) for a specific event
+ */
 export async function fetchReactionsForEvent(eventId: string): Promise<{
   count: number;
   userReacted: boolean;
@@ -150,6 +160,13 @@ function formatReplyEvent(event: Event, authorName?: string, authorPicture?: str
       npub: event.pubkey
     }
   };
+}
+
+/**
+ * Fetch replies (Kind 1 notes with e tag) for a specific event
+ */
+export async function fetchReplies(eventId: string): Promise<Reply[]> {
+  return fetchRepliesForEvent(eventId);
 }
 
 /**
