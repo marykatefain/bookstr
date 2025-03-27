@@ -1,4 +1,3 @@
-
 import { type Event, type Filter } from "nostr-tools";
 import { NOSTR_KINDS } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -35,7 +34,7 @@ export async function fetchReactionsForEvent(eventId: string): Promise<{
   const cacheKey = generateCacheKey(filter) + '-reactions';
   
   // Check for cached results
-  const cachedEvents = getCachedQueryResult(cacheKey, CACHE_TTL);
+  const cachedEvents = getCachedQueryResult(cacheKey);
   let events: Event[] = [];
   
   if (cachedEvents) {
@@ -85,7 +84,7 @@ export async function batchFetchReactions(eventIds: string[]): Promise<Record<st
   const cacheKey = generateCacheKey(filter) + '-batch-reactions';
   
   // Check for cached results
-  const cachedEvents = getCachedQueryResult(cacheKey, CACHE_TTL);
+  const cachedEvents = getCachedQueryResult(cacheKey);
   let events: Event[] = [];
   
   if (cachedEvents) {
@@ -144,7 +143,7 @@ function formatReplyEvent(event: Event, authorName?: string, authorPicture?: str
     content: event.content,
     pubkey: event.pubkey,
     createdAt: event.created_at * 1000,
-    parentId: '', // Add empty string as default value
+    parentId: '', // Will be set when used
     author: {
       name: authorName || event.pubkey.slice(0, 8),
       picture: authorPicture,
@@ -174,7 +173,7 @@ export async function fetchRepliesForEvent(eventId: string): Promise<Reply[]> {
   const cacheKey = generateCacheKey(filter) + '-replies';
   
   // Check for cached results
-  const cachedEvents = getCachedQueryResult(cacheKey, CACHE_TTL);
+  const cachedEvents = getCachedQueryResult(cacheKey);
   let events: Event[] = [];
   
   if (cachedEvents) {
@@ -257,7 +256,7 @@ export async function batchFetchReplies(eventIds: string[]): Promise<Record<stri
   const cacheKey = generateCacheKey(filter) + '-batch-replies';
   
   // Check for cached results
-  const cachedEvents = getCachedQueryResult(cacheKey, CACHE_TTL);
+  const cachedEvents = getCachedQueryResult(cacheKey);
   let events: Event[] = [];
   
   if (cachedEvents) {
