@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -11,10 +11,13 @@ import { BookActivitySection } from "@/components/book/BookActivitySection";
 import { BookDetailSkeleton } from "@/components/book/BookDetailSkeleton";
 import { BookNotFound } from "@/components/book/BookNotFound";
 import { useToast } from "@/hooks/use-toast";
+import { OpenLibraryContributionDialog } from "@/components/book/OpenLibraryContributionDialog";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
   const { toast } = useToast();
+  const [openContributionDialog, setOpenContributionDialog] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   
   // Use the hook with the ISBN from params
   const {
@@ -54,19 +57,40 @@ const BookDetail = () => {
     }
   }, [error, toast]);
 
-  // Log debug data about the book
+  // Log debug data about the book and check for incomplete data
   useEffect(() => {
-    if (book) {
+    if (book && !loading) {
       console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
       
       // Check for incomplete data
-      if (!book.title || !book.author) {
-        console.warn(`Incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
-        toast({
-          title: "Limited book information",
-          description: "We could only find partial details for this book",
-          variant: "warning"
-        });
+      const missing: string[] = [];
+      
+      if (!book.title || book.title === 'Unknown Title') {
+        missing.push('Title');
+      }
+      
+      if (!book.author || book.author === 'Unknown Author') {
+        missing.push('Author');
+      }
+      
+      if (!book.coverUrl) {
+        missing.push('Cover Image');
+      }
+      
+      if (!book.description) {
+        missing.push('Description');
+      }
+      
+      setMissingFields(missing);
+      
+      // Show the contribution dialog if we're missing important fields
+      if (missing.length > 0) {
+        // Small delay to ensure the user sees the page first
+        const timer = setTimeout(() => {
+          setOpenContributionDialog(true);
+        }, 1500);
+        
+        return () => clearTimeout(timer);
       }
     } else if (!loading && isbn) {
       console.warn(`No book data found for ISBN: ${isbn}`);
@@ -157,6 +181,14 @@ const BookDetail = () => {
           )}
         </div>
       </div>
+      
+      {/* Open Library Contribution Dialog */}
+      <OpenLibraryContributionDialog
+        open={openContributionDialog}
+        onOpenChange={setOpenContributionDialog}
+        book={book}
+        missingFields={missingFields}
+      />
     </Layout>
   );
 };
