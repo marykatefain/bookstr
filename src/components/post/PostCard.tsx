@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post, SocialActivity } from "@/lib/nostr/types";
@@ -7,10 +8,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCover } from "@/components/book/BookCover";
 import { formatPubkey } from "@/lib/utils/format";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, BookOpen, Eye } from "lucide-react";
+import { AlertTriangle, BookOpen, Eye, Image, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface PostCardProps {
   post: Post | SocialActivity;
@@ -20,6 +22,7 @@ interface PostCardProps {
 export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [showAllMedia, setShowAllMedia] = useState(false);
   const { toast } = useToast();
   
   const isSocialActivity = 'type' in post && post.type === 'post';
@@ -82,25 +85,62 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     
     if (!urlMatches) return null;
     
-    return urlMatches.map((url, index) => {
+    // Filter to only valid image and video URLs that haven't had loading errors
+    const mediaUrls = urlMatches.filter(url => {
       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
       const isVideo = /\.(mp4|mov|webm)$/i.test(url);
-      
-      if (isImage && !imageErrors[url]) {
-        return (
-          <div key={index} className="mt-3">
-            <img 
-              src={url} 
-              alt="Media from post content" 
-              className="rounded-md max-h-80 object-contain mx-auto" 
-              loading="lazy"
-              onError={() => handleImageError(url)}
-            />
+      return (isImage || isVideo) && !imageErrors[url];
+    });
+    
+    if (mediaUrls.length === 0) return null;
+    
+    // Display grid for images, and videos separately after the image grid
+    const imageUrls = mediaUrls.filter(url => /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
+    const videoUrls = mediaUrls.filter(url => /\.(mp4|mov|webm)$/i.test(url));
+    
+    // Determine how many images to show (all if showAllMedia, otherwise max 4)
+    const displayImageUrls = showAllMedia ? imageUrls : imageUrls.slice(0, 4);
+    const hasMoreImages = imageUrls.length > 4 && !showAllMedia;
+    
+    return (
+      <div className="mt-3 space-y-3">
+        {displayImageUrls.length > 0 && (
+          <div className={`grid gap-2 ${
+            displayImageUrls.length === 1 ? 'grid-cols-1' : 
+            displayImageUrls.length === 2 ? 'grid-cols-2' : 
+            'grid-cols-2 md:grid-cols-2'
+          }`}>
+            {displayImageUrls.map((url, index) => (
+              <div key={index} className="relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800">
+                <AspectRatio ratio={2/3}>
+                  <img 
+                    src={url} 
+                    alt="Media from post content" 
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={() => handleImageError(url)}
+                  />
+                </AspectRatio>
+              </div>
+            ))}
           </div>
-        );
-      } else if (isVideo) {
-        return (
-          <div key={index} className="mt-3">
+        )}
+        
+        {hasMoreImages && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowAllMedia(true)}
+            className="mt-2 flex items-center"
+          >
+            <Image className="mr-2 h-4 w-4" />
+            <span>See all {imageUrls.length} images</span>
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        )}
+        
+        {videoUrls.map((url, index) => (
+          <div key={`video-${index}`} className="mt-3 rounded-md overflow-hidden shadow-sm">
             <video 
               src={url} 
               controls 
@@ -111,11 +151,48 @@ export function PostCard({ post, onReaction }: PostCardProps) {
               }}
             />
           </div>
-        );
-      }
-      
-      return null;
-    }).filter(Boolean);
+        ))}
+      </div>
+    );
+  };
+  
+  // Handle primary media attachment
+  const renderPrimaryMedia = () => {
+    if (!postData.mediaUrl) return null;
+    
+    if (postData.mediaType === 'image' && !imageErrors[postData.mediaUrl]) {
+      return (
+        <div className="mt-3 relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800">
+          <AspectRatio ratio={2/3} className="max-w-md mx-auto">
+            <img 
+              src={postData.mediaUrl} 
+              alt="Post media" 
+              className="h-full w-full object-cover" 
+              loading="lazy"
+              onError={() => handleImageError(postData.mediaUrl!)}
+            />
+          </AspectRatio>
+        </div>
+      );
+    }
+    
+    if (postData.mediaType === 'video') {
+      return (
+        <div className="mt-3 rounded-md overflow-hidden shadow-sm">
+          <video 
+            src={postData.mediaUrl} 
+            controls 
+            className="rounded-md w-full max-h-80" 
+            onError={(e) => {
+              console.log(`Error loading video: ${postData.mediaUrl}`);
+              (e.target as HTMLVideoElement).style.display = 'none';
+            }}
+          />
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   const renderBookInfo = () => {
@@ -198,34 +275,8 @@ export function PostCard({ post, onReaction }: PostCardProps) {
           <div className="space-y-3">
             <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
             
-            {postData.mediaUrl && postData.mediaType === 'image' && !imageErrors[postData.mediaUrl] && (
-              <div className="mt-3">
-                <img 
-                  src={postData.mediaUrl} 
-                  alt="Post media" 
-                  className="rounded-md max-h-80 mx-auto object-contain shadow-sm" 
-                  loading="lazy"
-                  onError={() => handleImageError(postData.mediaUrl!)}
-                />
-              </div>
-            )}
-            
-            {postData.mediaUrl && postData.mediaType === 'video' && (
-              <div className="mt-3 rounded-md overflow-hidden shadow-sm">
-                <video 
-                  src={postData.mediaUrl} 
-                  controls 
-                  className="rounded-md w-full max-h-80" 
-                  onError={(e) => {
-                    console.log(`Error loading video: ${postData.mediaUrl}`);
-                    (e.target as HTMLVideoElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-            
+            {renderPrimaryMedia()}
             {detectAndRenderMediaUrls(postData.content)}
-            
             {postData.taggedBook && renderBookInfo()}
           </div>
         )}
