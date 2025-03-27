@@ -1,3 +1,5 @@
+import React from 'react';
+
 /**
  * URL pattern to match URLs in text
  * This matches URLs starting with http:// or https:// or www.
