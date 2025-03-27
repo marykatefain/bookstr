@@ -37,7 +37,8 @@ export const useBookDetail = (isbn: string | undefined) => {
     pendingAction, 
     handleMarkAsRead: markAsRead, 
     handleAddBookToList, 
-    handleReactToContent 
+    handleReactToContent,
+    handleRemoveBookFromList: removeBookFromList
   } = useBookActions();
 
   // Activity feed and tab management
@@ -73,6 +74,11 @@ export const useBookDetail = (isbn: string | undefined) => {
     return handleReactToContent(activityId);
   }, [handleReactToContent]);
 
+  // Add a wrapper for removing a book from a list
+  const handleRemoveBookFromList = useCallback((book: any, listType: 'tbr' | 'reading' | 'finished') => {
+    return removeBookFromList(book, listType);
+  }, [removeBookFromList]);
+
   return {
     // Book data
     book,
@@ -105,6 +111,7 @@ export const useBookDetail = (isbn: string | undefined) => {
     handleSubmitReview: handleSubmitReviewWrapper,
     handleReactToReview,
     handleReactToActivity,
-    handleAddBookToList
+    handleAddBookToList,
+    handleRemoveBookFromList
   };
 };

@@ -39,7 +39,8 @@ const BookDetail = () => {
     handleSubmitReview,
     handleReactToReview,
     handleReactToActivity,
-    handleAddBookToList
+    handleAddBookToList,
+    handleRemoveBookFromList
   } = useBookDetail(isbn);
 
   // Show error toast when we have an error
@@ -71,6 +72,13 @@ const BookDetail = () => {
       console.warn(`No book data found for ISBN: ${isbn}`);
     }
   }, [book, loading, isbn, toast]);
+
+  // Handle removing book from the finished/read list
+  const handleRemoveFromReadList = () => {
+    if (book) {
+      handleRemoveBookFromList(book, 'finished');
+    }
+  };
 
   // Calculate average rating 
   const avgRating = ratings.length > 0
@@ -112,6 +120,7 @@ const BookDetail = () => {
           pendingAction={pendingAction}
           handleMarkAsRead={handleMarkAsRead}
           addBookToList={handleAddBookToList}
+          handleRemove={isRead ? handleRemoveFromReadList : undefined}
         />
         
         <Separator className="my-8" />
