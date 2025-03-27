@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { refreshSharedPool } from "@/lib/nostr/utils/poolManager";
 import { connectToRelays } from "@/lib/nostr/relay";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ export function useManualRefresh({
   setRefreshTrigger
 }: UseManualRefreshProps) {
   const { toast } = useToast();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // Function to manually refresh the feed with loading indicator
   const handleManualRefresh = useCallback(async () => {
@@ -26,11 +27,18 @@ export function useManualRefresh({
       return;
     }
     
+    // Prevent multiple connection attempts
+    if (isConnecting) {
+      console.log("Already connecting, ignoring duplicate request");
+      return;
+    }
+    
     lastManualRefreshRef.current = now;
     setManualRefreshing(true);
     
     // Always try to reconnect on manual refresh - this is critical for reliability
     try {
+      setIsConnecting(true);
       console.log("Reconnecting to relays during manual refresh...");
       toast({
         title: "Connecting to Nostr",
@@ -39,7 +47,14 @@ export function useManualRefresh({
       
       // Refresh the shared pool to force new connections
       refreshSharedPool();
-      await connectToRelays(undefined, true); // Force reconnect
+      
+      // Set a timeout to ensure we don't wait forever
+      const connectPromise = connectToRelays(undefined, true);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Connection timeout")), 10000);
+      });
+      
+      await Promise.race([connectPromise, timeoutPromise]);
       
       toast({
         title: "Connected",
@@ -49,9 +64,11 @@ export function useManualRefresh({
       console.error("Failed to reconnect:", error);
       toast({
         title: "Connection failed",
-        description: "Unable to connect to relays. Please try again later.",
+        description: "Unable to connect to all relays. Trying to fetch data anyway...",
         variant: "destructive"
       });
+    } finally {
+      setIsConnecting(false);
     }
     
     // Refresh the feed regardless of connection status
@@ -62,7 +79,7 @@ export function useManualRefresh({
     setTimeout(() => {
       setManualRefreshing(false);
     }, 3000);
-  }, [lastManualRefreshRef, setManualRefreshing, setRefreshTrigger, toast]);
+  }, [lastManualRefreshRef, setManualRefreshing, setRefreshTrigger, toast, isConnecting]);
 
-  return { handleManualRefresh };
+  return { handleManualRefresh, isConnecting };
 }
