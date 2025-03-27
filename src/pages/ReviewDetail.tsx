@@ -13,6 +13,7 @@ import { fetchReplies } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { getBookByISBN } from "@/lib/openlibrary";
 import { Skeleton } from "@/components/ui/skeleton";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 const ReviewDetail = () => {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -60,6 +61,8 @@ const ReviewDetail = () => {
           try {
             rating = parseFloat(ratingTag[1]);
             console.log("Raw rating from API:", rating);
+            rating = convertRawRatingToDisplayRating(rating);
+            console.log("Setting Display rating to: ", rating);
           } catch (e) {
             console.error("Error parsing rating:", e);
           }
