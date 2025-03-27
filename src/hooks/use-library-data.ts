@@ -31,8 +31,10 @@ export const useLibraryData = () => {
         const userBooks = await fetchUserBooks(user.pubkey);
         console.log("User books data fetched:", userBooks);
         
+        // First deduplicate books within the same lists
         const deduplicatedWithinLists = deduplicateBooksWithinLists(userBooks);
         
+        // Then deduplicate books across lists
         return deduplicateBookLists(deduplicatedWithinLists);        
       } catch (error) {
         console.error("Error fetching user books:", error);
@@ -45,6 +47,7 @@ export const useLibraryData = () => {
     refetchOnMount: true
   });
   
+  // Deduplicate books within the same list using ISBN as the unique identifier
   const deduplicateBooksWithinLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
     const uniqueTbr = deduplicateListByIsbn(books.tbr);
     const uniqueReading = deduplicateListByIsbn(books.reading);
@@ -57,14 +60,17 @@ export const useLibraryData = () => {
     };
   };
   
+  // Helper function to deduplicate a single list by ISBN
   const deduplicateListByIsbn = (books: Book[]): Book[] => {
     const uniqueBooks = new Map<string, Book>();
     
+    // Process books, keeping only the most recent entry for each ISBN
     books.forEach(book => {
-      if (!book.isbn) return;
+      if (!book.isbn) return; // Skip books without ISBN
       
       const existingBook = uniqueBooks.get(book.isbn);
       
+      // If book doesn't exist in map or current book is newer, add/replace it
       if (!existingBook || 
           (book.readingStatus?.dateAdded && existingBook.readingStatus?.dateAdded && 
            book.readingStatus.dateAdded > existingBook.readingStatus.dateAdded)) {
@@ -75,16 +81,21 @@ export const useLibraryData = () => {
     return Array.from(uniqueBooks.values());
   };
   
+  // Deduplicate books across lists - prioritize finished > reading > tbr
   const deduplicateBookLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+    // Create sets of ISBNs for each list to track what's already been processed
     const readIsbns = new Set(books.read.map(book => book.isbn));
     const readingIsbns = new Set(books.reading.map(book => book.isbn));
     
+    // Filter reading list to remove books that are already in read list
     const dedupedReading = books.reading.filter(book => {
       return book.isbn && !readIsbns.has(book.isbn);
     });
     
+    // Update the reading ISBNs set after deduplication
     const updatedReadingIsbns = new Set(dedupedReading.map(book => book.isbn));
     
+    // Filter tbr list to remove books that are in read or deduped reading lists
     const dedupedTbr = books.tbr.filter(book => {
       return book.isbn && !readIsbns.has(book.isbn) && !updatedReadingIsbns.has(book.isbn);
     });
@@ -96,6 +107,7 @@ export const useLibraryData = () => {
     };
   };
   
+  // Fetch reviews to get the ratings
   const {
     data: reviews = [],
     isLoading: reviewsLoading,
@@ -122,10 +134,12 @@ export const useLibraryData = () => {
     refetchOnWindowFocus: true
   });
   
+  // Merge ratings into the book objects
   useEffect(() => {
     if (reviews.length > 0 && booksData) {
       console.log("Adding ratings to books from reviews");
       
+      // Create a map of isbn -> rating for quick lookup
       const ratingsMap = new Map<string, number>();
       reviews.forEach(review => {
         if (review.bookIsbn && review.rating !== undefined) {
@@ -136,6 +150,7 @@ export const useLibraryData = () => {
       
       console.log(`Found ${ratingsMap.size} ratings to apply to books`);
       
+      // Apply ratings to books
       const applyRatingsToBooks = (bookList: Book[]): Book[] => {
         return bookList.map(book => {
           if (book.isbn && ratingsMap.has(book.isbn)) {
@@ -152,10 +167,12 @@ export const useLibraryData = () => {
         });
       };
       
+      // Apply ratings to all book categories
       const updatedReadBooks = applyRatingsToBooks(booksData.read);
       const updatedReadingBooks = applyRatingsToBooks(booksData.reading);
       const updatedTbrBooks = applyRatingsToBooks(booksData.tbr);
       
+      // Update the books data with ratings
       booksData.read = updatedReadBooks;
       booksData.reading = updatedReadingBooks;
       booksData.tbr = updatedTbrBooks;
@@ -217,12 +234,15 @@ export const useLibraryData = () => {
   const getBookReadingStatus = (isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
     if (!isbn || !booksData) return null;
     
+    // Prioritize "finished" status
     const readBook = booksData.read.find(book => book.isbn === isbn);
     if (readBook) return 'finished';
     
+    // Then "reading" status
     const readingBook = booksData.reading.find(book => book.isbn === isbn);
     if (readingBook) return 'reading';
     
+    // Finally "tbr" status
     const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
     if (tbrBook) return 'tbr';
     
@@ -232,6 +252,7 @@ export const useLibraryData = () => {
   const getBookByISBN = (isbn: string | undefined): Book | null => {
     if (!isbn || !booksData) return null;
     
+    // Check lists in priority order: read > reading > tbr
     const readBook = booksData.read.find(book => book.isbn === isbn);
     if (readBook) return readBook;
     

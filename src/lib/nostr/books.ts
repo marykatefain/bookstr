@@ -247,7 +247,7 @@ export async function rateBook(bookOrIsbn: Book | string, rating: number): Promi
 /**
  * Post a review for a book
  */
-export async function reviewBook(book: Book, reviewText: string, rating?: number, isSpoiler?: boolean): Promise<string | null> {
+export async function reviewBook(book: Book, reviewText: string, rating?: number): Promise<string | null> {
   if (!book.isbn) {
     console.error("Cannot review book: ISBN is missing");
     return null;
@@ -262,11 +262,6 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   // Add rating tag if provided
   if (rating !== undefined) {
     tags.push(["rating", rating.toString()]);
-  }
-  
-  // Add spoiler tag if true
-  if (isSpoiler) {
-    tags.push(["content-warning", `Spoiler: ${book.title}`]);
   }
   
   const event = {

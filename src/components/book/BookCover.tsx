@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookCoverProps {
   isbn?: string;
@@ -22,7 +21,6 @@ interface BookCoverProps {
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
   rating?: number;
   onRatingChange?: (rating: number) => void;
-  book?: Book; // Add optional book prop for full book data
 }
 
 export const BookCover: React.FC<BookCoverProps> = ({
@@ -37,15 +35,14 @@ export const BookCover: React.FC<BookCoverProps> = ({
   readingStatus,
   size = "medium",
   rating,
-  onRatingChange,
-  book
+  onRatingChange
 }) => {
   const { toast } = useToast();
   const [isRating, setIsRating] = useState(false);
   const [ratingHover, setRatingHover] = useState<number | null>(null);
   const [imageLoaded, setImageLoaded] = useState(!!coverUrl && coverUrl !== "");
   const [imageError, setImageError] = useState(false);
-  const isFinished = isRead || readingStatus === 'finished';
+  const isFinished = isRead;
   
   // We're not using these fixed height classes anymore
   // Instead, we'll let the parent component (BookCard) handle the sizing
@@ -58,10 +55,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   };
 
   const handleRateBook = async (newRating: number) => {
-    // Get ISBN from props or book object
-    const bookIsbn = isbn || book?.isbn;
-    
-    if (!bookIsbn) {
+    if (!isbn) {
       toast({
         title: "Cannot rate book",
         description: "This book is missing an ISBN",
@@ -78,7 +72,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
       } else {
         // Fallback direct rating if no callback provided
         // Use the isbn string directly
-        await rateBook(bookIsbn, newRating);
+        await rateBook(isbn, newRating);
         toast({
           title: "Rating saved",
           description: "Your rating has been saved and published to Nostr"
@@ -129,10 +123,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const renderRatingStars = () => {
     const starCount = 5;
     
-    // Use the hover rating if available, otherwise use the prop rating
-    const hoverRating = ratingHover !== null 
-      ? ratingHover 
-      : rating;
+    // Use the utility function for consistent conversion
+    const hoverRating = ratingHover !== null ? ratingHover : rating;
         
     return (
       <div 
@@ -151,7 +143,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
             <Star
               size={size === "large" ? 16 : 12}
               className={`
-                ${i < (hoverRating || 0) ? 'text-bookverse-highlight fill-bookverse-highlight' : 'text-white'}
+                ${i < hoverRating ? 'text-bookverse-highlight fill-bookverse-highlight' : 'text-white'}
                 transition-colors
               `}
             />
@@ -183,6 +175,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const actionButton = () => {
     if (isFinished) {
       // Show star rating for finished books
+      // Use renderRatingStars to handle the rating display
       return renderRatingStars();
     } else if (onReadAction) {
       // Show mark as read button for unfinished books
@@ -218,29 +211,5 @@ export const BookCover: React.FC<BookCoverProps> = ({
       {removeButton()}
       {actionButton()}
     </div>
-  );
-};
-
-// BookReadButton component for reuse
-export const BookReadButton: React.FC<{
-  isRead: boolean;
-  pendingAction: string | null;
-  handleMarkAsRead: () => void;
-}> = ({ isRead, pendingAction, handleMarkAsRead }) => {
-  return (
-    <button
-      onClick={handleMarkAsRead}
-      className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
-        ${isRead 
-          ? "bg-green-500 text-white" 
-          : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
-      title="Mark as read"
-    >
-      {pendingAction === 'finished' ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Check className="h-4 w-4" />
-      )}
-    </button>
   );
 };

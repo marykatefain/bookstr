@@ -7,13 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookCover } from "@/components/book/BookCover";
 import { formatPubkey } from "@/lib/utils/format";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, BookOpen, Eye, Image, ChevronRight } from "lucide-react";
+import { AlertTriangle, BookOpen, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { ImageViewerModal } from "./ImageViewerModal";
-import { extractMediaUrls, isMediaUrl, linkifyText } from "@/lib/utils/urlUtils";
 
 interface PostCardProps {
   post: Post | SocialActivity;
@@ -23,10 +20,6 @@ interface PostCardProps {
 export function PostCard({ post, onReaction }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const [showAllMedia, setShowAllMedia] = useState(false);
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [viewerImages, setViewerImages] = useState<string[]>([]);
   const { toast } = useToast();
   
   const isSocialActivity = 'type' in post && post.type === 'post';
@@ -83,67 +76,31 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     setImageErrors(prev => ({ ...prev, [url]: true }));
   };
 
-  const openImageViewer = (images: string[], initialIndex: number) => {
-    setViewerImages(images);
-    setCurrentImageIndex(initialIndex);
-    setImageViewerOpen(true);
-  };
-
   const detectAndRenderMediaUrls = (content: string) => {
-    const mediaUrls = extractMediaUrls(content)
-      .filter(url => !imageErrors[url]);
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|mov|webm))/gi;
+    const urlMatches = content.match(urlRegex);
     
-    if (mediaUrls.length === 0) return null;
+    if (!urlMatches) return null;
     
-    const imageUrls = mediaUrls.filter(url => /\.(jpg|jpeg|png|gif|webp)$/i.test(url));
-    const videoUrls = mediaUrls.filter(url => /\.(mp4|mov|webm)$/i.test(url));
-    
-    const displayImageUrls = showAllMedia ? imageUrls : imageUrls.slice(0, 4);
-    const hasMoreImages = imageUrls.length > 4 && !showAllMedia;
-    
-    return (
-      <div className="mt-3 space-y-3">
-        {displayImageUrls.length > 0 && (
-          <div className={`grid gap-2 ${
-            displayImageUrls.length === 1 ? 'grid-cols-1' : 
-            displayImageUrls.length === 2 ? 'grid-cols-2' : 
-            'grid-cols-2 md:grid-cols-2'
-          }`}>
-            {displayImageUrls.map((url, index) => (
-              <div 
-                key={index} 
-                className="relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
-                onClick={() => openImageViewer(imageUrls, index)}
-              >
-                <AspectRatio ratio={2/3}>
-                  <img 
-                    src={url} 
-                    alt="Media from post content" 
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    onError={() => handleImageError(url)}
-                  />
-                </AspectRatio>
-              </div>
-            ))}
+    return urlMatches.map((url, index) => {
+      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+      const isVideo = /\.(mp4|mov|webm)$/i.test(url);
+      
+      if (isImage && !imageErrors[url]) {
+        return (
+          <div key={index} className="mt-3">
+            <img 
+              src={url} 
+              alt="Media from post content" 
+              className="rounded-md max-h-80 object-contain mx-auto" 
+              loading="lazy"
+              onError={() => handleImageError(url)}
+            />
           </div>
-        )}
-        
-        {hasMoreImages && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowAllMedia(true)}
-            className="mt-2 flex items-center"
-          >
-            <Image className="mr-2 h-4 w-4" />
-            <span>See all {imageUrls.length} images</span>
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        )}
-        
-        {videoUrls.map((url, index) => (
-          <div key={`video-${index}`} className="mt-3 rounded-md overflow-hidden shadow-sm">
+        );
+      } else if (isVideo) {
+        return (
+          <div key={index} className="mt-3">
             <video 
               src={url} 
               controls 
@@ -154,50 +111,11 @@ export function PostCard({ post, onReaction }: PostCardProps) {
               }}
             />
           </div>
-        ))}
-      </div>
-    );
-  };
-  
-  const renderPrimaryMedia = () => {
-    if (!postData.mediaUrl) return null;
-    
-    if (postData.mediaType === 'image' && !imageErrors[postData.mediaUrl]) {
-      return (
-        <div 
-          className="mt-3 relative overflow-hidden rounded-md border border-gray-200 dark:border-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => openImageViewer([postData.mediaUrl!], 0)}
-        >
-          <AspectRatio ratio={2/3} className="max-w-md mx-auto">
-            <img 
-              src={postData.mediaUrl} 
-              alt="Post media" 
-              className="h-full w-full object-cover" 
-              loading="lazy"
-              onError={() => handleImageError(postData.mediaUrl!)}
-            />
-          </AspectRatio>
-        </div>
-      );
-    }
-    
-    if (postData.mediaType === 'video') {
-      return (
-        <div className="mt-3 rounded-md overflow-hidden shadow-sm">
-          <video 
-            src={postData.mediaUrl} 
-            controls 
-            className="rounded-md w-full max-h-80" 
-            onError={(e) => {
-              console.log(`Error loading video: ${postData.mediaUrl}`);
-              (e.target as HTMLVideoElement).style.display = 'none';
-            }}
-          />
-        </div>
-      );
-    }
-    
-    return null;
+        );
+      }
+      
+      return null;
+    }).filter(Boolean);
   };
 
   const renderBookInfo = () => {
@@ -228,90 +146,102 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     );
   };
 
-  const contentHasMedia = postData.content && extractMediaUrls(postData.content).length > 0;
-
   return (
-    <>
-      <Card>
-        <CardHeader className="pb-2 pt-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Link to={`/user/${postData.pubkey}`}>
-                <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
-                  <AvatarImage src={postData.author?.picture} />
-                  <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
+    <Card>
+      <CardHeader className="pb-2 pt-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Link to={`/user/${postData.pubkey}`}>
+              <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80">
+                <AvatarImage src={postData.author?.picture} />
+                <AvatarFallback>{authorName[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+            </Link>
+            <div>
+              <Link 
+                to={`/user/${postData.pubkey}`} 
+                className="font-medium hover:underline"
+              >
+                {authorName}
               </Link>
-              <div>
-                <Link 
-                  to={`/user/${postData.pubkey}`} 
-                  className="font-medium hover:underline"
-                >
-                  {authorName}
-                </Link>
-                <p className="text-xs text-muted-foreground">{timeAgo}</p>
-              </div>
+              <p className="text-xs text-muted-foreground">{timeAgo}</p>
             </div>
-            
-            {postData.isSpoiler && (
-              <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full text-xs border border-amber-200 dark:border-amber-800">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Spoiler</span>
-              </div>
-            )}
           </div>
-        </CardHeader>
-        
-        <CardContent className="py-2">
-          {postData.isSpoiler && !spoilerRevealed ? (
-            <div className="space-y-3">
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
-                <p className="text-amber-700 dark:text-amber-400 mb-2">
-                  This post contains spoilers
-                  {postData.taggedBook && ` for "${postData.taggedBook.title}"`}
-                </p>
-                <Button variant="outline" size="sm" onClick={handleRevealSpoiler} 
-                  className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700">
-                  <Eye className="mr-1 h-4 w-4 text-amber-600 dark:text-amber-500" />
-                  <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
-                </Button>
-              </div>
-              
-              {renderBookInfo()}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="whitespace-pre-wrap break-words overflow-hidden">
-                {linkifyText(postData.content, contentHasMedia || !!postData.mediaUrl)}
-              </div>
-              
-              {renderPrimaryMedia()}
-              {detectAndRenderMediaUrls(postData.content)}
-              {postData.taggedBook && renderBookInfo()}
+          
+          {postData.isSpoiler && (
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full text-xs border border-amber-200 dark:border-amber-800">
+              <AlertTriangle className="h-3 w-3" />
+              <span>Spoiler</span>
             </div>
           )}
-        </CardContent>
-        
-        <CardFooter className="pt-0 py-2 flex-col items-start">
-          <RepliesSection 
-            eventId={postData.id}
-            authorPubkey={postData.pubkey}
-            initialReplies={postData.replies}
-            buttonLayout="horizontal"
-            onReaction={handleReaction}
-            reactionCount={postData.reactions?.count}
-            userReacted={postData.reactions?.userReacted}
-          />
-        </CardFooter>
-      </Card>
+        </div>
+      </CardHeader>
       
-      <ImageViewerModal
-        open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
-        images={viewerImages}
-        currentIndex={currentImageIndex}
-        onNavigate={setCurrentImageIndex}
-      />
-    </>
+      <CardContent className="py-2">
+        {postData.isSpoiler && !spoilerRevealed ? (
+          <div className="space-y-3">
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
+              <p className="text-amber-700 dark:text-amber-400 mb-2">
+                This post contains spoilers
+                {postData.taggedBook && ` for "${postData.taggedBook.title}"`}
+              </p>
+              <Button variant="outline" size="sm" onClick={handleRevealSpoiler} 
+                className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700">
+                <Eye className="mr-1 h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
+              </Button>
+            </div>
+            
+            {renderBookInfo()}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
+            
+            {postData.mediaUrl && postData.mediaType === 'image' && !imageErrors[postData.mediaUrl] && (
+              <div className="mt-3">
+                <img 
+                  src={postData.mediaUrl} 
+                  alt="Post media" 
+                  className="rounded-md max-h-80 mx-auto object-contain shadow-sm" 
+                  loading="lazy"
+                  onError={() => handleImageError(postData.mediaUrl!)}
+                />
+              </div>
+            )}
+            
+            {postData.mediaUrl && postData.mediaType === 'video' && (
+              <div className="mt-3 rounded-md overflow-hidden shadow-sm">
+                <video 
+                  src={postData.mediaUrl} 
+                  controls 
+                  className="rounded-md w-full max-h-80" 
+                  onError={(e) => {
+                    console.log(`Error loading video: ${postData.mediaUrl}`);
+                    (e.target as HTMLVideoElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            
+            {detectAndRenderMediaUrls(postData.content)}
+            
+            {postData.taggedBook && renderBookInfo()}
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="pt-0 py-2 flex-col items-start">
+        <RepliesSection 
+          eventId={postData.id}
+          authorPubkey={postData.pubkey}
+          initialReplies={postData.replies}
+          buttonLayout="horizontal"
+          onReaction={handleReaction}
+          reactionCount={postData.reactions?.count}
+          userReacted={postData.reactions?.userReacted}
+        />
+      </CardFooter>
+    </Card>
   );
 }

@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { Post, NOSTR_KINDS } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -84,11 +83,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
       
       // Find optional media tags
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
-      
-      // Check for content-warning tag (new standard) or fallback to spoiler tag (legacy)
-      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
-      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
       
       // Create post object
       const post: Post = {
@@ -103,7 +98,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
         } : undefined,
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
         mediaUrl: mediaTag ? mediaTag[2] : undefined,
-        isSpoiler: isSpoiler,
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true",
         reactions: {
           count: 0,
           userReacted: false

@@ -2,7 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookRatingActivityProps {
   userName: string;
@@ -14,7 +13,7 @@ interface BookRatingActivityProps {
 
 export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, rating }: BookRatingActivityProps) {
   // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = convertRawRatingToDisplayRating(rating);
+  const displayRating = rating !== undefined ? Math.round(rating * 5) : undefined;
   
   return (
     <div>
@@ -27,7 +26,7 @@ export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, 
           {bookTitle}
         </Link>
       </p>
-      {displayRating !== undefined && (
+      {displayRating && (
         <div className="flex items-center mt-1">
           {Array(5).fill(0).map((_, index) => (
             <Star

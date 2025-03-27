@@ -52,10 +52,9 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
       tags.push(["media", params.mediaType]);
     }
     
-    // Add content-warning tag if spoiler is marked (using standard Nostr tag)
+    // Add spoiler tag if needed
     if (params.isSpoiler) {
-      const bookTitle = params.book?.title || "Book";
-      tags.push(["content-warning", `Spoiler: ${bookTitle}`]);
+      tags.push(["spoiler", "true"]);
     }
     
     // Create the event

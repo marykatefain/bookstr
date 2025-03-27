@@ -108,11 +108,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
       
       // Find media tags for posts
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
-      
-      // Check for content-warning tag (new standard) or fallback to spoiler tag (legacy)
-      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
-      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
       
       // Create social activity object
       const activity: SocialActivity = {
@@ -130,7 +126,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
         },
         mediaUrl: mediaTag ? mediaTag[2] : undefined,
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-        isSpoiler: isSpoiler
+        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
       };
       
       activities.push(activity);

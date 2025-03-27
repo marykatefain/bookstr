@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, ExternalLink } from "lucide-react";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookReviewActivityProps {
   userName: string;
@@ -26,9 +25,6 @@ export function BookReviewActivity({
   reviewId
 }: BookReviewActivityProps) {
   const [imageError, setImageError] = useState(false);
-  
-  // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = rating !== undefined ? convertRawRatingToDisplayRating(rating) : undefined;
   
   return (
     <div className="flex gap-3">
@@ -64,12 +60,12 @@ export function BookReviewActivity({
             </Link>
           )}
         </div>
-        {displayRating && (
+        {rating && (
           <div className="flex items-center mt-1">
             {Array(5).fill(0).map((_, index) => (
               <Star
                 key={index}
-                className={`h-4 w-4 ${index < displayRating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+                className={`h-4 w-4 ${index < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
               />
             ))}
           </div>
