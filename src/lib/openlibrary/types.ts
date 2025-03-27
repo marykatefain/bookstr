@@ -1,7 +1,7 @@
 
 import { Book } from "@/lib/nostr/types";
 
-export const BASE_URL = "https://openlibrary.org";
+export const BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
 export interface OpenLibrarySearchResult {
   numFound: number;

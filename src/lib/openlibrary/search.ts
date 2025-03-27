@@ -4,6 +4,9 @@ import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
 import { throttlePromises } from '@/lib/utils';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 // Cache for search results with appropriate TTL
 const searchCache: Record<string, { data: Book[], timestamp: number }> = {};
 const SEARCH_CACHE_TTL = 1000 * 60 * 10; // 10 minutes cache for searches
@@ -34,17 +37,11 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
     
     // Construct the API URL
     const apiUrl = `${BASE_URL}/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
-    
-    // Set up request with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
-    
+  
     const response = await fetch(apiUrl, {
-      signal: controller.signal
+      signal: AbortSignal.timeout(quickMode ? 5000 : 8000)
     });
-    
-    clearTimeout(timeoutId);
-    
+      
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -189,16 +186,10 @@ export async function searchBooksByGenre(
     // Construct the API URL with sort=new to prioritize newer books
     const apiUrl = `${BASE_URL}/subjects/${encodeURIComponent(formattedGenre)}.json?limit=${limit * 2}&sort=new`;
     
-    // Set up request with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), quickMode ? 5000 : 8000);
-    
     const response = await fetch(apiUrl, {
-      signal: controller.signal
+      signal: AbortSignal.timeout(quickMode ? 5000 : 8000),
     });
-    
-    clearTimeout(timeoutId);
-    
+      
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -240,9 +231,9 @@ export async function searchBooksByGenre(
       const processedBooks = finalWorks.map(work => {
         // Get the best available cover URL
         const coverUrl = work.cover_id 
-          ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+          ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
           : (work.cover_edition_key 
-              ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+              ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
               : "");
         
         return {
@@ -270,9 +261,9 @@ export async function searchBooksByGenre(
       
       // Get the best available cover URL
       const coverUrl = work.cover_id 
-        ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+        ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
         : (work.cover_edition_key 
-            ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+            ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
             : "");
       
       // Create the basic book object

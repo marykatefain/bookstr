@@ -8,6 +8,9 @@ import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 /**
  * Fetch social activity from people you follow
  */
@@ -157,7 +160,7 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
           title: "Unknown Book",
           author: "Unknown Author",
           isbn,
-          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+          coverUrl: `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
         };
       } else {
         // For posts without ISBN but with bookstr tag, create a generic book object

@@ -20,9 +20,9 @@ const AUTHOR_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
  */
 export function getCoverUrl(isbn: string, coverId?: number): string {
   if (coverId) {
-    return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+    return `${API_BASE_URL}/covers.openlibrary.org/b/id/${coverId}-M.jpg`;
   } else if (isbn) {
-    return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+    return `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
   }
   return "";
 }
@@ -241,9 +241,9 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
 export function docToBook(doc: any): Book {
   // Get the best available cover URL
   const coverUrl = doc.cover_i 
-    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
+    ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
     : (doc.cover_edition_key 
-      ? `https://covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
+      ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
       : "");
   
   // Extract the first available ISBN - try to get all possible ISBN sources

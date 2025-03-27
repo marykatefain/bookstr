@@ -121,7 +121,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 
   const renderRatingStars = () => {
-    console.log("MK Rendering rating stars with rating:", rating);
     const starCount = 5;
     
     // Use the utility function for consistent conversion

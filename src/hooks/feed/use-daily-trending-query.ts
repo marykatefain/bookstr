@@ -74,11 +74,11 @@ export function useDailyTrendingQuery(limit: number = 20) {
             
             // Generate the best cover URL
             const coverUrl = work.cover_id 
-              ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+              ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
               : (work.cover_edition_key 
-                ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
                 : (isbn 
-                  ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
+                  ? `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
                   : ""));
             
             return {
@@ -149,11 +149,11 @@ export function useDailyTrendingQuery(limit: number = 20) {
               author: work.authors?.[0]?.name || "Unknown Author",
               isbn: isbn,
               coverUrl: work.cover_id 
-                ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+                ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
                 : (work.cover_edition_key 
-                  ? `https://covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
+                  ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${work.cover_edition_key}-M.jpg`
                   : (isbn 
-                    ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` 
+                    ? `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg` 
                     : "")),
               description: work.description?.value || work.description || "",
               pubDate: work.first_publish_year?.toString() || "",

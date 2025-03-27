@@ -7,6 +7,9 @@ import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 /**
  * Fetch book-related events for a specific ISBN
  */
@@ -64,7 +67,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
       title: "Unknown Book",
       author: "Unknown Author",
       isbn,
-      coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+      coverUrl: `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
     };
     
     // Convert events to social activities

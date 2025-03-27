@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { Book } from '@/lib/nostr/types';
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 interface ISBNEntryModalProps {
   book: Book;
   isOpen: boolean;
@@ -18,13 +21,13 @@ export function ISBNEntryModal({ book, isOpen, onClose }: ISBNEntryModalProps) {
     // If we have a book.id that starts with 'ol:' extract the ID
     if (book.id && book.id.startsWith('ol:')) {
       const olId = book.id.substring(3); // Remove the 'ol:' prefix
-      return `https://openlibrary.org/works/${olId}`;
+      return `${API_BASE_URL}/openlibrary.org/works/${olId}`;
     }
     
     // Fallback to search by title and author
     const titleParam = encodeURIComponent(book.title);
     const authorParam = encodeURIComponent(book.author);
-    return `https://openlibrary.org/search?q=${titleParam}+${authorParam}`;
+    return `${API_BASE_URL}/openlibrary.org/search?q=${titleParam}+${authorParam}`;
   };
 
   const openLibraryUrl = getOpenLibraryUrl();

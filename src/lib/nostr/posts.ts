@@ -10,6 +10,9 @@ import { fetchUserProfiles } from "./profile";
 import { fetchBookPosts as fetchBookPostsByISBN } from "./fetch/socialFetch";
 import { getSharedPool } from "./utils/poolManager";
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 interface CreatePostParams {
   content: string;
   book?: Book | null;
@@ -139,7 +142,7 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
         taggedBook: {
           isbn: isbn,
           title: "Book", // Will be updated with actual title
-          coverUrl: `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
+          coverUrl: `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`
         },
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
         mediaUrl: mediaTag ? mediaTag[2] : undefined,

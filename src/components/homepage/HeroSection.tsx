@@ -16,6 +16,9 @@ import {
   CarouselNext
 } from "@/components/ui/carousel";
 
+// Base URL for the Cloudflare Worker
+const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
 export function HeroSection() {
   const { books, loading, refreshBooks } = useWeeklyTrendingBooks(10); // Changed to fetch 10 books
   
@@ -132,11 +135,11 @@ function BookCoverOnly({ book, className = "" }) {
     <div className={`flex flex-col h-full ${className}`}>
       <div className="relative flex-grow">
         <img
-          src={book.coverUrl || "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg"}
+          src={book.coverUrl || `${API_BASE_URL}/covers.openlibrary.org/b/isbn/placeholder-L.jpg`}
           alt={book.title}
           className="object-cover w-full h-full rounded-md"
           onError={(e) => {
-            e.currentTarget.src = "https://covers.openlibrary.org/b/isbn/placeholder-L.jpg";
+            e.currentTarget.src = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/placeholder-L.jpg`;
           }}
         />
       </div>
