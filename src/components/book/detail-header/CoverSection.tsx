@@ -98,7 +98,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
                 ) : (
                   <Star className="mr-2 h-4 w-4" />
                 )}
-                {isReading ? "Reading" : "Start Reading"}
+                {isReading ? "Reading" : isMobile ? "Start Reading" : "Start"}
               </Button>
             </div>
           )}
