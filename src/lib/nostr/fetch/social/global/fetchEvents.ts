@@ -39,30 +39,33 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   const cacheKey = generateCacheKey(combinedFilter);
   
   // Check if we have a recent cached result - first check short-term cache
-  const cachedEvents = getCachedQueryResult(cacheKey, SHORT_CACHE_TTL);
-  if (cachedEvents) {
-    console.log("Using cached events for global feed, count:", cachedEvents.length);
-    return cachedEvents;
+  const cachedEvents = getCachedQueryResult(cacheKey);
+  if (cachedEvents && cachedEvents.length > 0) {
+    const cacheAge = Date.now() - (cachedEvents[0]._cacheTimestamp || 0);
+    if (cacheAge < SHORT_CACHE_TTL) {
+      console.log("Using cached events for global feed, count:", cachedEvents.length);
+      return cachedEvents;
+    }
   }
   
   // Check if we have a long-term cache - if we do, use it while we fetch fresh data
-  const longTermCachedEvents = getCachedQueryResult(cacheKey, LONG_CACHE_TTL);
-  
-  // Start fetching new events - don't await yet so we can possibly return long-term cache
-  const fetchPromise = fetchFreshEvents(relays, combinedFilter, cacheKey);
-  
-  // If we have long-term cache, return it immediately while fresh data loads in background
+  const longTermCachedEvents = getCachedQueryResult(cacheKey);
   if (longTermCachedEvents && longTermCachedEvents.length > 0) {
-    console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
-    // Execute fetch in background
-    fetchPromise.catch(error => {
-      console.error("Background fetch error:", error);
-    });
-    return longTermCachedEvents;
+    const cacheAge = Date.now() - (longTermCachedEvents[0]._cacheTimestamp || 0);
+    if (cacheAge < LONG_CACHE_TTL) {
+      console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
+      
+      // Execute fetch in background
+      fetchFreshEvents(relays, combinedFilter, cacheKey).catch(error => {
+        console.error("Background fetch error:", error);
+      });
+      
+      return longTermCachedEvents;
+    }
   }
   
   // No cache available, wait for fresh data
-  return await fetchPromise;
+  return await fetchFreshEvents(relays, combinedFilter, cacheKey);
 }
 
 /**
