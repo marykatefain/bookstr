@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +18,8 @@ const BookDetail = () => {
   const { toast } = useToast();
   const [openContributionDialog, setOpenContributionDialog] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  const previousIsbnRef = useRef<string | undefined>(isbn);
+  const dialogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Use the hook with the ISBN from params
   const {
@@ -57,50 +59,72 @@ const BookDetail = () => {
     }
   }, [error, toast]);
 
-  // Log debug data about the book and check for incomplete data
-  // Fixed: Added proper dependency array to prevent infinite loop
+  // Clean up timeout when component unmounts or when ISBN changes
   useEffect(() => {
-    if (book && !loading) {
-      console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
-      
-      // Check for incomplete data
-      const missing: string[] = [];
-      
-      if (!book.title || book.title === 'Unknown Title') {
-        missing.push('Title');
+    return () => {
+      if (dialogTimeoutRef.current) {
+        clearTimeout(dialogTimeoutRef.current);
       }
-      
-      if (!book.author || book.author === 'Unknown Author') {
-        missing.push('Author');
-      }
-      
-      if (!book.coverUrl) {
-        missing.push('Cover Image');
-      }
-      
-      if (!book.description) {
-        missing.push('Description');
-      }
-      
-      // Only update state if the missing fields have actually changed
-      // to avoid infinite render cycles
-      if (JSON.stringify(missing) !== JSON.stringify(missingFields)) {
-        setMissingFields(missing);
-        
-        // Show the contribution dialog if we're missing important fields
-        if (missing.length > 0) {
-          // Small delay to ensure the user sees the page first
-          const timer = setTimeout(() => {
-            setOpenContributionDialog(true);
-          }, 1500);
-          
-          return () => clearTimeout(timer);
-        }
-      }
-    } else if (!loading && isbn) {
-      console.warn(`No book data found for ISBN: ${isbn}`);
+    };
+  }, [isbn]);
+
+  // Check for incomplete data only when the book data changes or when ISBN changes
+  useEffect(() => {
+    // Skip if we're still loading or don't have a book
+    if (loading || !book) return;
+    
+    // If the ISBN changed, reset the state to avoid carrying over old data
+    if (isbn !== previousIsbnRef.current) {
+      setMissingFields([]);
+      setOpenContributionDialog(false);
+      previousIsbnRef.current = isbn;
+      return;
     }
-  }, [book, loading, isbn, missingFields]);
+    
+    // Skip further processing if we've already checked and opened the dialog
+    if (openContributionDialog) return;
+    
+    // Log book details once
+    console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
+    
+    // Check for incomplete data
+    const missing: string[] = [];
+    
+    if (!book.title || book.title === 'Unknown Title') {
+      missing.push('Title');
+    }
+    
+    if (!book.author || book.author === 'Unknown Author') {
+      missing.push('Author');
+    }
+    
+    if (!book.coverUrl) {
+      missing.push('Cover Image');
+    }
+    
+    if (!book.description) {
+      missing.push('Description');
+    }
+    
+    // Only update state if the missing fields have actually changed
+    // to avoid infinite render cycles - using JSON.stringify for deep comparison
+    const currentMissingFieldsJSON = JSON.stringify(missing);
+    const previousMissingFieldsJSON = JSON.stringify(missingFields);
+    
+    if (currentMissingFieldsJSON !== previousMissingFieldsJSON) {
+      setMissingFields(missing);
+      
+      // Show the contribution dialog if we're missing important fields
+      if (missing.length > 0) {
+        // Small delay to ensure the user sees the page first
+        // Store the timeout reference so we can clean it up
+        dialogTimeoutRef.current = setTimeout(() => {
+          setOpenContributionDialog(true);
+          dialogTimeoutRef.current = null;
+        }, 1500);
+      }
+    }
+  }, [book, loading, isbn, openContributionDialog]);
 
   // Handle removing book from the finished/read list
   const handleRemoveFromReadList = () => {
