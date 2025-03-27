@@ -2,7 +2,12 @@
 // Re-export core functions
 export * from './user';
 export * from './profile';
-export * from './publish';
+// We'll handle publish exports separately
+// Don't export everything from './publish'
+export {
+  publishToNostr,
+  updateNostrEvent
+} from './publish';
 export * from './relay';
 
 // Re-export fetch utility
@@ -58,32 +63,60 @@ export {
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
 export { fetchEventByIdFromFetch };
 
-// Handle conflicts with books exports
-import { fetchEventById as fetchEventByIdFromBooks, fetchReactions as fetchReactionsFromBooks, fetchReplies as fetchRepliesFromBooks } from './books';
-// Export the ones from books with different names
+// Import specific functions from books to avoid conflicts
+import { 
+  fetchEventById as fetchEventByIdFromBooks, 
+  fetchReactions as fetchReactionsFromBooks, 
+  fetchReplies as fetchRepliesFromBooks,
+  followUser,
+  addBookToTBR,
+  markBookAsReading,
+  markBookAsRead,
+  rateBook,
+  reviewBook,
+  replyToContent,
+  updateBookInList,
+  addBookToList,
+  removeBookFromList
+} from './books';
+
+// Export the ones from books with different names to avoid ambiguity
 export { 
   fetchEventByIdFromBooks,
   fetchReactionsFromBooks,
   fetchRepliesFromBooks
 };
-// Export everything else from books except the conflicting functions
-export * from './books';
+
+// Export other functions from books individually
+export {
+  followUser,
+  addBookToTBR,
+  markBookAsReading,
+  markBookAsRead,
+  rateBook,
+  reviewBook,
+  replyToContent,
+  updateBookInList,
+  addBookToList,
+  removeBookFromList
+};
 
 // Handle the conflict with interactions exports
 import { 
   fetchReactions as fetchReactionsOriginal,
-  fetchReplies as fetchRepliesOriginal
+  fetchReplies as fetchRepliesOriginal,
+  batchFetchReactions,
+  batchFetchReplies
 } from './fetch/social/interactions';
 
 // Re-export with different names to avoid ambiguity
 export { 
   fetchReactionsOriginal as fetchReactionsFromInteractions,
-  fetchRepliesOriginal as fetchRepliesFromInteractions 
+  fetchRepliesOriginal as fetchRepliesFromInteractions,
+  batchFetchReactions,
+  batchFetchReplies
 };
 
-// Export the rest of the interactions module
-export * from './fetch/social/interactions';
-
-// Re-export reactToContent with a different name to avoid conflict with the one in ./publish
+// Import reactToContent from publish separately and re-export with a different name
 import { reactToContent as reactToContentFromPublish } from './publish';
-export { reactToContentFromPublish as reactToContentInternal };
+export { reactToContentFromPublish };
