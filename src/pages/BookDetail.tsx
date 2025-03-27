@@ -58,6 +58,7 @@ const BookDetail = () => {
   }, [error, toast]);
 
   // Log debug data about the book and check for incomplete data
+  // Fixed: Added proper dependency array to prevent infinite loop
   useEffect(() => {
     if (book && !loading) {
       console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
@@ -81,21 +82,25 @@ const BookDetail = () => {
         missing.push('Description');
       }
       
-      setMissingFields(missing);
-      
-      // Show the contribution dialog if we're missing important fields
-      if (missing.length > 0) {
-        // Small delay to ensure the user sees the page first
-        const timer = setTimeout(() => {
-          setOpenContributionDialog(true);
-        }, 1500);
+      // Only update state if the missing fields have actually changed
+      // to avoid infinite render cycles
+      if (JSON.stringify(missing) !== JSON.stringify(missingFields)) {
+        setMissingFields(missing);
         
-        return () => clearTimeout(timer);
+        // Show the contribution dialog if we're missing important fields
+        if (missing.length > 0) {
+          // Small delay to ensure the user sees the page first
+          const timer = setTimeout(() => {
+            setOpenContributionDialog(true);
+          }, 1500);
+          
+          return () => clearTimeout(timer);
+        }
       }
     } else if (!loading && isbn) {
       console.warn(`No book data found for ISBN: ${isbn}`);
     }
-  }, [book, loading, isbn, toast]);
+  }, [book, loading, isbn, missingFields]);
 
   // Handle removing book from the finished/read list
   const handleRemoveFromReadList = () => {
