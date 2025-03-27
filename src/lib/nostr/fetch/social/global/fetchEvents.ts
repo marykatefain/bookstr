@@ -6,8 +6,6 @@ import { cacheQueryResult, getCachedQueryResult, generateCacheKey } from "../../
 import { getSharedPool } from "../../../utils/poolManager";
 
 const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
-const SHORT_CACHE_TTL = 60000; // 1 minute for short-term cache
-const LONG_CACHE_TTL = 300000; // 5 minutes for long-term cache
 
 /**
  * Fetch events for the global feed with caching and timeout
@@ -38,46 +36,14 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   // Generate cache key for this query
   const cacheKey = generateCacheKey(combinedFilter);
   
-  // Check if we have a recent cached result - first check short-term cache
+  // Check if we have a recent cached result
   const cachedEvents = getCachedQueryResult(cacheKey);
-  if (cachedEvents && cachedEvents.length > 0) {
-    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
-    const cacheTimestamp = cachedEvents[0]._cacheTimestamp || 0;
-    const cacheAge = Date.now() - cacheTimestamp;
-    
-    if (cacheAge < SHORT_CACHE_TTL) {
-      console.log("Using cached events for global feed, count:", cachedEvents.length);
-      return cachedEvents;
-    }
+  if (cachedEvents) {
+    console.log("Using cached events for global feed, count:", cachedEvents.length);
+    return cachedEvents;
   }
   
-  // Check if we have a long-term cache - if we do, use it while we fetch fresh data
-  const longTermCachedEvents = getCachedQueryResult(cacheKey);
-  if (longTermCachedEvents && longTermCachedEvents.length > 0) {
-    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
-    const cacheTimestamp = longTermCachedEvents[0]._cacheTimestamp || 0;
-    const cacheAge = Date.now() - cacheTimestamp;
-    
-    if (cacheAge < LONG_CACHE_TTL) {
-      console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
-      
-      // Execute fetch in background
-      fetchFreshEvents(relays, combinedFilter, cacheKey).catch(error => {
-        console.error("Background fetch error:", error);
-      });
-      
-      return longTermCachedEvents;
-    }
-  }
-  
-  // No cache available, wait for fresh data
-  return await fetchFreshEvents(relays, combinedFilter, cacheKey);
-}
-
-/**
- * Fetch fresh events from relays
- */
-async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: string): Promise<Event[]> {
+  // Execute query with timeout
   try {
     console.log(`Querying ${relays.length} relays for global feed events...`);
     
@@ -88,30 +54,17 @@ async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: stri
       return [];
     }
     
-    // Create a promise that will reject after timeout
-    const timeoutPromise = new Promise<Event[]>((_, reject) => {
-      setTimeout(() => reject(new Error("Query timed out")), MAX_REQUEST_TIME);
-    });
-    
-    // Execute the query with a timeout
-    const queryPromise = pool.querySync(relays, filter);
-    const events = await Promise.race([queryPromise, timeoutPromise]);
-    
+    // Execute the query without a catch block to allow errors to bubble up
+    const events = await pool.querySync(relays, combinedFilter);
     console.log(`Received ${events.length} raw events from relays`);
     
-    // Add timestamp to events for cache age tracking
-    const timestampedEvents = events.map(event => ({
-      ...event,
-      _cacheTimestamp: Date.now()
-    }));
-    
     // Cache the result for future use
-    if (timestampedEvents && timestampedEvents.length > 0) {
-      cacheQueryResult(cacheKey, timestampedEvents);
-      console.log(`Cached ${timestampedEvents.length} events for future use`);
+    if (events && events.length > 0) {
+      cacheQueryResult(cacheKey, events);
+      console.log(`Cached ${events.length} events for future use`);
     }
     
-    return timestampedEvents || [];
+    return events || [];
   } catch (error) {
     console.error("Error fetching global events:", error);
     // Return empty array to allow graceful fallback
