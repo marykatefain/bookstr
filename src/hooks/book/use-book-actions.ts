@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -6,7 +7,6 @@ import {
   removeBookFromList,
   reactToContent,
   isLoggedIn,
-  rateBook,
   fetchBookReviews,
   getCurrentUser,
   reviewBook

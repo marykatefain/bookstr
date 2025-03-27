@@ -118,7 +118,7 @@ const BookDetail = () => {
 
   const handleRateBookWrapper = (rating: number) => {
     if (book) {
-      handleRateBook(book, rating);
+      handleRateBook(rating);
     }
   };
 

@@ -119,9 +119,11 @@ export {
   batchFetchReplies
 };
 
-// Import reactToContent from publish separately and re-export with a different name
+// Import reactToContent from publish separately but DON'T re-export with a different name
+// This was causing the duplicate identifier error
 import { reactToContent as reactToContentFromPublish } from './publish';
-export { reactToContentFromPublish };
+// Remove this line to fix the duplicate identifier error
+// export { reactToContentFromPublish };
 
 // Now export the base functions that components are directly using
 // Export fetchReactions directly for components to use
@@ -132,5 +134,3 @@ export { fetchReplies } from './fetch/social/interactions';
 
 // Export fetchEventById directly for components to use
 export { fetchEventById } from './fetch/social/fetchEvent';
-
-// No need to re-export reactToContent again as we already did it at the top

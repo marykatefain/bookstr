@@ -1,9 +1,10 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
-import { rateBook, fetchBookReviews, getCurrentUser, reviewBook } from "@/lib/nostr";
+import { reviewBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
 import { Book } from "@/lib/nostr/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
@@ -91,10 +92,13 @@ export const BookCover: React.FC<BookCoverProps> = ({
           console.error("Error fetching previous reviews:", error);
         }
         
-        const bookObj = book || {
+        // Create a complete Book object with all required properties
+        const bookObj: Book = book || {
+          id: `isbn:${bookIsbn}`,
           isbn: bookIsbn,
           title: title || `Book (ISBN: ${bookIsbn})`,
-          author: author || "Unknown Author"
+          author: author || "Unknown Author",
+          coverUrl: coverUrl || ""
         };
         
         await reviewBook(bookObj, existingContent, newRating);
