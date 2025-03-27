@@ -13,6 +13,7 @@ import { reactToContent } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ImageViewerModal } from "./ImageViewerModal";
+import { extractMediaUrls, isMediaUrl, linkifyText } from "@/lib/utils/urlUtils";
 
 interface PostCardProps {
   post: Post | SocialActivity;
@@ -89,16 +90,8 @@ export function PostCard({ post, onReaction }: PostCardProps) {
   };
 
   const detectAndRenderMediaUrls = (content: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|mov|webm))/gi;
-    const urlMatches = content.match(urlRegex);
-    
-    if (!urlMatches) return null;
-    
-    const mediaUrls = urlMatches.filter(url => {
-      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-      const isVideo = /\.(mp4|mov|webm)$/i.test(url);
-      return (isImage || isVideo) && !imageErrors[url];
-    });
+    const mediaUrls = extractMediaUrls(content)
+      .filter(url => !imageErrors[url]);
     
     if (mediaUrls.length === 0) return null;
     
@@ -235,6 +228,8 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     );
   };
 
+  const contentHasMedia = postData.content && extractMediaUrls(postData.content).length > 0;
+
   return (
     <>
       <Card>
@@ -286,7 +281,9 @@ export function PostCard({ post, onReaction }: PostCardProps) {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="whitespace-pre-wrap break-words overflow-hidden">{postData.content}</p>
+              <div className="whitespace-pre-wrap break-words overflow-hidden">
+                {linkifyText(postData.content, contentHasMedia || !!postData.mediaUrl)}
+              </div>
               
               {renderPrimaryMedia()}
               {detectAndRenderMediaUrls(postData.content)}
