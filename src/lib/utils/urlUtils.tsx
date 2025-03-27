@@ -48,57 +48,76 @@ export const linkifyText = (text: string, removeMedia: boolean = false): React.R
   // First, if we need to remove media URLs, do that
   const processedText = removeMedia ? removeMediaUrls(text) : text;
   
-  // Split the text by URL_PATTERN
-  const parts = processedText.split(URL_PATTERN);
-  
-  // Match all URLs
-  const urls = processedText.match(URL_PATTERN) || [];
-  
   // If no URLs found, return the text as is
-  if (urls.length === 0) {
+  const urls = processedText.match(URL_PATTERN);
+  if (!urls || urls.length === 0) {
     return processedText;
   }
   
-  // Build the result by alternating between text and URL links
+  // Build the result array with text and links properly alternating
   const result: React.ReactNode[] = [];
+  let lastIndex = 0;
   
-  parts.forEach((part, index) => {
-    // Add the text part
-    if (part) {
-      result.push(<span key={`text-${index}`}>{part}</span>);
+  // Use a regular expression with the global flag to find all matches
+  const regex = new RegExp(URL_PATTERN);
+  let match;
+  
+  // Reset regex lastIndex
+  regex.lastIndex = 0;
+  
+  // Find all matches and their positions
+  while ((match = regex.exec(processedText)) !== null) {
+    const url = match[0];
+    const matchIndex = match.index;
+    
+    // Skip media URLs if we're keeping them separate
+    if (removeMedia && isMediaUrl(url)) {
+      continue;
     }
     
-    // Add the URL part (if there is one for this index)
-    if (index < urls.length) {
-      const url = urls[index];
-      
-      // Skip media URLs if we're keeping them separate
-      if (removeMedia && isMediaUrl(url)) {
-        return;
-      }
-      
-      // Format the URL for display
-      let displayUrl = url;
-      if (displayUrl.length > 50) {
-        displayUrl = displayUrl.substring(0, 47) + '...';
-      }
-      
-      // Ensure URL has http/https prefix for the href
-      const hrefUrl = url.startsWith('www.') ? `https://${url}` : url;
-      
+    // Add text before the URL
+    if (matchIndex > lastIndex) {
       result.push(
-        <a 
-          key={`url-${index}`}
-          href={hrefUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          {displayUrl}
-        </a>
+        <span key={`text-${lastIndex}`}>
+          {processedText.substring(lastIndex, matchIndex)}
+        </span>
       );
     }
-  });
+    
+    // Format the URL for display
+    let displayUrl = url;
+    if (displayUrl.length > 50) {
+      displayUrl = displayUrl.substring(0, 47) + '...';
+    }
+    
+    // Ensure URL has http/https prefix for the href
+    const hrefUrl = url.startsWith('www.') ? `https://${url}` : url;
+    
+    // Add the URL link
+    result.push(
+      <a 
+        key={`url-${matchIndex}`}
+        href={hrefUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 dark:text-blue-400 hover:underline"
+      >
+        {displayUrl}
+      </a>
+    );
+    
+    // Update lastIndex for next iteration
+    lastIndex = matchIndex + url.length;
+  }
   
-  return result;
+  // Add any remaining text after the last URL
+  if (lastIndex < processedText.length) {
+    result.push(
+      <span key={`text-${lastIndex}`}>
+        {processedText.substring(lastIndex)}
+      </span>
+    );
+  }
+  
+  return result.length > 0 ? result : processedText;
 };
