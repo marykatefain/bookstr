@@ -1,7 +1,7 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, reactToContent } from "@/lib/nostr";
+import { useEffect } from "react";
+import { useReactionContext } from "@/contexts/ReactionContext";
+import { fetchReactions } from "@/lib/nostr";
 
 interface ReactionState {
   count: number;
@@ -17,107 +17,93 @@ interface UseReactionOptions {
 
 /**
  * Custom hook for handling reactions to content across the application
+ * This hook now uses the centralized ReactionContext
+ * 
+ * @param contentId ID of the content to handle reactions for
  * @param initialState Initial reaction state (count and whether user has reacted)
  * @param options Additional options for customizing behavior
  */
 export function useReaction(
-  initialState: ReactionState = { count: 0, userReacted: false },
+  contentId: string,
+  initialState?: ReactionState,
   options?: UseReactionOptions
 ) {
-  const [state, setState] = useState<ReactionState>(initialState);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { 
+    getReactionState, 
+    isPending, 
+    toggleReaction, 
+    updateReactionState 
+  } = useReactionContext();
 
-  // Update the reaction state if props change
-  const updateReactionState = (newState: ReactionState) => {
-    if (
-      newState.count !== state.count || 
-      newState.userReacted !== state.userReacted
-    ) {
-      setState(newState);
+  // If initial state is provided, update the context
+  useEffect(() => {
+    if (initialState) {
+      updateReactionState(contentId, initialState.count, initialState.userReacted);
+    } else {
+      // If no initial state, fetch the reactions
+      fetchReactionData();
+    }
+  }, [contentId, initialState?.count, initialState?.userReacted]);
+
+  // Function to fetch reaction data from the server
+  const fetchReactionData = async () => {
+    try {
+      console.log(`useReaction: Fetching reactions for ${contentId}`);
+      const result = await fetchReactions(contentId);
+      console.log(`useReaction: Fetched reactions for ${contentId}:`, result);
+      updateReactionState(contentId, result.count, result.userReacted);
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      if (options?.onError) {
+        options.onError(error);
+      }
     }
   };
 
   /**
    * Toggle a reaction on a piece of content
-   * @param contentId The ID of the content to react to
    * @returns Promise that resolves when the reaction is complete
    */
-  const toggleReaction = async (contentId: string): Promise<boolean> => {
-    console.log(`useReaction: toggleReaction called for ${contentId}`);
+  const handleToggleReaction = async (): Promise<boolean> => {
+    const result = await toggleReaction(contentId);
     
-    if (!isLoggedIn()) {
-      console.log("useReaction: User not logged in");
-      toast({
-        title: "Login required",
-        description: "Please sign in to react to content",
-        variant: "destructive"
-      });
-      return false;
+    if (result && options?.onSuccess) {
+      options.onSuccess(getReactionState(contentId));
     }
-
-    setIsLoading(true);
-
-    try {
-      console.log(`useReaction: Sending reaction to content ${contentId}`);
-      const reactionId = await reactToContent(contentId);
-      
-      if (reactionId) {
-        console.log(`useReaction: Reaction successful, ID: ${reactionId}`);
-        
-        // Update local state optimistically
-        const newState = {
-          count: state.userReacted ? state.count - 1 : state.count + 1,
-          userReacted: !state.userReacted
-        };
-        
-        setState(newState);
-        
-        // Notify of success
-        toast({
-          title: "Reaction sent",
-          description: state.userReacted 
-            ? "You've removed your reaction" 
-            : "You've reacted to this content"
-        });
-        
-        // Call success callback if provided
-        if (options?.onSuccess) {
-          options.onSuccess(newState);
-        }
-        
-        return true;
-      } else {
-        throw new Error("Failed to send reaction");
-      }
-    } catch (error) {
-      console.error("useReaction: Error sending reaction:", error);
-      
-      toast({
-        title: "Error",
-        description: "Could not send reaction",
-        variant: "destructive"
-      });
-      
-      // Call error callback if provided
-      if (options?.onError) {
-        options.onError(error);
-      }
-      
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
+    
+    return result;
   };
 
   return {
     /** Current reaction state */
-    reactionState: state,
+    reactionState: getReactionState(contentId),
     /** Whether a reaction is currently in progress */
-    isLoading,
+    isLoading: isPending(contentId),
     /** Function to toggle a reaction on a piece of content */
-    toggleReaction,
-    /** Function to update the reaction state (e.g., from props) */
-    updateReactionState
+    toggleReaction: handleToggleReaction,
+    /** Function to refresh reaction data from the server */
+    refreshReactions: fetchReactionData
+  };
+}
+
+/**
+ * @deprecated Use the new useReaction hook with contentId parameter instead
+ */
+export function useReactionLegacy(
+  initialState: ReactionState = { count: 0, userReacted: false },
+  options?: UseReactionOptions
+) {
+  console.warn("useReactionLegacy is deprecated. Please migrate to the new useReaction hook with contentId parameter.");
+  
+  return {
+    reactionState: initialState,
+    isLoading: false,
+    toggleReaction: async (contentId: string) => {
+      const { toggleReaction } = useReactionContext();
+      return toggleReaction(contentId);
+    },
+    updateReactionState: () => {
+      console.warn("updateReactionState in legacy hook is a no-op. Please migrate to the new useReaction hook.");
+    }
   };
 }

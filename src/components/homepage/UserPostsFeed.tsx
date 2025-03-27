@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useSocialFeed } from "@/hooks/use-social-feed";
 import { PostCard } from "@/components/post/PostCard";
 import { ActivityCard } from "@/components/social/ActivityCard";
-import { useReaction } from "@/hooks/use-reaction";
+import { useReactionContext } from "@/contexts/ReactionContext";
 
 interface UserPostsFeedProps {
   refreshTrigger?: number;
@@ -23,11 +23,8 @@ export function UserPostsFeed({
     refreshTrigger
   });
 
-  // Use our new reaction hook
-  const { toggleReaction } = useReaction({
-    count: 0,
-    userReacted: false
-  });
+  // Use our new reaction context
+  const { toggleReaction } = useReactionContext();
 
   // Handle reactions for any activity
   const handleReaction = async (activityId: string) => {

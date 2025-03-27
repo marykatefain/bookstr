@@ -1,22 +1,19 @@
 
 import { useState, useEffect } from "react";
 import { SocialActivity } from "@/lib/nostr/types";
-import { useReaction } from "@/hooks/use-reaction";
+import { useReactionContext } from "@/contexts/ReactionContext";
 
 export function useFeedReactions(
   activities: SocialActivity[], 
   onActivitiesChanged?: (activities: SocialActivity[]) => void
 ) {
   const [localActivities, setLocalActivities] = useState<SocialActivity[]>(activities);
+  const { toggleReaction } = useReactionContext();
   
   // When the input activities array changes, update the local state
   useEffect(() => {
     setLocalActivities(activities);
   }, [activities]);
-
-  // We don't need the reaction state from useReaction
-  // since we manage the state per activity
-  const { toggleReaction } = useReaction();
 
   const handleReact = async (activityId: string) => {
     console.log(`useFeedReactions: handleReact called with activityId: ${activityId}`);
@@ -30,7 +27,7 @@ export function useFeedReactions(
     const currentUserReacted = activity.reactions?.userReacted || false;
     const currentCount = activity.reactions?.count || 0;
     
-    // Call our centralized reaction hook
+    // Call our centralized reaction handler
     const success = await toggleReaction(activityId);
     
     if (success) {

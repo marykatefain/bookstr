@@ -1,8 +1,7 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { RepliesSection } from "./RepliesSection";
 import { Reply } from "@/lib/nostr/types";
-import { fetchReactions } from "@/lib/nostr";
 import { useReaction } from "@/hooks/use-reaction";
 
 interface ActivityFooterProps {
@@ -24,47 +23,23 @@ export function ActivityFooter({
   onReaction,
   replies = []
 }: ActivityFooterProps) {
-  // Use our new reaction hook
+  // Use our new reaction hook with the contentId
   const { 
     reactionState,
-    updateReactionState,
     toggleReaction
-  } = useReaction({
-    count: reactionCount || 0,
-    userReacted: userReacted || false
-  });
+  } = useReaction(
+    activityId,
+    reactionCount !== undefined ? { count: reactionCount, userReacted: userReacted || false } : undefined
+  );
 
-  // Update the reaction state when props change
-  useEffect(() => {
-    if (reactionCount !== undefined) {
-      updateReactionState({
-        count: reactionCount,
-        userReacted: userReacted || false
-      });
-    } else {
-      fetchActivityReactions();
-    }
-  }, [activityId, reactionCount, userReacted]);
-
-  const fetchActivityReactions = async () => {
-    console.log(`ActivityFooter: Fetching reactions for activity ${activityId}`);
-    try {
-      const result = await fetchReactions(activityId);
-      console.log(`ActivityFooter: Fetched reactions for ${activityId}:`, result);
-      updateReactionState(result);
-    } catch (error) {
-      console.error("Error fetching activity reactions:", error);
-    }
-  };
-
-  const handleReaction = async (eventId: string) => {
-    console.log(`ActivityFooter: Handling reaction for event ${eventId}`);
+  const handleReaction = async () => {
+    console.log(`ActivityFooter: Handling reaction for activity ${activityId}`);
     
     // Call our centralized reaction handler
-    await toggleReaction(eventId);
+    await toggleReaction();
     
     // Call the parent's onReaction callback
-    onReaction(eventId);
+    onReaction(activityId);
   };
 
   return (
