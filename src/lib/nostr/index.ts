@@ -58,11 +58,15 @@ export {
 import { fetchEventById as fetchEventByIdFromFetch } from './fetch/social/fetchEvent';
 export { fetchEventByIdFromFetch };
 
-// Re-export all from books except fetchEventById to avoid conflict
-import { fetchEventById as fetchEventByIdFromBooks } from './books';
-// Export the one from books with a different name
-export { fetchEventByIdFromBooks };
-// Export everything else from books
+// Handle conflicts with books exports
+import { fetchEventById as fetchEventByIdFromBooks, fetchReactions as fetchReactionsFromBooks, fetchReplies as fetchRepliesFromBooks } from './books';
+// Export the ones from books with different names
+export { 
+  fetchEventByIdFromBooks,
+  fetchReactionsFromBooks,
+  fetchRepliesFromBooks
+};
+// Export everything else from books except the conflicting functions
 export * from './books';
 
 // Handle the conflict with interactions exports
@@ -81,5 +85,5 @@ export {
 export * from './fetch/social/interactions';
 
 // Re-export reactToContent with a different name to avoid conflict with the one in ./publish
-import { reactToContent as reactToContentOriginal } from './publish';
-export { reactToContentOriginal as reactToContentInternal };
+import { reactToContent as reactToContentFromPublish } from './publish';
+export { reactToContentFromPublish as reactToContentInternal };
