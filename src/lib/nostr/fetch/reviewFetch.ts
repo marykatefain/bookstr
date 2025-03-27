@@ -1,3 +1,4 @@
+
 import { type Filter } from "nostr-tools";
 import { BookReview, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
@@ -239,8 +240,13 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
       // Extract rating
       const rating = extractRatingFromTags(event);
       
+      // Check for content-warning tag or spoiler tag
+      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
+      
       // Log review info for debugging
-      console.log(`Review ${event.id}: ISBN=${isbn}, Rating=${rating}`);
+      console.log(`Review ${event.id}: ISBN=${isbn}, Rating=${rating}, isSpoiler=${isSpoiler}`);
       
       reviews.push({
         id: event.id,
@@ -248,7 +254,8 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
         content: event.content,
         rating,
         bookIsbn: isbn,
-        createdAt: event.created_at * 1000
+        createdAt: event.created_at * 1000,
+        isSpoiler
       });
     }
     
@@ -289,3 +296,4 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
     return [];
   }
 }
+
