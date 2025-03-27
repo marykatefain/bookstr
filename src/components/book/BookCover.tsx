@@ -132,7 +132,7 @@ export const BookCover: React.FC<BookCoverProps> = ({
     // Use the hover rating if available, otherwise use the prop rating
     const hoverRating = ratingHover !== null 
       ? ratingHover 
-      : convertRawRatingToDisplayRating(rating);
+      : rating;
         
     return (
       <div 
