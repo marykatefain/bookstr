@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook, fetchBookReviews } from "@/lib/nostr";
+import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook, fetchBookReviews, getCurrentUser } from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
 import { BookRating } from "./book/BookRating";
@@ -225,7 +225,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       const content = previousReview || '';
       
-      await rateBook(book.isbn, rating, content);
+      await rateBook(book.isbn, rating);
       
       toast({
         title: "Rating saved",
