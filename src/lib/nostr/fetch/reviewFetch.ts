@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { BookReview, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
@@ -43,12 +42,18 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
         }
       }
       
+      // Check for content-warning tag
+      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
+      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
+      
       reviews.push({
         id: event.id,
         pubkey: event.pubkey,
         content: event.content,
         rating,
-        createdAt: event.created_at * 1000
+        createdAt: event.created_at * 1000,
+        isSpoiler
       });
     }
     
