@@ -123,7 +123,7 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     
     return (
       <Link to={`/book/${postData.taggedBook.isbn}`} className="block">
-        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 rounded-lg mt-3 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-100 dark:border-indigo-900">
+        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 rounded-lg mt-3 hover:bg-indigo-100/50 dark:hover:bg-indigo-900">
           <div className="flex-shrink-0 w-12 h-18 relative">
             <BookCover 
               coverUrl={postData.taggedBook.coverUrl} 

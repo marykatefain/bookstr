@@ -278,15 +278,24 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
  * React to content (review, rating, etc)
  */
 export async function reactToContent(eventId: string): Promise<string | null> {
-  const event = {
-    kind: NOSTR_KINDS.REACTION,
-    tags: [
-      ["e", eventId]
-    ],
-    content: "+"
-  };
-  
-  return publishToNostr(event);
+  try {
+    // Create a reaction event according to NIP-25
+    const event = {
+      kind: NOSTR_KINDS.REACTION,
+      content: "+", // "+" for like/upvote
+      tags: [
+        ["e", eventId], // reference to the event being reacted to
+      ]
+    };
+
+    // Publish the reaction event
+    const reactionId = await publishToNostr(event);
+    console.log("Published reaction:", reactionId);
+    return reactionId;
+  } catch (error) {
+    console.error("Error creating reaction:", error);
+    return null;
+  }
 }
 
 /**

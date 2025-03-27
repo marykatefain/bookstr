@@ -1,4 +1,3 @@
-
 import { type Event, type Filter } from "nostr-tools";
 import { getUserRelays } from "../../relay";
 import { getSharedPool } from "../../utils/poolManager";
@@ -33,5 +32,51 @@ export async function fetchEventById(eventId: string): Promise<Event | null> {
   } catch (error) {
     console.error(`Error fetching event ${eventId}:`, error);
     return null;
+  }
+}
+
+/**
+ * Fetch reactions for a specific event
+ */
+export async function fetchReactions(eventId: string): Promise<{count: number, userReacted: boolean}> {
+  try {
+    const relays = getUserRelays();
+    const pool = getSharedPool();
+    const currentUser = getCurrentUser();
+    
+    // Query for reactions to this event
+    const filter = {
+      kinds: [NOSTR_KINDS.REACTION],
+      "#e": [eventId],
+      limit: 50
+    };
+    
+    console.log(`Fetching reactions for event ${eventId} from relays:`, relays);
+    const events = await pool.querySync(relays, filter);
+    
+    // Count reactions (filter out duplicates by pubkey)
+    const uniquePubkeys = new Set();
+    events.forEach(event => {
+      if (event.content === "+" || event.content === "❤️" || event.content === "👍") {
+        uniquePubkeys.add(event.pubkey);
+      }
+    });
+    
+    // Check if the current user has reacted
+    const userReacted = currentUser 
+      ? uniquePubkeys.has(currentUser.pubkey) 
+      : false;
+    
+    console.log(`Found ${uniquePubkeys.size} unique reactions for event ${eventId}`);
+    return {
+      count: uniquePubkeys.size,
+      userReacted
+    };
+  } catch (error) {
+    console.error(`Error fetching reactions for event ${eventId}:`, error);
+    return {
+      count: 0,
+      userReacted: false
+    };
   }
 }

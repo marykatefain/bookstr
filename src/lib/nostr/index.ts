@@ -66,7 +66,8 @@ export {
   fetchGlobalSocialFeed,
   fetchUserReviews,
   fetchBookActivity,
-  fetchEventById
+  fetchEventById,
+  fetchReactions
 } from "./fetch";
 
 // Export mock data
