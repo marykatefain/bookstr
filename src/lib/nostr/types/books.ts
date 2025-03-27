@@ -38,4 +38,5 @@ export interface BookReview {
   bookCover?: string;
   bookAuthor?: string;
   replies?: Reply[];
+  isSpoiler?: boolean;
 }
