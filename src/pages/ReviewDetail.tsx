@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -68,6 +69,11 @@ const ReviewDetail = () => {
           }
         }
         
+        // Check for spoiler/content-warning tag
+        const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
+        const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+        const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
+        
         const replies = await fetchReplies(event.id);
         
         const bookDetails = await getBookByISBN(isbn);
@@ -89,7 +95,8 @@ const ReviewDetail = () => {
             picture: authorProfile.picture,
             npub: event.pubkey
           } : undefined,
-          replies
+          replies,
+          isSpoiler
         };
         
         setReview(reviewData);
