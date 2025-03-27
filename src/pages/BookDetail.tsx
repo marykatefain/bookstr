@@ -20,6 +20,7 @@ const BookDetail = () => {
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const previousIsbnRef = useRef<string | undefined>(isbn);
   const dialogTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogDismissedRef = useRef<boolean>(false);
   
   // Use the hook with the ISBN from params
   const {
@@ -68,6 +69,16 @@ const BookDetail = () => {
     };
   }, [isbn]);
 
+  // Handle dialog open state changes
+  const handleDialogOpenChange = (open: boolean) => {
+    setOpenContributionDialog(open);
+    
+    // If the user is explicitly closing the dialog, mark it as dismissed
+    if (open === false) {
+      dialogDismissedRef.current = true;
+    }
+  };
+
   // Check for incomplete data only when the book data changes or when ISBN changes
   useEffect(() => {
     // Skip if we're still loading or don't have a book
@@ -77,12 +88,14 @@ const BookDetail = () => {
     if (isbn !== previousIsbnRef.current) {
       setMissingFields([]);
       setOpenContributionDialog(false);
+      dialogDismissedRef.current = false;
       previousIsbnRef.current = isbn;
       return;
     }
     
     // Skip further processing if we've already checked and opened the dialog
-    if (openContributionDialog) return;
+    // or if the user has dismissed the dialog for this book
+    if (openContributionDialog || dialogDismissedRef.current) return;
     
     // Check for incomplete data
     const missing: string[] = [];
@@ -206,7 +219,7 @@ const BookDetail = () => {
       {/* Open Library Contribution Dialog */}
       <OpenLibraryContributionDialog
         open={openContributionDialog}
-        onOpenChange={setOpenContributionDialog}
+        onOpenChange={handleDialogOpenChange}
         book={book}
         missingFields={missingFields}
       />
