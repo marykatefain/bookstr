@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { fetchBookByISBN } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 export const useBookData = (isbn: string | undefined) => {
   const [isRead, setIsRead] = useState(false);
   const { toast } = useToast();
-  const { getBookReadingStatus, library, getBookByISBN } = useLibraryData();
+  const { getBookReadingStatus, books, getBookByISBN } = useLibraryData();
   const [partialBookData, setPartialBookData] = useState<any>(null);
 
   // Get book from library with optimized memoization
@@ -119,7 +120,7 @@ export const useBookData = (isbn: string | undefined) => {
 
   // Find the book in user's library to get its rating - optimized to check only once
   const findBookWithRating = useCallback(() => {
-    if (!isbn || !library) return null;
+    if (!isbn || !books) return null;
     
     // First check the book we already have from getBookByISBN
     const bookFromLibrary = getBookByISBN(isbn);
@@ -128,7 +129,7 @@ export const useBookData = (isbn: string | undefined) => {
     }
     
     return null;
-  }, [isbn, library, getBookByISBN]);
+  }, [isbn, books, getBookByISBN]);
 
   // Get user's rating from their library if available
   const bookWithRating = findBookWithRating();

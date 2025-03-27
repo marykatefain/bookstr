@@ -45,12 +45,12 @@ export {
   reviewBook,
   reactToContent,
   replyToContent,
-  fetchReactions,
   fetchReplies,
+  fetchReactions,
+  followUser,
   addBookToList,
   updateBookInList,
-  removeBookFromList,
-  followUser
+  removeBookFromList
 } from "./books";
 
 // Export fetch functions

@@ -1,168 +1,282 @@
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchUserBooks,
-  fetchUserReviews,
-  fetchUserPosts,
-  getCurrentUser,
-  isLoggedIn
-} from "@/lib/nostr";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Book } from "@/lib/nostr/types";
+import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
+import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
+import { useQuery } from "@tanstack/react-query";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
-// Helper functions for getting book information
-const getBookByISBN = (library: any, isbn?: string) => {
-  if (!isbn || !library) return null;
-  
-  // Check in each collection
-  const tbrBook = library.tbr?.find((book: Book) => book.isbn === isbn);
-  if (tbrBook) return { ...tbrBook, readingStatus: { ...tbrBook.readingStatus, status: 'tbr' } };
-  
-  const readingBook = library.reading?.find((book: Book) => book.isbn === isbn);
-  if (readingBook) return { ...readingBook, readingStatus: { ...readingBook.readingStatus, status: 'reading' } };
-  
-  const readBook = library.read?.find((book: Book) => book.isbn === isbn);
-  if (readBook) return { ...readBook, readingStatus: { ...readBook.readingStatus, status: 'finished' } };
-  
-  return null;
-};
+export const useLibraryData = () => {
+  const [user, setUser] = useState(getCurrentUser());
+  const { toast } = useToast();
 
-const getBookReadingStatus = (library: any, isbn?: string) => {
-  if (!isbn || !library) return null;
+  useEffect(() => {
+    setUser(getCurrentUser());
+  }, []);
   
-  if (library.tbr?.some((book: Book) => book.isbn === isbn)) return 'tbr';
-  if (library.reading?.some((book: Book) => book.isbn === isbn)) return 'reading';
-  if (library.read?.some((book: Book) => book.isbn === isbn)) return 'finished';
-  
-  return null;
-};
-
-async function fetchLibraryData(context: any) {
-  const pubkey = context?.meta?.pubkey;
-  
-  if (!pubkey) {
-    console.warn("No pubkey provided, returning empty library data");
-    return { tbr: [], reading: [], read: [] };
-  }
-  
-  try {
-    const library = await fetchUserBooks(pubkey);
-    return library;
-  } catch (error) {
-    console.error("Error fetching library data:", error);
-    throw error;
-  }
-}
-
-async function fetchUserReviewsData(context: any) {
-  const pubkey = context?.meta?.pubkey;
-  
-  if (!pubkey) {
-    console.warn("No pubkey provided, returning empty reviews data");
-    return [];
-  }
-  
-  try {
-    const reviews = await fetchUserReviews(pubkey);
-    return reviews;
-  } catch (error) {
-    console.error("Error fetching user reviews:", error);
-    throw error;
-  }
-}
-
-async function fetchUserPostsData(context: any) {
-  const pubkey = context?.meta?.pubkey;
-  
-  if (!pubkey) {
-    console.warn("No pubkey provided, returning empty posts data");
-    return [];
-  }
-  
-  try {
-    const posts = await fetchUserPosts(pubkey, false);
-    return posts;
-  } catch (error) {
-    console.error("Error fetching user posts:", error);
-    throw error;
-  }
-}
-
-export function useUserLibrary(pubkey: string) {
-  const {
-    data: library = { tbr: [], reading: [], read: [] },
-    isLoading: libraryLoading,
-    error: libraryError,
-    refetch: refetchLibrary
+  const { 
+    data: booksData = { tbr: [], reading: [], read: [] },
+    isLoading: booksLoading,
+    error: booksError,
+    refetch: refetchBooks
   } = useQuery({
-    queryKey: ['userLibrary', pubkey],
-    queryFn: async () => fetchUserBooks(pubkey),
-    enabled: !!pubkey
-  });
+    queryKey: ['userBooks', user?.pubkey],
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return { tbr: [], reading: [], read: [] };
+      }
 
-  return {
-    library,
-    libraryLoading,
-    libraryError,
-    refetchLibrary
+      try {
+        console.log("Fetching user books data for library");
+        const userBooks = await fetchUserBooks(user.pubkey);
+        console.log("User books data fetched:", userBooks);
+        
+        // First deduplicate books within the same lists
+        const deduplicatedWithinLists = deduplicateBooksWithinLists(userBooks);
+        
+        // Then deduplicate books across lists
+        return deduplicateBookLists(deduplicatedWithinLists);        
+      } catch (error) {
+        console.error("Error fetching user books:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
+  });
+  
+  // Deduplicate books within the same list using ISBN as the unique identifier
+  const deduplicateBooksWithinLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+    const uniqueTbr = deduplicateListByIsbn(books.tbr);
+    const uniqueReading = deduplicateListByIsbn(books.reading);
+    const uniqueRead = deduplicateListByIsbn(books.read);
+    
+    return {
+      tbr: uniqueTbr,
+      reading: uniqueReading,
+      read: uniqueRead
+    };
   };
-}
-
-export function useLibraryData() {
-  const user = getCurrentUser();
-  const queryClient = useQueryClient();
   
-  const {
-    data: library = { tbr: [], reading: [], read: [] },
-    isLoading: libraryLoading,
-    error: libraryError,
-    refetch: refetchLibrary
-  } = useQuery({
-    queryKey: ['library'],
-    queryFn: () => fetchLibraryData({ meta: { pubkey: user?.pubkey } }),
-    enabled: isLoggedIn()
-  });
-
+  // Helper function to deduplicate a single list by ISBN
+  const deduplicateListByIsbn = (books: Book[]): Book[] => {
+    const uniqueBooks = new Map<string, Book>();
+    
+    // Process books, keeping only the most recent entry for each ISBN
+    books.forEach(book => {
+      if (!book.isbn) return; // Skip books without ISBN
+      
+      const existingBook = uniqueBooks.get(book.isbn);
+      
+      // If book doesn't exist in map or current book is newer, add/replace it
+      if (!existingBook || 
+          (book.readingStatus?.dateAdded && existingBook.readingStatus?.dateAdded && 
+           book.readingStatus.dateAdded > existingBook.readingStatus.dateAdded)) {
+        uniqueBooks.set(book.isbn, book);
+      }
+    });
+    
+    return Array.from(uniqueBooks.values());
+  };
+  
+  // Deduplicate books across lists - prioritize finished > reading > tbr
+  const deduplicateBookLists = (books: { tbr: Book[], reading: Book[], read: Book[] }) => {
+    // Create sets of ISBNs for each list to track what's already been processed
+    const readIsbns = new Set(books.read.map(book => book.isbn));
+    const readingIsbns = new Set(books.reading.map(book => book.isbn));
+    
+    // Filter reading list to remove books that are already in read list
+    const dedupedReading = books.reading.filter(book => {
+      return book.isbn && !readIsbns.has(book.isbn);
+    });
+    
+    // Update the reading ISBNs set after deduplication
+    const updatedReadingIsbns = new Set(dedupedReading.map(book => book.isbn));
+    
+    // Filter tbr list to remove books that are in read or deduped reading lists
+    const dedupedTbr = books.tbr.filter(book => {
+      return book.isbn && !readIsbns.has(book.isbn) && !updatedReadingIsbns.has(book.isbn);
+    });
+    
+    return {
+      read: books.read,
+      reading: dedupedReading,
+      tbr: dedupedTbr
+    };
+  };
+  
+  // Fetch reviews to get the ratings
   const {
     data: reviews = [],
     isLoading: reviewsLoading,
-    error: reviewsError,
-    refetch: refetchReviews
+    error: reviewsError
   } = useQuery({
     queryKey: ['userReviews', user?.pubkey],
-    queryFn: () => fetchUserReviewsData({ meta: { pubkey: user?.pubkey } }),
-    enabled: !!user?.pubkey
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return [];
+      }
+      
+      try {
+        console.log("Fetching reviews for user:", user.pubkey);
+        const userReviews = await fetchUserReviews(user.pubkey);
+        console.log("Fetched reviews:", userReviews);
+        return userReviews;
+      } catch (error) {
+        console.error("Error fetching user reviews:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true
   });
-
+  
+  // Merge ratings into the book objects
+  useEffect(() => {
+    if (reviews.length > 0 && booksData) {
+      console.log("Adding ratings to books from reviews");
+      
+      // Create a map of isbn -> rating for quick lookup
+      const ratingsMap = new Map<string, number>();
+      reviews.forEach(review => {
+        if (review.bookIsbn && review.rating !== undefined) {
+          const displayRating = convertRawRatingToDisplayRating(review.rating);
+          ratingsMap.set(review.bookIsbn, displayRating);
+        }
+      });
+      
+      console.log(`Found ${ratingsMap.size} ratings to apply to books`);
+      
+      // Apply ratings to books
+      const applyRatingsToBooks = (bookList: Book[]): Book[] => {
+        return bookList.map(book => {
+          if (book.isbn && ratingsMap.has(book.isbn)) {
+            console.log(`Applying rating ${ratingsMap.get(book.isbn)} to book ${book.title} (${book.isbn})`);
+            return {
+              ...book,
+              readingStatus: {
+                ...book.readingStatus!,
+                rating: ratingsMap.get(book.isbn)
+              }
+            };
+          }
+          return book;
+        });
+      };
+      
+      // Apply ratings to all book categories
+      const updatedReadBooks = applyRatingsToBooks(booksData.read);
+      const updatedReadingBooks = applyRatingsToBooks(booksData.reading);
+      const updatedTbrBooks = applyRatingsToBooks(booksData.tbr);
+      
+      // Update the books data with ratings
+      booksData.read = updatedReadBooks;
+      booksData.reading = updatedReadingBooks;
+      booksData.tbr = updatedTbrBooks;
+    }
+  }, [reviews, booksData]);
+  
   const {
     data: posts = [],
     isLoading: postsLoading,
-    error: postsError,
-    refetch: refetchPosts
+    error: postsError
   } = useQuery({
     queryKey: ['userPosts', user?.pubkey],
-    queryFn: () => fetchUserPostsData({ meta: { pubkey: user?.pubkey } }),
-    enabled: !!user?.pubkey
+    queryFn: async () => {
+      if (!isLoggedIn() || !user?.pubkey) {
+        return [];
+      }
+      
+      try {
+        console.log("Fetching book posts for user:", user.pubkey);
+        const userPosts = await fetchBookPosts(user.pubkey, false);
+        console.log("Fetched posts:", userPosts);
+        return userPosts;
+      } catch (error) {
+        console.error("Error fetching user posts:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.pubkey && isLoggedIn(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true
   });
+  
+  useEffect(() => {
+    if (booksError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your books",
+        variant: "destructive",
+      });
+    }
+    
+    if (postsError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your posts",
+        variant: "destructive",
+      });
+    }
+    
+    if (reviewsError) {
+      toast({
+        title: "Error",
+        description: "Failed to load your reviews",
+        variant: "destructive",
+      });
+    }
+  }, [booksError, postsError, reviewsError, toast]);
 
-  // Add helper functions to make them available throughout the app
+  const getBookReadingStatus = (isbn: string | undefined): 'tbr' | 'reading' | 'finished' | null => {
+    if (!isbn || !booksData) return null;
+    
+    // Prioritize "finished" status
+    const readBook = booksData.read.find(book => book.isbn === isbn);
+    if (readBook) return 'finished';
+    
+    // Then "reading" status
+    const readingBook = booksData.reading.find(book => book.isbn === isbn);
+    if (readingBook) return 'reading';
+    
+    // Finally "tbr" status
+    const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
+    if (tbrBook) return 'tbr';
+    
+    return null;
+  };
+
+  const getBookByISBN = (isbn: string | undefined): Book | null => {
+    if (!isbn || !booksData) return null;
+    
+    // Check lists in priority order: read > reading > tbr
+    const readBook = booksData.read.find(book => book.isbn === isbn);
+    if (readBook) return readBook;
+    
+    const readingBook = booksData.reading.find(book => book.isbn === isbn);
+    if (readingBook) return readingBook;
+    
+    const tbrBook = booksData.tbr.find(book => book.isbn === isbn);
+    if (tbrBook) return tbrBook;
+    
+    return null;
+  };
+
   return {
     user,
-    library,
-    libraryLoading,
-    libraryError,
-    refetchLibrary,
-    reviews,
-    reviewsLoading,
-    reviewsError,
-    refetchReviews,
+    books: booksData,
     posts,
+    reviews,
+    booksLoading,
     postsLoading,
-    postsError,
-    refetchPosts,
-    books: library,
-    booksLoading: libraryLoading,
-    refetchBooks: refetchLibrary,
-    getBookByISBN: (isbn?: string) => getBookByISBN(library, isbn),
-    getBookReadingStatus: (isbn?: string) => getBookReadingStatus(library, isbn)
+    reviewsLoading,
+    isLoggedIn: isLoggedIn(),
+    refetchBooks,
+    getBookReadingStatus,
+    getBookByISBN
   };
-}
+};
