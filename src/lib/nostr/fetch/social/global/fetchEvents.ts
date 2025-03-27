@@ -41,7 +41,10 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   // Check if we have a recent cached result - first check short-term cache
   const cachedEvents = getCachedQueryResult(cacheKey);
   if (cachedEvents && cachedEvents.length > 0) {
-    const cacheAge = Date.now() - (cachedEvents[0]._cacheTimestamp || 0);
+    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
+    const cacheTimestamp = cachedEvents[0]._cacheTimestamp || 0;
+    const cacheAge = Date.now() - cacheTimestamp;
+    
     if (cacheAge < SHORT_CACHE_TTL) {
       console.log("Using cached events for global feed, count:", cachedEvents.length);
       return cachedEvents;
@@ -51,7 +54,10 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
   // Check if we have a long-term cache - if we do, use it while we fetch fresh data
   const longTermCachedEvents = getCachedQueryResult(cacheKey);
   if (longTermCachedEvents && longTermCachedEvents.length > 0) {
-    const cacheAge = Date.now() - (longTermCachedEvents[0]._cacheTimestamp || 0);
+    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
+    const cacheTimestamp = longTermCachedEvents[0]._cacheTimestamp || 0;
+    const cacheAge = Date.now() - cacheTimestamp;
+    
     if (cacheAge < LONG_CACHE_TTL) {
       console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
       
@@ -93,13 +99,19 @@ async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: stri
     
     console.log(`Received ${events.length} raw events from relays`);
     
+    // Add timestamp to events for cache age tracking
+    const timestampedEvents = events.map(event => ({
+      ...event,
+      _cacheTimestamp: Date.now()
+    }));
+    
     // Cache the result for future use
-    if (events && events.length > 0) {
-      cacheQueryResult(cacheKey, events);
-      console.log(`Cached ${events.length} events for future use`);
+    if (timestampedEvents && timestampedEvents.length > 0) {
+      cacheQueryResult(cacheKey, timestampedEvents);
+      console.log(`Cached ${timestampedEvents.length} events for future use`);
     }
     
-    return events || [];
+    return timestampedEvents || [];
   } catch (error) {
     console.error("Error fetching global events:", error);
     // Return empty array to allow graceful fallback
