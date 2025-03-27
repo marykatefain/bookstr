@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState } from "react";
-import { Heart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RepliesSection } from "./RepliesSection";
@@ -45,9 +44,11 @@ export function ActivityFooter({
   }, [activityId, reactionCount, userReacted]);
 
   const fetchActivityReactions = async () => {
+    console.log(`ActivityFooter: Fetching reactions for activity ${activityId}`);
     setLoading(true);
     try {
       const result = await fetchReactions(activityId);
+      console.log(`ActivityFooter: Fetched reactions for ${activityId}:`, result);
       setReactions(result);
     } catch (error) {
       console.error("Error fetching activity reactions:", error);
@@ -60,10 +61,14 @@ export function ActivityFooter({
     console.log(`ActivityFooter: Handling reaction for event ${eventId}`);
     onReaction(eventId);
     // Update local state optimistically
-    setReactions(prev => ({
-      count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-      userReacted: !prev.userReacted
-    }));
+    setReactions(prev => {
+      const newState = {
+        count: prev.userReacted ? prev.count - 1 : prev.count + 1,
+        userReacted: !prev.userReacted
+      };
+      console.log(`ActivityFooter: Updated local reaction state for ${eventId}:`, newState);
+      return newState;
+    });
   };
 
   return (

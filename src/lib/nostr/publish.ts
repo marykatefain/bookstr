@@ -1,4 +1,19 @@
 
+import { Event, UnsignedEvent, getEventHash, validateEvent } from "nostr-tools";
+import { SimplePool } from "nostr-tools";
+import { getSharedPool } from "./utils/poolManager";
+import { getUserRelays, getActiveConnections, ensureConnections } from "./relay";
+import { isLoggedIn, getCurrentUser } from "./user";
+import { NOSTR_KINDS } from "./types/constants";
+import { NostrEventData } from "./types/common";
+import { toast } from "@/hooks/use-toast";
+
+// Interface for event update filter
+interface UpdateEventFilter {
+  kind: number;
+  isbn?: string;
+}
+
 /**
  * Publish an event to Nostr relays
  */
@@ -242,11 +257,14 @@ export async function updateNostrEvent(
       
       if (filter.isbn) {
         console.log(`Filtering for ISBN ${filter.isbn}`);
-        existingEvent = events.find(event => 
-          event.tags.some(tag => 
-            tag[0] === 'i' && tag[1].includes(filter.isbn!)
-          )
-        );
+        existingEvent = events.find(event => {
+          if (event && typeof event === 'object' && 'tags' in event) {
+            return (event.tags as string[][]).some(tag => 
+              tag[0] === 'i' && tag[1].includes(filter.isbn!)
+            );
+          }
+          return false;
+        });
       } else {
         // If no ISBN filter specified, just get the most recent event of this kind
         existingEvent = events[0];
@@ -264,14 +282,14 @@ export async function updateNostrEvent(
     console.log("Found existing event:", existingEvent);
     
     // Create updated event with new tags
-    const updatedTags = updateTags(existingEvent.tags);
+    const updatedTags = updateTags(existingEvent.tags as string[][]);
     
     // Prepare the event to be signed
     const unsignedEvent: UnsignedEvent = {
       kind: filter.kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: updatedTags,
-      content: existingEvent.content,
+      content: existingEvent.content as string || "",
       pubkey: currentUser.pubkey
     };
     
@@ -351,7 +369,10 @@ export async function updateNostrEvent(
  */
 export async function reactToContent(eventId: string, emoji: string = "+"): Promise<string | null> {
   try {
+    console.log(`reactToContent called with eventId: ${eventId}, emoji: ${emoji}`);
+    
     if (!isLoggedIn()) {
+      console.log("User not logged in when trying to react");
       toast({
         title: "Login required",
         description: "Please sign in with Nostr to react to content",
@@ -372,11 +393,13 @@ export async function reactToContent(eventId: string, emoji: string = "+"): Prom
       tags: tags
     };
 
+    console.log("Reaction event data prepared:", eventData);
+
     // Publish the reaction
     const reactionId = await publishToNostr(eventData);
     
     if (reactionId) {
-      console.log(`Successfully published reaction to event ${eventId}`);
+      console.log(`Successfully published reaction to event ${eventId}, reaction ID: ${reactionId}`);
       return reactionId;
     } else {
       console.error(`Failed to publish reaction to event ${eventId}`);

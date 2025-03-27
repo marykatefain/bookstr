@@ -21,7 +21,6 @@ export function UserPostsFeed({
     refreshFeed
   } = useSocialFeed({
     type: "global",
-    // Changed from "followers" to "global"
     maxItems: 15,
     refreshTrigger
   });
@@ -31,6 +30,7 @@ export function UserPostsFeed({
     console.log(`UserPostsFeed: Handling reaction for activity: ${activityId}`);
     
     if (!isLoggedIn()) {
+      console.log("UserPostsFeed: User not logged in when trying to react");
       toast({
         title: "Login required",
         description: "Please sign in to react to posts",
@@ -40,15 +40,17 @@ export function UserPostsFeed({
     }
     
     try {
+      console.log(`UserPostsFeed: Calling reactToContent with activityId: ${activityId}`);
       const reactionId = await reactToContent(activityId);
+      
       if (reactionId) {
-        console.log(`Successfully published reaction (ID: ${reactionId})`);
+        console.log(`UserPostsFeed: Successfully published reaction (ID: ${reactionId})`);
         toast({
           title: "Reaction sent",
           description: "You've reacted to this post"
         });
       } else {
-        console.error("Failed to publish reaction");
+        console.error("UserPostsFeed: Failed to publish reaction - received null reaction ID");
         toast({
           title: "Error",
           description: "Could not send reaction",
@@ -56,7 +58,7 @@ export function UserPostsFeed({
         });
       }
     } catch (error) {
-      console.error("Error sending reaction:", error);
+      console.error("UserPostsFeed: Error sending reaction:", error);
       toast({
         title: "Error",
         description: "Could not send reaction",

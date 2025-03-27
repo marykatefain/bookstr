@@ -9,7 +9,10 @@ export function useFeedReactions(activities: SocialActivity[], onActivitiesChang
   const { toast } = useToast();
 
   const handleReact = async (activityId: string) => {
+    console.log(`useFeedReactions: handleReact called with activityId: ${activityId}`);
+    
     if (!isLoggedIn()) {
+      console.log("User not logged in - showing toast");
       toast({
         title: "Login required",
         description: "Please sign in to react to posts",
@@ -21,7 +24,7 @@ export function useFeedReactions(activities: SocialActivity[], onActivitiesChang
     try {
       console.log(`Calling reactToContent from hook with eventId: ${activityId}`);
       const reactionId = await reactToContent(activityId);
-      console.log(`Reaction result: ${reactionId ? 'Success' : 'Failed'}`);
+      console.log(`Reaction result: ${reactionId ? 'Success' : 'Failed'}, ID: ${reactionId}`);
       
       if (reactionId) {
         toast({
@@ -34,6 +37,8 @@ export function useFeedReactions(activities: SocialActivity[], onActivitiesChang
             const currentUserReacted = activity.reactions?.userReacted || false;
             const currentCount = activity.reactions?.count || 0;
             
+            console.log(`Updating activity ${activityId}: currentUserReacted: ${currentUserReacted}, currentCount: ${currentCount}`);
+            
             return {
               ...activity,
               reactions: {
@@ -45,13 +50,16 @@ export function useFeedReactions(activities: SocialActivity[], onActivitiesChang
           return activity;
         });
         
+        console.log("Updated activities after reaction");
         setLocalActivities(updatedActivities);
         
         if (onActivitiesChanged) {
+          console.log("Calling onActivitiesChanged callback");
           onActivitiesChanged(updatedActivities);
         }
       } else {
         // If we got null from reactToContent, something went wrong
+        console.error("Failed to publish reaction - received null reaction ID");
         throw new Error("Failed to publish reaction");
       }
     } catch (error) {
