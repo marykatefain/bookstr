@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { NostrProfile, FollowList, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
@@ -14,7 +13,7 @@ export async function fetchFollowingList(pubkey: string): Promise<FollowList> {
   
   try {
     const filter: Filter = {
-      kinds: [NOSTR_KINDS.CONTACTS],
+      kinds: [NOSTR_KINDS.CONTACT_LIST],
       authors: [pubkey]
     };
     

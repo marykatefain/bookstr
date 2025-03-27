@@ -1,6 +1,9 @@
+
 import { type Event, type Filter } from "nostr-tools";
 import { getUserRelays } from "../../relay";
 import { getSharedPool } from "../../utils/poolManager";
+import { getCurrentUser } from "../../user";
+import { NOSTR_KINDS } from "../../types/constants";
 
 /**
  * Fetch a specific nostr event by its ID

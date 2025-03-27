@@ -269,7 +269,6 @@ const ReviewDetail = () => {
               authorPubkey={review.pubkey}
               initialReplies={review.replies}
               onReaction={() => handleReaction(review.id)}
-              eventKind={NOSTR_KINDS.REVIEW}
             />
           </CardFooter>
         </Card>

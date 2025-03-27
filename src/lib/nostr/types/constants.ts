@@ -1,3 +1,4 @@
+
 // Nostr event kinds
 export const NOSTR_KINDS = {
   SET_METADATA: 0,
@@ -16,7 +17,11 @@ export const NOSTR_KINDS = {
   BOOK_READ: 30003,
   BOOK_RATING: 30004,
   REVIEW: 30008,
-  BOOK_LIST: 30009
+  BOOK_LIST: 30009,
+  // Add missing constants for reply events
+  BOOK_LIST_REPLY: 1, // Using kind 1 (TEXT_NOTE) for replies
+  POST_REPLY: 1,      // Also kind 1 for post replies
+  CONTACTS: 3         // Same as CONTACT_LIST, just different naming convention
 };
 
 // Predefined book list names

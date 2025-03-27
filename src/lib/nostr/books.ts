@@ -308,7 +308,7 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
   }
 
   // Determine if this is a reply to a post or a book-related event
-  let kind = NOSTR_KINDS.BOOK_LIST_REPLY; // Default to book list reply
+  let kind = NOSTR_KINDS.TEXT_NOTE; // Default to text note kind
 
   try {
     // Fetch the original event to determine its kind
@@ -317,7 +317,7 @@ export async function replyToContent(eventId: string, pubkey: string, replyText:
     if (originalEvent) {
       // If the original event is a text note (kind 1), use kind 1 for the reply
       if (originalEvent.kind === NOSTR_KINDS.TEXT_NOTE) {
-        kind = NOSTR_KINDS.POST_REPLY;
+        kind = NOSTR_KINDS.TEXT_NOTE;
       }
     }
   } catch (error) {
@@ -409,7 +409,7 @@ export async function fetchReplies(eventId: string): Promise<Reply[]> {
   try {
     // Query for replies to this event (both kinds)
     const events = await pool.querySync(relayUrls, {
-      kinds: [NOSTR_KINDS.BOOK_LIST_REPLY, NOSTR_KINDS.POST_REPLY],
+      kinds: [NOSTR_KINDS.TEXT_NOTE],
       "#e": [eventId],
       limit: 50
     });
@@ -528,7 +528,7 @@ export async function followUser(pubkey: string): Promise<string | null> {
     
     // Create the event with all follows included
     const event = {
-      kind: NOSTR_KINDS.CONTACTS,
+      kind: NOSTR_KINDS.CONTACT_LIST,
       tags: followTags,
       content: ""
     };
