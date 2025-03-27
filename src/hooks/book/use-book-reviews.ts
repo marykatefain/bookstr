@@ -17,6 +17,7 @@ export const useBookReviews = (isbn: string | undefined) => {
   const [ratings, setRatings] = useState<BookReview[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
@@ -26,6 +27,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     if (!isbn) return;
     
     try {
+      // Fetch reviews - the fetchBookReviews function now handles de-duplication
       const bookReviews = await fetchBookReviews(isbn);
       
       // Fetch replies for each review
@@ -46,9 +48,11 @@ export const useBookReviews = (isbn: string | undefined) => {
       
       setReviews(reviewsWithReplies);
       
+      // Fetch ratings - the fetchBookRatings function now handles de-duplication
       const bookRatings = await fetchBookRatings(isbn);
       setRatings(bookRatings);
       
+      // Find the current user's rating (if logged in)
       if (currentUser && bookRatings.length > 0) {
         const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
         if (userRatingObj && userRatingObj.rating !== undefined) {
@@ -75,42 +79,37 @@ export const useBookReviews = (isbn: string | undefined) => {
   }, []);
 
   const handleSubmitReview = useCallback(async (book: Book | null) => {
-    if (!book || !reviewText.trim() || !isLoggedIn()) return;
+    if (!book || !isLoggedIn()) return;
     
     setSubmitting(true);
     try {
       console.log(`Submitting review with rating: ${userRating}`);
       
-      // Submit both the review text and rating together
-      await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined);
+      // Check if review text is empty, and if so, find user's previous review to preserve content
+      let finalReviewText = reviewText.trim();
+      
+      if (!finalReviewText && currentUser) {
+        // Find current user's previous review to preserve its content
+        const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
+        
+        if (userPreviousReview && userPreviousReview.content && userPreviousReview.content.trim()) {
+          console.log("Found previous review content, preserving it:", userPreviousReview.content);
+          finalReviewText = userPreviousReview.content;
+        }
+      }
+      
+      // Pass isSpoiler as the optional 4th parameter
+      await reviewBook(book, finalReviewText, userRating > 0 ? userRating : undefined, isSpoiler);
+      
       toast({
         title: "Review submitted",
         description: "Your review has been published"
       });
       setReviewText("");
+      setIsSpoiler(false);
       
-      // Update both reviews and ratings after submission
-      const updatedReviews = await fetchBookReviews(isbn || "");
-      const updatedRatings = await fetchBookRatings(isbn || "");
-      
-      // Fetch replies for the updated reviews
-      const reviewsWithReplies = await Promise.all(
-        updatedReviews.map(async (review) => {
-          try {
-            const replies = await fetchReplies(review.id);
-            return {
-              ...review,
-              replies
-            };
-          } catch (error) {
-            console.error(`Error fetching replies for review ${review.id}:`, error);
-            return review;
-          }
-        })
-      );
-      
-      setReviews(reviewsWithReplies);
-      setRatings(updatedRatings);
+      // Refresh data after submission
+      await fetchReviewsData();
     } catch (error) {
       console.error("Error submitting review:", error);
       toast({
@@ -121,7 +120,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     } finally {
       setSubmitting(false);
     }
-  }, [isbn, reviewText, userRating, toast]);
+  }, [isbn, reviewText, reviews, userRating, isSpoiler, toast, fetchReviewsData, currentUser]);
 
   return {
     reviews,
@@ -129,6 +128,8 @@ export const useBookReviews = (isbn: string | undefined) => {
     userRating,
     reviewText,
     setReviewText,
+    isSpoiler,
+    setIsSpoiler,
     submitting,
     handleRateBook,
     handleSubmitReview

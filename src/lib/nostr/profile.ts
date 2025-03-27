@@ -3,6 +3,11 @@ import { NostrProfile, NostrEventData } from "./types";
 import { connectToRelays } from "./relay";
 import { getUserRelays } from "./relay";
 import { getSharedPool } from "./utils/poolManager";
+import { batchFetchUserProfiles } from "./fetch/profileFetch";
+
+// Add a memory cache for profile data with a TTL of 10 minutes
+const profileCache = new Map<string, {data: Partial<NostrProfile>, timestamp: number}>();
+const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 const parseProfileContent = (content: string): Partial<NostrProfile> => {
   try {
@@ -21,6 +26,19 @@ const parseProfileContent = (content: string): Partial<NostrProfile> => {
 
 export async function fetchProfileData(pubkey: string): Promise<Partial<NostrProfile> | null> {
   try {
+    // Check cache first
+    const now = Date.now();
+    if (profileCache.has(pubkey)) {
+      const cached = profileCache.get(pubkey)!;
+      if (now - cached.timestamp < PROFILE_CACHE_TTL) {
+        console.log("Using cached profile for", pubkey.slice(0, 8));
+        return cached.data;
+      } else {
+        // Cache expired, remove it
+        profileCache.delete(pubkey);
+      }
+    }
+    
     const relayConnections = await connectToRelays();
     
     return new Promise((resolve, reject) => {
@@ -51,13 +69,20 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
               
               if (profileEvent.kind === 0 && profileEvent.pubkey === pubkey) {
                 const profileData = parseProfileContent(profileEvent.content);
+                const result = {
+                  ...profileData,
+                  pubkey
+                };
+                
+                // Cache the result
+                profileCache.set(pubkey, {
+                  data: result,
+                  timestamp: Date.now()
+                });
                 
                 clearTimeout(timeout);
                 relayConnections.forEach(s => s.close());
-                resolve({
-                  ...profileData,
-                  pubkey
-                });
+                resolve(result);
               }
             }
             
@@ -82,41 +107,55 @@ export async function fetchProfileData(pubkey: string): Promise<Partial<NostrPro
 }
 
 /**
- * Fetch multiple user profiles at once
+ * Fetch multiple user profiles at once using the optimized batch fetching
  */
 export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<NostrProfile>[]> {
   if (!pubkeys.length) return [];
   
-  const relays = getUserRelays();
-  const pool = getSharedPool();
-  
   try {
-    const profileEvents = await pool.querySync(relays, {
-      kinds: [0],
-      authors: pubkeys
-    });
+    // First check what we already have in cache
+    const now = Date.now();
+    const uncachedPubkeys: string[] = [];
+    const results: Partial<NostrProfile>[] = [];
     
-    const profiles: Partial<NostrProfile>[] = [];
-    
-    for (const event of profileEvents) {
-      try {
-        const profileData = JSON.parse(event.content);
-        
-        profiles.push({
-          npub: event.pubkey, // This will be converted to npub in UI
-          pubkey: event.pubkey,
-          name: profileData.name,
-          display_name: profileData.display_name,
-          picture: profileData.picture,
-          about: profileData.about,
-          relays: []
-        });
-      } catch (error) {
-        console.error("Error parsing profile:", error);
+    // Check cache first for each pubkey
+    for (const pubkey of pubkeys) {
+      if (profileCache.has(pubkey)) {
+        const cached = profileCache.get(pubkey)!;
+        if (now - cached.timestamp < PROFILE_CACHE_TTL) {
+          results.push(cached.data);
+        } else {
+          // Cache expired
+          profileCache.delete(pubkey);
+          uncachedPubkeys.push(pubkey);
+        }
+      } else {
+        uncachedPubkeys.push(pubkey);
       }
     }
     
-    return profiles;
+    // If all profiles were in cache, return them
+    if (uncachedPubkeys.length === 0) {
+      console.log("All profiles found in cache:", pubkeys.length);
+      return results;
+    }
+    
+    // Fetch the uncached profiles
+    console.log(`Fetching ${uncachedPubkeys.length} uncached profiles`);
+    const profilesMap = await batchFetchUserProfiles(uncachedPubkeys);
+    
+    // Add the newly fetched profiles to results and cache
+    for (const [pubkey, profile] of profilesMap.entries()) {
+      results.push(profile);
+      
+      // Add to cache
+      profileCache.set(pubkey, {
+        data: profile,
+        timestamp: now
+      });
+    }
+    
+    return results;
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return [];

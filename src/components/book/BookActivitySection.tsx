@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { SocialActivity, Reply } from "@/lib/nostr/types";
 import { ActivityCard } from "@/components/social/ActivityCard";

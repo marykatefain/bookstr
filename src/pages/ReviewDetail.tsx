@@ -20,6 +20,7 @@ const ReviewDetail = () => {
   const [review, setReview] = useState<BookReview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -68,6 +69,11 @@ const ReviewDetail = () => {
           }
         }
         
+        // Check for spoiler/content-warning tag
+        const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
+        const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+        const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
+        
         const replies = await fetchReplies(event.id);
         
         const bookDetails = await getBookByISBN(isbn);
@@ -89,7 +95,8 @@ const ReviewDetail = () => {
             picture: authorProfile.picture,
             npub: event.pubkey
           } : undefined,
-          replies
+          replies,
+          isSpoiler
         };
         
         setReview(reviewData);
@@ -121,6 +128,34 @@ const ReviewDetail = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const renderContent = () => {
+    if (!review) return null;
+    
+    if (review.isSpoiler && !spoilerRevealed) {
+      return (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
+          <p className="text-amber-700 dark:text-amber-400 mb-2">
+            This review contains spoilers
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setSpoilerRevealed(true)}
+            className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700"
+          >
+            <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
+          </Button>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-4 prose prose-slate dark:prose-invert max-w-none">
+        <p className="whitespace-pre-wrap">{review.content}</p>
+      </div>
+    );
   };
 
   if (loading) {
@@ -259,9 +294,7 @@ const ReviewDetail = () => {
                   <p className="text-muted-foreground mb-4">by {review.bookAuthor}</p>
                 )}
                 
-                <div className="mt-4 prose prose-slate dark:prose-invert max-w-none">
-                  <p className="whitespace-pre-wrap">{review.content}</p>
-                </div>
+                {renderContent()}
               </div>
             </div>
           </CardContent>

@@ -32,7 +32,7 @@ export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
  * Enhance books with additional details from OpenLibrary
  * While preserving the original reading status and ratings
  * 
- * Optimized version: processes books in a single pass and minimizes object creation
+ * Optimized to fetch all book details in a single batch operation
  */
 export async function enhanceBooksWithDetails(
   books: Book[], 
@@ -80,19 +80,10 @@ export async function enhanceBooksWithDetails(
       }
       
       // Create an enriched book with best available data
-      // Only update fields if the new data is better than what we already have
       return {
         ...book,
-        title: (details.title && details.title !== 'Unknown Title') 
-          ? details.title 
-          : (book.title && book.title !== 'Unknown Title') 
-            ? book.title 
-            : 'Unknown Title',
-        author: (details.author && details.author !== 'Unknown Author') 
-          ? details.author 
-          : (book.author && book.author !== 'Unknown Author') 
-            ? book.author 
-            : 'Unknown Author',
+        title: selectBestValue(details.title, book.title, 'Unknown Title'),
+        author: selectBestValue(details.author, book.author, 'Unknown Author'),
         coverUrl: details.coverUrl || book.coverUrl || '',
         description: details.description || book.description || '',
         categories: details.categories || book.categories || [],
@@ -111,4 +102,13 @@ export async function enhanceBooksWithDetails(
       author: book.author || 'Unknown Author'
     }));
   }
+}
+
+/**
+ * Helper function to select the best value between two options
+ */
+function selectBestValue(newValue: string | undefined, oldValue: string | undefined, fallback: string): string {
+  if (newValue && newValue !== fallback) return newValue;
+  if (oldValue && oldValue !== fallback) return oldValue;
+  return fallback;
 }
