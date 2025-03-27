@@ -29,7 +29,7 @@ import {
   fetchBookActivity
 } from './fetch/social';
 
-// Event fetch function
+// Event fetch function - exporting with a namespace to avoid conflicts
 import { fetchEventById } from './fetch/social/fetchEvent';
 
 export {
@@ -53,6 +53,6 @@ export {
   fetchBookPosts,
   fetchBookActivity,
   
-  // Event function
+  // Event function - explicitly named export
   fetchEventById
 };

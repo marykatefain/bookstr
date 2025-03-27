@@ -18,7 +18,7 @@ export * from './types';
 // Re-export posts functions, but handle the naming conflict
 import { fetchBookPosts as fetchBookPostsFromPosts } from './posts';
 export { 
-  fetchBookPostsFromPosts,
+  fetchBookPostsFromPosts as fetchBookPostsByUserFromPosts,
   // Export all other functions from posts except fetchBookPosts to avoid conflict
   createBookPost,
   fetchUserPosts
