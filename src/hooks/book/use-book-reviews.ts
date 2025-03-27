@@ -82,15 +82,9 @@ export const useBookReviews = (isbn: string | undefined) => {
     try {
       console.log(`Submitting review with rating: ${userRating}`);
       
-      // Fix: We need to modify this call to match the expected parameter count
-      // Check the implementation in src/lib/nostr/publish.ts
-      const reviewParams = {
-        book,
-        content: reviewText,
-        rating: userRating > 0 ? userRating : undefined,
-        isSpoiler
-      };
-      await reviewBook(reviewParams.book, reviewParams.content, reviewParams.rating, reviewParams.isSpoiler);
+      // Pass isSpoiler as the optional 4th parameter
+      await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined, isSpoiler);
+      
       toast({
         title: "Review submitted",
         description: "Your review has been published"
