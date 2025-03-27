@@ -27,6 +27,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     if (!isbn) return;
     
     try {
+      // Fetch reviews - the fetchBookReviews function now handles de-duplication
       const bookReviews = await fetchBookReviews(isbn);
       
       // Fetch replies for each review
@@ -47,9 +48,11 @@ export const useBookReviews = (isbn: string | undefined) => {
       
       setReviews(reviewsWithReplies);
       
+      // Fetch ratings - the fetchBookRatings function now handles de-duplication
       const bookRatings = await fetchBookRatings(isbn);
       setRatings(bookRatings);
       
+      // Find the current user's rating (if logged in)
       if (currentUser && bookRatings.length > 0) {
         const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
         if (userRatingObj && userRatingObj.rating !== undefined) {
@@ -92,28 +95,8 @@ export const useBookReviews = (isbn: string | undefined) => {
       setReviewText("");
       setIsSpoiler(false);
       
-      // Update both reviews and ratings after submission
-      const updatedReviews = await fetchBookReviews(isbn || "");
-      const updatedRatings = await fetchBookRatings(isbn || "");
-      
-      // Fetch replies for the updated reviews
-      const reviewsWithReplies = await Promise.all(
-        updatedReviews.map(async (review) => {
-          try {
-            const replies = await fetchReplies(review.id);
-            return {
-              ...review,
-              replies
-            };
-          } catch (error) {
-            console.error(`Error fetching replies for review ${review.id}:`, error);
-            return review;
-          }
-        })
-      );
-      
-      setReviews(reviewsWithReplies);
-      setRatings(updatedRatings);
+      // Refresh data after submission
+      await fetchReviewsData();
     } catch (error) {
       console.error("Error submitting review:", error);
       toast({
@@ -124,7 +107,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     } finally {
       setSubmitting(false);
     }
-  }, [isbn, reviewText, userRating, isSpoiler, toast]);
+  }, [isbn, reviewText, userRating, isSpoiler, toast, fetchReviewsData]);
 
   return {
     reviews,
