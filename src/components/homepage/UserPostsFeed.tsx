@@ -1,12 +1,14 @@
+
 import React, { useEffect } from "react";
 import { useSocialFeed } from "@/hooks/use-social-feed";
 import { PostCard } from "@/components/post/PostCard";
-import { isLoggedIn } from "@/lib/nostr";
 import { ActivityCard } from "@/components/social/ActivityCard";
-import { SocialActivity } from "@/lib/nostr/types";
+import { useReactionContext } from "@/contexts/ReactionContext";
+
 interface UserPostsFeedProps {
   refreshTrigger?: number;
 }
+
 export function UserPostsFeed({
   refreshTrigger = 0
 }: UserPostsFeedProps) {
@@ -17,15 +19,17 @@ export function UserPostsFeed({
     refreshFeed
   } = useSocialFeed({
     type: "global",
-    // Changed from "followers" to "global"
     maxItems: 15,
     refreshTrigger
   });
 
+  // Use our new reaction context
+  const { toggleReaction } = useReactionContext();
+
   // Handle reactions for any activity
-  const handleReaction = (activityId: string) => {
-    // We don't need to refresh the feed here as the UI updates optimistically
-    console.log(`Reacted to activity: ${activityId}`);
+  const handleReaction = async (activityId: string) => {
+    console.log(`UserPostsFeed: Handling reaction for activity: ${activityId}`);
+    await toggleReaction(activityId);
   };
 
   // Fetch posts on initial render and when refresh is triggered

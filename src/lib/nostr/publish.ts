@@ -1,14 +1,13 @@
-
-import { toast } from "@/hooks/use-toast";
-import { validateEvent, getEventHash, type Event, type UnsignedEvent } from "nostr-tools";
-import { NostrEventData, NOSTR_KINDS } from "./types";
-import { getCurrentUser, isLoggedIn } from "./user";
-import { getUserRelays, ensureConnections, getActiveConnections } from "./relay";
+import { Event, UnsignedEvent, getEventHash, validateEvent } from "nostr-tools";
+import { SimplePool } from "nostr-tools";
 import { getSharedPool } from "./utils/poolManager";
+import { getUserRelays, getActiveConnections, ensureConnections } from "./relay";
+import { isLoggedIn, getCurrentUser } from "./user";
+import { NOSTR_KINDS } from "./types/constants";
+import { NostrEventData } from "./types/common";
+import { Book } from "./types/books";
+import { toast } from "@/hooks/use-toast";
 
-/**
- * Interface for event update filter
- */
 interface UpdateEventFilter {
   kind: number;
   isbn?: string;
@@ -19,7 +18,10 @@ interface UpdateEventFilter {
  */
 export async function publishToNostr(event: Partial<NostrEventData>): Promise<string | null> {
   try {
+    console.log("publishToNostr called with event:", event);
+    
     if (!isLoggedIn()) {
+      console.log("User not logged in");
       toast({
         title: "Login required",
         description: "Please sign in with Nostr to perform this action",
@@ -29,6 +31,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     }
 
     if (typeof window.nostr === 'undefined') {
+      console.error("Nostr extension not found");
       toast({
         title: "Nostr extension not found",
         description: "Please install a Nostr extension like nos2x or Alby",
@@ -39,32 +42,35 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     
     const currentUser = getCurrentUser();
     if (!currentUser) {
+      console.error("No current user found despite isLoggedIn check passing");
       throw new Error("User not logged in");
     }
 
     console.log("Current user:", currentUser);
     console.log("Preparing event:", event);
 
-    // Add "k" tag with value "isbn" for any event that has ISBN tags
     const hasIsbnTag = event.tags?.some(tag => tag[0] === 'i' && tag[1].includes('isbn:'));
     if (hasIsbnTag) {
       event.tags = event.tags || [];
-      // Only add the k tag if it doesn't already exist
       if (!event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
         event.tags.push(["k", "isbn"]);
       }
     }
 
-    // Add "t" tag with value "bookstr" for kind 1 events
     if (event.kind === NOSTR_KINDS.TEXT_NOTE) {
       event.tags = event.tags || [];
-      // Only add the t tag if it doesn't already exist
       if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
         event.tags.push(["t", "bookstr"]);
       }
     }
 
-    // Prepare the event
+    if (event.kind === NOSTR_KINDS.REACTION) {
+      event.tags = event.tags || [];
+      if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
+        event.tags.push(["t", "bookstr"]);
+      }
+    }
+
     const unsignedEvent: UnsignedEvent = {
       kind: event.kind || NOSTR_KINDS.TEXT_NOTE,
       created_at: Math.floor(Date.now() / 1000),
@@ -75,20 +81,18 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
 
     console.log("Unsigned event:", unsignedEvent);
 
-    // Ensure we have active connections to relays before signing
     try {
-      // This will wait for connections to be established
       await ensureConnections();
       
-      // Verify we have active connections before proceeding
       const activeConnections = getActiveConnections();
       if (activeConnections.length === 0) {
+        console.error("No relay connections available");
         throw new Error("No relay connections available");
       }
       
-      // Check that at least one connection is open
       const openConnections = activeConnections.filter(conn => conn.readyState === WebSocket.OPEN);
       if (openConnections.length === 0) {
+        console.error("All relay connections are closed");
         throw new Error("All relay connections are closed");
       }
       
@@ -103,74 +107,65 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       return null;
     }
 
-    // Sign the event with the extension
     try {
+      console.log("Calling window.nostr.signEvent");
       const signedEvent = await window.nostr.signEvent(unsignedEvent);
       
       if (!signedEvent) {
+        console.error("Failed to sign event - signedEvent is null or undefined");
         throw new Error("Failed to sign event");
       }
 
       console.log("Signed event:", signedEvent);
       
-      // Validate the event
       const eventHash = getEventHash(signedEvent);
       if (eventHash !== signedEvent.id) {
+        console.error(`Event hash mismatch: ${eventHash} !== ${signedEvent.id}`);
         throw new Error("Event validation failed: incorrect hash");
       }
 
       const isValid = validateEvent(signedEvent);
       
       if (!isValid) {
+        console.error("Event validation failed: invalid signature");
         throw new Error("Event validation failed: invalid signature");
       }
 
-      // Get shared pool for publishing to multiple relays
       const pool = getSharedPool();
       const relayUrls = getUserRelays();
       
       console.log("Publishing to relays:", relayUrls);
       
-      // Publish to relays
-      try {
-        // Add a timeout to ensure we give enough time for the event to be published
-        const publishPromise = new Promise<string>((resolve, reject) => {
-          // Use Promise.allSettled to track all publish attempts
-          const publishPromises = relayUrls.map(url => {
-            return pool.publish([url], signedEvent as Event);
-          });
+      const publishPromise = new Promise<string>((resolve, reject) => {
+        const publishPromises = relayUrls.map(url => {
+          return pool.publish([url], signedEvent as Event);
+        });
+        
+        Promise.allSettled(publishPromises).then(results => {
+          console.log("Publish results:", results);
           
-          Promise.allSettled(publishPromises).then(results => {
-            console.log("Publish results:", results);
-            
-            // Check if at least one relay accepted the event
-            const success = results.some(result => 
-              result.status === 'fulfilled'
-            );
-            
-            if (success) {
-              // Delay the resolution to ensure the message has time to propagate
-              setTimeout(() => {
-                resolve(signedEvent.id);
-              }, 1000);
-            } else {
-              reject(new Error("Failed to publish to any relay"));
-            }
-          });
+          const success = results.some(result => 
+            result.status === 'fulfilled'
+          );
+          
+          if (success) {
+            setTimeout(() => {
+              resolve(signedEvent.id);
+            }, 1000);
+          } else {
+            reject(new Error("Failed to publish to any relay"));
+          }
         });
-        
-        const eventId = await publishPromise;
-        
-        toast({
-          title: "Published successfully",
-          description: "Your action has been published to Nostr"
-        });
-        
-        return eventId;
-      } catch (error) {
-        console.error("Failed to publish to relays:", error);
-        throw error;
-      }
+      });
+      
+      const eventId = await publishPromise;
+      
+      toast({
+        title: "Published successfully",
+        description: "Your action has been published to Nostr"
+      });
+      
+      return eventId;
     } catch (signError) {
       console.error("Error signing event:", signError);
       throw signError;
@@ -213,10 +208,8 @@ export async function updateNostrEvent(
       throw new Error("User not logged in");
     }
 
-    // Ensure we have active connections to relays
     await ensureConnections();
     
-    // Create a filter to find the existing event
     const pool = getSharedPool();
     const relayUrls = getUserRelays();
     
@@ -228,22 +221,22 @@ export async function updateNostrEvent(
       limit: 10
     };
     
-    // If ISBN is provided, create a filter to find events with this ISBN
     let existingEvent: Event | undefined;
     
-    // Use pool.querySync properly with the correct method
     try {
       const events = await pool.querySync(relayUrls, filterParams);
       
       if (filter.isbn) {
         console.log(`Filtering for ISBN ${filter.isbn}`);
-        existingEvent = events.find(event => 
-          event.tags.some(tag => 
-            tag[0] === 'i' && tag[1].includes(filter.isbn!)
-          )
-        );
+        existingEvent = events.find(event => {
+          if (event && typeof event === 'object' && 'tags' in event) {
+            return (event.tags as string[][]).some(tag => 
+              tag[0] === 'i' && tag[1].includes(filter.isbn!)
+            );
+          }
+          return false;
+        });
       } else {
-        // If no ISBN filter specified, just get the most recent event of this kind
         existingEvent = events[0];
       }
     } catch (queryError) {
@@ -258,21 +251,18 @@ export async function updateNostrEvent(
     
     console.log("Found existing event:", existingEvent);
     
-    // Create updated event with new tags
-    const updatedTags = updateTags(existingEvent.tags);
+    const updatedTags = updateTags(existingEvent.tags as string[][]);
     
-    // Prepare the event to be signed
     const unsignedEvent: UnsignedEvent = {
       kind: filter.kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: updatedTags,
-      content: existingEvent.content,
+      content: existingEvent.content as string || "",
       pubkey: currentUser.pubkey
     };
     
     console.log("Unsigned update event:", unsignedEvent);
     
-    // Sign the event with the extension
     const signedEvent = await window.nostr.signEvent(unsignedEvent);
     
     if (!signedEvent) {
@@ -281,7 +271,6 @@ export async function updateNostrEvent(
     
     console.log("Signed update event:", signedEvent);
     
-    // Validate and publish the event
     const eventHash = getEventHash(signedEvent);
     if (eventHash !== signedEvent.id) {
       throw new Error("Event validation failed: incorrect hash");
@@ -294,7 +283,6 @@ export async function updateNostrEvent(
     
     console.log("Publishing updated event to relays:", relayUrls);
     
-    // Publish the updated event
     const publishPromise = new Promise<string>((resolve, reject) => {
       const publishPromises = relayUrls.map(url => {
         return pool.publish([url], signedEvent as Event);
@@ -335,5 +323,109 @@ export async function updateNostrEvent(
     });
     
     return null;
+  }
+}
+
+/**
+ * React to a post or other content (Kind 7)
+ * @param eventId - The ID of the event to react to
+ * @param emoji - Optional emoji to use (defaults to "+")
+ * @returns The ID of the reaction event if successfully published, null otherwise
+ */
+export async function reactToContent(eventId: string, emoji: string = "+"): Promise<string | null> {
+  try {
+    console.log(`reactToContent called with eventId: ${eventId}, emoji: ${emoji}`);
+    
+    if (!isLoggedIn()) {
+      console.log("User not logged in when trying to react");
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to react to content",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const tags = [
+      ["e", eventId]
+    ];
+
+    const eventData: Partial<NostrEventData> = {
+      kind: NOSTR_KINDS.REACTION,
+      content: emoji,
+      tags: tags
+    };
+
+    console.log("Reaction event data prepared:", eventData);
+
+    const reactionId = await publishToNostr(eventData);
+    
+    if (reactionId) {
+      console.log(`Successfully published reaction to event ${eventId}, reaction ID: ${reactionId}`);
+      return reactionId;
+    } else {
+      console.error(`Failed to publish reaction to event ${eventId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error creating reaction:", error);
+    
+    toast({
+      title: "Failed to react",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
+      variant: "destructive"
+    });
+    
+    return null;
+  }
+}
+
+/**
+ * Publish a review for a book
+ */
+export async function reviewBook(
+  book: Book, 
+  content: string, 
+  rating?: number,
+  isSpoiler?: boolean
+): Promise<void> {
+  if (!isLoggedIn()) {
+    throw new Error("You must be logged in to review a book");
+  }
+
+  if (!content && !rating) {
+    throw new Error("Review must include content or rating");
+  }
+
+  const isbn = book.isbn;
+
+  if (!isbn) {
+    throw new Error("Book must have ISBN");
+  }
+
+  try {
+    const tags = [
+      ["d", `isbn:${isbn}`],
+      ["k", "isbn"]
+    ];
+
+    if (rating !== undefined) {
+      tags.push(["rating", rating.toString()]);
+    }
+
+    if (isSpoiler) {
+      tags.push(["content-warning", `Spoiler: ${book.title}`]);
+    }
+
+    const eventData = {
+      kind: NOSTR_KINDS.REVIEW,
+      tags,
+      content
+    };
+
+    await publishToNostr(eventData);
+  } catch (error) {
+    console.error('Error publishing review:', error);
+    throw error;
   }
 }

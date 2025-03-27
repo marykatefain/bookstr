@@ -1,198 +1,185 @@
-import { type Event } from "nostr-tools";
+
+import { Event, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
-import { extractISBNFromTags, extractRatingFromTags, extractUniquePubkeys } from "../../../utils/eventUtils";
+import { extractISBNFromTags, extractRatingFromTags } from "../../../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../../profile";
+import { batchFetchReactions, batchFetchReplies } from "../interactions";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
 /**
- * Process feed events into SocialActivity objects
+ * Process events into social activity feed
  */
-export async function processFeedEvents(events: Event[], limit: number): Promise<SocialActivity[]> {
-  console.log(`Processing ${events.length} events into social activities`);
-  
+export async function processFeedEvents(events: Event[], limit: number = 20): Promise<SocialActivity[]> {
   if (!events || events.length === 0) {
-    console.log("No events to process for global feed");
     return [];
   }
   
-  // Filter events to only include valid ones with either k=isbn or t=bookstr
-  // AND exclude posts with 'e' tags (replies to other posts)
-  const filteredEvents = events.filter(event => {
-    // Check if it has bookstr-related tags
-    const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
-    const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
-    
-    // Check if it's a reply (has 'e' tag)
-    const isReply = event.tags.some(tag => tag[0] === 'e');
-    
-    // Include only non-reply posts with bookstr tags
-    return (hasIsbnTag || hasBookstrTag) && !isReply;
-  });
+  // Filter out reply posts (those with 'e' tags)
+  const nonReplyEvents = events.filter(event => 
+    !event.tags.some(tag => tag[0] === 'e')
+  );
   
-  console.log(`Filtered down to ${filteredEvents.length} valid events (excluding replies)`);
+  console.log(`Filtered out ${events.length - nonReplyEvents.length} reply posts`);
   
-  // Limit the number of events to process
-  const eventsToProcess = filteredEvents.slice(0, limit);
+  // Get all unique pubkeys to fetch profiles
+  const uniquePubkeys = [...new Set(nonReplyEvents.map(event => event.pubkey))];
   
-  // If no events found, return empty array
-  if (eventsToProcess.length === 0) {
-    console.log("No valid events found for global feed");
-    return [];
-  }
+  // Fetch profiles for post authors
+  const profiles = await fetchUserProfiles(uniquePubkeys);
   
-  // Get all unique pubkeys to fetch profiles in one batch
-  const uniquePubkeys = extractUniquePubkeys(eventsToProcess);
-  console.log(`Fetching profiles for ${uniquePubkeys.length} unique pubkeys`);
+  // Create a map of pubkey to profile data
+  const profileMap = new Map<string, { name?: string; picture?: string; npub?: string }>();
   
-  // Fetch profiles for these pubkeys with error handling
-  let profiles = [];
-  try {
-    profiles = await fetchUserProfiles(uniquePubkeys);
-    console.log(`Received ${profiles.length} user profiles`);
-  } catch (error) {
-    console.error("Error fetching user profiles:", error);
-    // Continue with empty profiles rather than failing completely
-  }
-  
-  // Create a map of pubkey to profile data for faster lookups
-  const profileMap = new Map();
   profiles.forEach(profile => {
-    if (profile && profile.pubkey) {
-      profileMap.set(profile.pubkey, {
-        name: profile.name || profile.display_name,
-        picture: profile.picture,
-        npub: profile.pubkey
-      });
-    }
+    profileMap.set(profile.pubkey, {
+      name: profile.name || profile.display_name,
+      picture: profile.picture,
+      npub: profile.pubkey
+    });
   });
   
-  // Extract all ISBNs to fetch book details in one batch
-  const isbns = eventsToProcess
+  // Extract all ISBNs to fetch book details
+  const isbns = nonReplyEvents
     .map(event => extractISBNFromTags(event))
     .filter((isbn): isbn is string => isbn !== null);
   
-  console.log(`Fetching details for ${isbns.length} unique books`);
+  // Fetch book details
+  const books = await getBooksByISBN([...new Set(isbns)]);
   
-  // Fetch book details with error handling
-  let books = [];
-  try {
-    if (isbns.length > 0) {
-      books = await getBooksByISBN([...new Set(isbns)]);
-      console.log(`Received ${books.length} book details`);
-    }
-  } catch (error) {
-    console.error("Error fetching book details:", error);
-    // Continue with empty books rather than failing completely
-  }
-  
-  // Create a map of ISBN to book details for faster lookups
+  // Create a map of ISBN to book details
   const bookMap = new Map<string, Book>();
   books.forEach(book => {
-    if (book && book.isbn) {
+    if (book.isbn) {
       bookMap.set(book.isbn, book);
     }
   });
   
-  const activities = createSocialActivities(eventsToProcess, bookMap, profileMap);
-  console.log(`Created ${activities.length} social activities`);
-  return activities;
-}
-
-/**
- * Convert filtered events to SocialActivity objects
- */
-function createSocialActivities(
-  events: Event[], 
-  bookMap: Map<string, Book>, 
-  profileMap: Map<string, any>
-): SocialActivity[] {
+  // Convert events to social activities
   const socialFeed: SocialActivity[] = [];
   
-  for (const event of events) {
-    try {
-      const isbn = extractISBNFromTags(event);
-      
-      // Get book details from the map or create a basic book object
-      let book: Book;
-      
-      if (isbn) {
-        book = bookMap.get(isbn) || {
-          id: `isbn:${isbn}`,
-          title: "Unknown Book",
-          author: "Unknown Author",
-          isbn,
-          coverUrl: `${API_BASE_URL}/b/isbn/${isbn}-L.jpg`
-        };
-      } else {
-        // For posts without ISBN but with bookstr tag, create a generic book object
-        book = {
-          id: "generic",
-          title: "Book Discussion",
-          author: "",
-          isbn: "",
-          coverUrl: ""
-        };
-      }
-      
-      // Determine activity type based on event kind
-      let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
-      
-      switch (event.kind) {
-        case NOSTR_KINDS.REVIEW:
-          activityType = 'review';
-          break;
-        case NOSTR_KINDS.BOOK_RATING:
-          activityType = 'rating';
-          break;
-        case NOSTR_KINDS.BOOK_TBR:
-          activityType = 'tbr';
-          break;
-        case NOSTR_KINDS.BOOK_READING:
-          activityType = 'reading';
-          break;
-        case NOSTR_KINDS.BOOK_READ:
-          activityType = 'finished';
-          break;
-        case NOSTR_KINDS.TEXT_NOTE:
-          activityType = 'post';
-          break;
-        default:
-          continue; // Skip unknown event kinds
-      }
-      
-      // Find media tags for posts
-      const mediaTag = event.tags.find(tag => tag[0] === 'media');
-      const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
-      
-      // Create social activity object
-      const activity: SocialActivity = {
-        id: event.id,
-        pubkey: event.pubkey,
-        type: activityType,
-        book,
-        content: event.content,
-        rating: extractRatingFromTags(event),
-        createdAt: event.created_at * 1000,
-        author: profileMap.get(event.pubkey),
-        reactions: {
-          count: 0,
-          userReacted: false
-        },
-        mediaUrl: mediaTag ? mediaTag[2] : undefined,
-        mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
-      };
-      
-      socialFeed.push(activity);
-    } catch (error) {
-      console.error("Error processing event:", error);
-      // Skip this event but continue processing others
+  for (const event of nonReplyEvents) {
+    const isbn = extractISBNFromTags(event);
+    
+    if (!isbn && event.kind !== NOSTR_KINDS.TEXT_NOTE) {
+      continue; // Skip non-TEXT_NOTE events without ISBN
     }
+    
+    // For TEXT_NOTE (kind 1), check if it has either k=isbn or t=bookstr
+    if (event.kind === NOSTR_KINDS.TEXT_NOTE) {
+      const hasIsbnTag = event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn');
+      const hasBookstrTag = event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr');
+      
+      if (!hasIsbnTag && !hasBookstrTag) {
+        continue; // Skip TEXT_NOTE events without k=isbn or t=bookstr
+      }
+    }
+    
+    // Get book details from the map or create a basic book object
+    let book: Book;
+    
+    if (isbn) {
+      book = bookMap.get(isbn) || {
+        id: `isbn:${isbn}`,
+        title: "Unknown Book",
+        author: "Unknown Author",
+        isbn,
+        coverUrl: `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+      };
+    } else {
+      // For posts without ISBN but with bookstr tag, create a generic book object
+      book = {
+        id: "generic",
+        title: "Book Discussion",
+        author: "",
+        isbn: "",
+        coverUrl: ""
+      };
+    }
+    
+    // Determine activity type based on event kind
+    let activityType: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
+    
+    switch (event.kind) {
+      case NOSTR_KINDS.REVIEW:
+        activityType = 'review';
+        break;
+      case NOSTR_KINDS.BOOK_RATING:
+        activityType = 'rating';
+        break;
+      case NOSTR_KINDS.BOOK_TBR:
+        activityType = 'tbr';
+        break;
+      case NOSTR_KINDS.BOOK_READING:
+        activityType = 'reading';
+        break;
+      case NOSTR_KINDS.BOOK_READ:
+        activityType = 'finished';
+        break;
+      case NOSTR_KINDS.TEXT_NOTE:
+        activityType = 'post';
+        break;
+      default:
+        continue; // Skip unknown event kinds
+    }
+    
+    // Find media tags for posts
+    const mediaTag = event.tags.find(tag => tag[0] === 'media');
+    
+    // Check for content-warning tag (new standard) or fallback to spoiler tag (legacy)
+    const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
+    const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+    const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
+    
+    // Create social activity object
+    const activity: SocialActivity = {
+      id: event.id,
+      pubkey: event.pubkey,
+      type: activityType,
+      book,
+      content: event.content,
+      rating: extractRatingFromTags(event),
+      createdAt: event.created_at * 1000,
+      author: profileMap.get(event.pubkey),
+      reactions: {
+        count: 0,
+        userReacted: false
+      },
+      mediaUrl: mediaTag ? mediaTag[2] : undefined,
+      mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
+      isSpoiler: isSpoiler
+    };
+    
+    socialFeed.push(activity);
   }
   
   // Sort by creation date, newest first
-  return socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+  const sortedFeed = socialFeed.sort((a, b) => b.createdAt - a.createdAt);
+  
+  // Take only the requested number of activities
+  const limitedFeed = sortedFeed.slice(0, limit);
+  
+  // Get all event IDs to batch fetch reactions and replies
+  const eventIds = limitedFeed.map(activity => activity.id);
+  
+  // Batch fetch reactions and replies
+  const [reactionsMap, repliesMap] = await Promise.all([
+    batchFetchReactions(eventIds),
+    batchFetchReplies(eventIds)
+  ]);
+  
+  // Add reactions and replies to each activity
+  for (const activity of limitedFeed) {
+    if (reactionsMap[activity.id]) {
+      activity.reactions = reactionsMap[activity.id];
+    }
+    
+    if (repliesMap[activity.id]) {
+      activity.replies = repliesMap[activity.id];
+    }
+  }
+  
+  return limitedFeed;
 }

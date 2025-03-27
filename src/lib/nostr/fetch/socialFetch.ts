@@ -4,6 +4,8 @@
 export {
   fetchSocialFeed,
   fetchGlobalSocialFeed,
-  fetchBookPosts,
   fetchBookActivity
 } from './social';
+
+// Re-export with a different name to avoid conflicts
+export { fetchBookPosts as fetchBookPostsByISBN } from './social';

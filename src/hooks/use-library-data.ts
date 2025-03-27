@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Book } from "@/lib/nostr/types";
 import { fetchUserBooks, getCurrentUser, isLoggedIn, fetchUserReviews } from "@/lib/nostr";
-import { fetchBookPosts } from "@/lib/nostr/fetch/socialFetch";
+import { fetchBookPostsByISBN } from "@/lib/nostr/fetch/socialFetch";
 import { useQuery } from "@tanstack/react-query";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
@@ -193,7 +192,7 @@ export const useLibraryData = () => {
       
       try {
         console.log("Fetching book posts for user:", user.pubkey);
-        const userPosts = await fetchBookPosts(user.pubkey, false);
+        const userPosts = await fetchBookPostsByISBN(user.pubkey);
         console.log("Fetched posts:", userPosts);
         return userPosts;
       } catch (error) {

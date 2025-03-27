@@ -6,20 +6,20 @@ import {
   fetchUserBooks, 
   fetchBooksByISBN, 
   fetchBookByISBN
-} from './fetch/book';
+} from './book';
 
 // Review fetch functions
 import {
   fetchBookReviews,
   fetchBookRatings,
   fetchUserReviews
-} from './fetch/reviewFetch';
+} from './reviewFetch';
 
 // Profile fetch functions
 import {
   fetchFollowingList,
   fetchUserProfile
-} from './fetch/profileFetch';
+} from './profileFetch';
 
 // Social fetch functions
 import {
@@ -27,10 +27,18 @@ import {
   fetchGlobalSocialFeed,
   fetchBookPosts,
   fetchBookActivity
-} from './fetch/social';
+} from './social';
 
-// Event fetch function - exporting with a namespace to avoid conflicts
-import { fetchEventById } from './fetch/social/fetchEvent';
+// Event fetch function
+import { fetchEventById } from './social/fetchEvent';
+
+// Interactions fetch functions
+import {
+  fetchReactionsForEvent as fetchReactions,
+  fetchRepliesForEvent as fetchReplies,
+  batchFetchReactions,
+  batchFetchReplies
+} from './social/interactions';
 
 export {
   // Book functions
@@ -53,6 +61,12 @@ export {
   fetchBookPosts,
   fetchBookActivity,
   
-  // Event function - explicitly named export
-  fetchEventById
+  // Event function
+  fetchEventById,
+  
+  // Interactions functions
+  fetchReactions,
+  fetchReplies,
+  batchFetchReactions,
+  batchFetchReplies
 };

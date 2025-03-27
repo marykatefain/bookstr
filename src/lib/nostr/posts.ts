@@ -7,7 +7,7 @@ import { mockPosts } from "./types";
 import { SimplePool, type Filter } from "nostr-tools";
 import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
-import { fetchBookPosts as fetchBookPostsByISBN } from "./fetch/socialFetch";
+import { fetchBookPostsByISBN } from "./fetch/socialFetch";
 import { getSharedPool } from "./utils/poolManager";
 
 // Base URL for the Cloudflare Worker
@@ -52,9 +52,10 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
       tags.push(["media", params.mediaType]);
     }
     
-    // Add spoiler tag if needed
+    // Add content-warning tag if spoiler is marked (using standard Nostr tag)
     if (params.isSpoiler) {
-      tags.push(["spoiler", "true"]);
+      const bookTitle = params.book?.title || "Book";
+      tags.push(["content-warning", `Spoiler: ${bookTitle}`]);
     }
     
     // Create the event

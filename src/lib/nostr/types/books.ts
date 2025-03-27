@@ -25,17 +25,18 @@ export interface Book {
 export interface BookReview {
   id: string;
   pubkey: string;
-  content: string;
+  content?: string;
   rating?: number;
   createdAt: number;
+  bookIsbn?: string;
+  bookTitle?: string;
+  bookAuthor?: string;
+  bookCover?: string;
   author?: {
     name?: string;
     picture?: string;
     npub?: string;
   };
-  bookIsbn?: string;
-  bookTitle?: string;
-  bookCover?: string;
-  bookAuthor?: string;
   replies?: Reply[];
+  isSpoiler?: boolean;
 }

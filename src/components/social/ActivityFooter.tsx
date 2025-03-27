@@ -1,11 +1,8 @@
 
-import React, { useEffect, useState } from "react";
-import { Heart, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React from "react";
 import { RepliesSection } from "./RepliesSection";
 import { Reply } from "@/lib/nostr/types";
-import { fetchReactions } from "@/lib/nostr";
+import { useReaction } from "@/hooks/use-reaction";
 
 interface ActivityFooterProps {
   bookIsbn: string;
@@ -26,43 +23,23 @@ export function ActivityFooter({
   onReaction,
   replies = []
 }: ActivityFooterProps) {
-  const isMobile = useIsMobile();
-  const [reactions, setReactions] = useState({
-    count: reactionCount || 0,
-    userReacted: userReacted || false
-  });
-  const [loading, setLoading] = useState(false);
+  // Use our new reaction hook with the contentId
+  const { 
+    reactionState,
+    toggleReaction
+  } = useReaction(
+    activityId,
+    reactionCount !== undefined ? { count: reactionCount, userReacted: userReacted || false } : undefined
+  );
 
-  useEffect(() => {
-    if (reactionCount !== undefined) {
-      setReactions({
-        count: reactionCount,
-        userReacted: userReacted || false
-      });
-    } else {
-      fetchActivityReactions();
-    }
-  }, [activityId, reactionCount, userReacted]);
-
-  const fetchActivityReactions = async () => {
-    setLoading(true);
-    try {
-      const result = await fetchReactions(activityId);
-      setReactions(result);
-    } catch (error) {
-      console.error("Error fetching activity reactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReaction = (eventId: string) => {
-    onReaction(eventId);
-    // Update local state optimistically
-    setReactions(prev => ({
-      count: prev.userReacted ? prev.count - 1 : prev.count + 1,
-      userReacted: !prev.userReacted
-    }));
+  const handleReaction = async () => {
+    console.log(`ActivityFooter: Handling reaction for activity ${activityId}`);
+    
+    // Call our centralized reaction handler
+    await toggleReaction();
+    
+    // Call the parent's onReaction callback
+    onReaction(activityId);
   };
 
   return (
@@ -73,8 +50,8 @@ export function ActivityFooter({
         initialReplies={replies}
         buttonLayout="horizontal"
         onReaction={handleReaction}
-        reactionCount={reactions.count}
-        userReacted={reactions.userReacted}
+        reactionCount={reactionState.count}
+        userReacted={reactionState.userReacted}
       />
     </div>
   );

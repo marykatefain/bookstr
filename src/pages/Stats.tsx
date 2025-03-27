@@ -4,88 +4,116 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { mockBooks, isLoggedIn } from "@/lib/nostr";
+import { isLoggedIn } from "@/lib/nostr";
 import { AreaChart, BarChart, LineChart, PieChart } from "recharts";
 import { BarChart as BarChartIcon, PieChart as PieChartIcon, BookOpen, Clock, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-const mockReadingData = [{
-  month: "Jan",
-  books: 2,
-  pages: 450
-}, {
-  month: "Feb",
-  books: 1,
-  pages: 320
-}, {
-  month: "Mar",
-  books: 3,
-  pages: 780
-}, {
-  month: "Apr",
-  books: 2,
-  pages: 520
-}, {
-  month: "May",
-  books: 4,
-  pages: 1100
-}, {
-  month: "Jun",
-  books: 3,
-  pages: 890
-}, {
-  month: "Jul",
-  books: 1,
-  pages: 400
-}, {
-  month: "Aug",
-  books: 2,
-  pages: 550
-}, {
-  month: "Sep",
-  books: 3,
-  pages: 720
-}, {
-  month: "Oct",
-  books: 2,
-  pages: 600
-}, {
-  month: "Nov",
-  books: 1,
-  pages: 350
-}, {
-  month: "Dec",
-  books: 2,
-  pages: 480
-}];
-const mockGenreData = [{
-  name: "Fiction",
-  value: 35
-}, {
-  name: "Fantasy",
-  value: 25
-}, {
-  name: "Science Fiction",
-  value: 15
-}, {
-  name: "Mystery",
-  value: 10
-}, {
-  name: "Non-Fiction",
-  value: 15
-}];
-const mockTimeData = [{
-  time: "Morning",
-  percent: 30
-}, {
-  time: "Afternoon",
-  percent: 15
-}, {
-  time: "Evening",
-  percent: 40
-}, {
-  time: "Night",
-  percent: 15
-}];
+
+const mockReadingData = [
+  {
+    month: "Jan",
+    books: 2,
+    pages: 450
+  },
+  {
+    month: "Feb",
+    books: 1,
+    pages: 320
+  },
+  {
+    month: "Mar",
+    books: 3,
+    pages: 780
+  },
+  {
+    month: "Apr",
+    books: 2,
+    pages: 520
+  },
+  {
+    month: "May",
+    books: 4,
+    pages: 1100
+  },
+  {
+    month: "Jun",
+    books: 3,
+    pages: 890
+  },
+  {
+    month: "Jul",
+    books: 1,
+    pages: 400
+  },
+  {
+    month: "Aug",
+    books: 2,
+    pages: 550
+  },
+  {
+    month: "Sep",
+    books: 3,
+    pages: 720
+  },
+  {
+    month: "Oct",
+    books: 2,
+    pages: 600
+  },
+  {
+    month: "Nov",
+    books: 1,
+    pages: 350
+  },
+  {
+    month: "Dec",
+    books: 2,
+    pages: 480
+  }
+];
+
+const mockGenreData = [
+  {
+    name: "Fiction",
+    value: 35
+  },
+  {
+    name: "Fantasy",
+    value: 25
+  },
+  {
+    name: "Science Fiction",
+    value: 15
+  },
+  {
+    name: "Mystery",
+    value: 10
+  },
+  {
+    name: "Non-Fiction",
+    value: 15
+  }
+];
+
+const mockTimeData = [
+  {
+    time: "Morning",
+    percent: 30
+  },
+  {
+    time: "Afternoon",
+    percent: 15
+  },
+  {
+    time: "Evening",
+    percent: 40
+  },
+  {
+    time: "Night",
+    percent: 15
+  }
+];
+
 const Stats = () => {
   if (!isLoggedIn()) {
     return <Navigate to="/" />;
@@ -278,12 +306,15 @@ const Stats = () => {
       </div>
     </Layout>;
 };
+
 function Legend() {
   return null;
 }
+
 function Tooltip() {
   return null;
 }
+
 function XAxis({
   dataKey
 }: {
@@ -291,9 +322,11 @@ function XAxis({
 }) {
   return null;
 }
+
 function YAxis() {
   return null;
 }
+
 function CartesianGrid({
   strokeDasharray
 }: {
@@ -301,6 +334,7 @@ function CartesianGrid({
 }) {
   return null;
 }
+
 function Area({
   type,
   dataKey,
@@ -316,6 +350,7 @@ function Area({
 }) {
   return null;
 }
+
 function Pie({
   data,
   cx,
@@ -339,6 +374,7 @@ function Pie({
 }) {
   return null;
 }
+
 function Cell({
   fill
 }: {
@@ -346,6 +382,7 @@ function Cell({
 }) {
   return null;
 }
+
 function Bar({
   dataKey,
   name,
@@ -357,5 +394,7 @@ function Bar({
 }) {
   return null;
 }
+
 const COLORS = ['#7F5E32', '#CF9E52', '#1C2C3B', '#A67C52', '#D4B483'];
+
 export default Stats;

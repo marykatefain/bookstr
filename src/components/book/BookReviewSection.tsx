@@ -1,17 +1,18 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, ExternalLink } from "lucide-react";
+import { Star, ExternalLink, AlertTriangle } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
 import { isLoggedIn } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { BookRating } from "./BookRating";
+import { Switch } from "@/components/ui/switch";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -22,6 +23,8 @@ interface BookReviewSectionProps {
   handleSubmitReview: () => void;
   handleRateBook: (rating: number) => void;
   handleReactToReview: (reviewId: string) => void;
+  isSpoiler: boolean;
+  setIsSpoiler: (value: boolean) => void;
 }
 
 export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
@@ -32,10 +35,14 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   submitting,
   handleSubmitReview,
   handleRateBook,
-  handleReactToReview
+  handleReactToReview,
+  isSpoiler,
+  setIsSpoiler
 }) => {
+  const [spoilerRevealed, setSpoilerRevealed] = useState<{[key: string]: boolean}>({});
+  
   // Convert rating from 0-1 scale to 1-5 scale for display
-  const displayRating = userRating > 0 ? Math.round(userRating * 5) : 0;
+  const displayRating = userRating > 0 ? convertRawRatingToDisplayRating(userRating) : 0;
   
   return (
     <div className="space-y-6">
@@ -118,6 +125,20 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
             onChange={(e) => setReviewText(e.target.value)}
             rows={4}
           />
+          <div className="flex items-center space-x-2 mt-3">
+            <Switch
+              id="spoiler-toggle"
+              checked={isSpoiler}
+              onCheckedChange={setIsSpoiler}
+            />
+            <label
+              htmlFor="spoiler-toggle"
+              className="text-sm cursor-pointer flex items-center gap-1"
+            >
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              <span>This review contains spoilers</span>
+            </label>
+          </div>
         </CardContent>
         <CardFooter>
           <Button 
@@ -129,6 +150,13 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
         </CardFooter>
       </Card>
     );
+  }
+
+  function handleRevealSpoiler(reviewId: string) {
+    setSpoilerRevealed(prev => ({
+      ...prev,
+      [reviewId]: true
+    }));
   }
 
   function renderReviews() {
@@ -173,9 +201,32 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
               <ExternalLink className="h-4 w-4" />
             </Link>
           </div>
+          
+          {review.isSpoiler && !spoilerRevealed[review.id] && (
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-500 mt-2">
+              <AlertTriangle className="h-3 w-3" />
+              <span className="text-xs">Spoiler warning</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="py-2">
-          <p className="text-sm whitespace-pre-wrap">{review.content}</p>
+          {review.isSpoiler && !spoilerRevealed[review.id] ? (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 rounded-md text-center">
+              <p className="text-amber-700 dark:text-amber-400 mb-2">
+                This review contains spoilers
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleRevealSpoiler(review.id)}
+                className="bg-white dark:bg-transparent hover:bg-amber-50 dark:hover:bg-amber-900/30 border-amber-300 dark:border-amber-700"
+              >
+                <span className="text-amber-700 dark:text-amber-400">Reveal Content</span>
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap">{review.content}</p>
+          )}
         </CardContent>
         <CardFooter className="pt-0 flex-col items-start">
           <RepliesSection 

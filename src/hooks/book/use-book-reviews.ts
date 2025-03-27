@@ -17,6 +17,7 @@ export const useBookReviews = (isbn: string | undefined) => {
   const [ratings, setRatings] = useState<BookReview[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState("");
+  const [isSpoiler, setIsSpoiler] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
@@ -81,13 +82,15 @@ export const useBookReviews = (isbn: string | undefined) => {
     try {
       console.log(`Submitting review with rating: ${userRating}`);
       
-      // Submit both the review text and rating together
-      await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined);
+      // Pass isSpoiler as the optional 4th parameter
+      await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined, isSpoiler);
+      
       toast({
         title: "Review submitted",
         description: "Your review has been published"
       });
       setReviewText("");
+      setIsSpoiler(false);
       
       // Update both reviews and ratings after submission
       const updatedReviews = await fetchBookReviews(isbn || "");
@@ -121,7 +124,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     } finally {
       setSubmitting(false);
     }
-  }, [isbn, reviewText, userRating, toast]);
+  }, [isbn, reviewText, userRating, isSpoiler, toast]);
 
   return {
     reviews,
@@ -129,6 +132,8 @@ export const useBookReviews = (isbn: string | undefined) => {
     userRating,
     reviewText,
     setReviewText,
+    isSpoiler,
+    setIsSpoiler,
     submitting,
     handleRateBook,
     handleSubmitReview

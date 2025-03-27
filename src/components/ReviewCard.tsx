@@ -7,6 +7,7 @@ import { Star, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { BookReview } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
+import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 
 interface ReviewCardProps {
   review: BookReview;
@@ -31,8 +32,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const displayRating = (): number | undefined => {
     if (review.rating === undefined) return undefined;
     
-    // Always assume the rating is in 0-1 scale and convert to 1-5 scale
-    return Math.round(review.rating * 5);
+    // Convert from raw rating (0-1 scale) to display rating (1-5 scale)
+    return convertRawRatingToDisplayRating(review.rating);
   };
 
   const starRating = displayRating();
