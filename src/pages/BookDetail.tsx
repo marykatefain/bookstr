@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -181,9 +180,7 @@ const BookDetail = () => {
               reviewText={reviewText}
               setReviewText={setReviewText}
               submitting={submitting}
-              // Fix: Remove the book argument as it's passed in useBookDetail
               handleSubmitReview={handleSubmitReview}
-              // Fix: Adjust handleRateBook to match expected signature
               handleRateBook={handleRateBook}
               handleReactToReview={handleReactToActivity}
               isSpoiler={isSpoiler}

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Book, BookActionType } from "@/lib/nostr/types";
 import { 
@@ -172,6 +173,8 @@ export const useBookActions = () => {
         const reviews = await fetchBookReviews(book.isbn);
         if (reviews.length > 0) {
           const currentUser = isLoggedIn();
+          if (!currentUser) return;
+          
           const userPreviousReview = reviews.find(r => r.pubkey === currentUser.pubkey);
           
           if (userPreviousReview && userPreviousReview.content && userPreviousReview.content.trim()) {

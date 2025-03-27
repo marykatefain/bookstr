@@ -13,6 +13,7 @@ interface BookDetailHeaderProps {
   handleMarkAsRead: () => void;
   addBookToList: (book: Book, listType: 'tbr' | 'reading') => void;
   handleRemove?: () => void;
+  handleRateBook?: (rating: number) => void; // Added prop for rating
 }
 
 export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
@@ -23,7 +24,8 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
   pendingAction,
   handleMarkAsRead,
   addBookToList,
-  handleRemove
+  handleRemove,
+  handleRateBook
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -34,6 +36,7 @@ export const BookDetailHeader: React.FC<BookDetailHeaderProps> = ({
         handleMarkAsRead={handleMarkAsRead}
         addBookToList={addBookToList}
         handleRemove={handleRemove}
+        handleRateBook={handleRateBook}
       />
       
       <BookInfoSection
