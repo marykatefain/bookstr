@@ -156,9 +156,10 @@ export const useBookData = (isbn: string | undefined) => {
   // Final data to return - use full data if available, otherwise partial
   const finalBookData = enrichedBook || enrichedPartialBook;
 
-  // Reduce unnecessary refetches
+  // Reduce unnecessary refetches - only refetch if data is incomplete
   useEffect(() => {
     if (!isLoading && isbn && book && !isBookDataComplete(book)) {
+      // Only log once to avoid console spam
       console.log(`Book data for ISBN ${isbn} is incomplete, triggering a refetch`);
       refetch();
     }

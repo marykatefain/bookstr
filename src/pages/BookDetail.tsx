@@ -84,12 +84,10 @@ const BookDetail = () => {
     // Skip further processing if we've already checked and opened the dialog
     if (openContributionDialog) return;
     
-    // Log book details once
-    console.log(`Book detail loaded: ${book.title} by ${book.author} (${book.isbn})`);
-    
     // Check for incomplete data
     const missing: string[] = [];
     
+    // Only consider a field missing if it's completely empty or matches the placeholder values
     if (!book.title || book.title === 'Unknown Title') {
       missing.push('Title');
     }
@@ -98,31 +96,25 @@ const BookDetail = () => {
       missing.push('Author');
     }
     
-    if (!book.coverUrl) {
+    // Only consider cover missing if the field is empty (not just a placeholder image)
+    if (!book.coverUrl || book.coverUrl === '') {
       missing.push('Cover Image');
     }
     
-    if (!book.description) {
+    // Only consider description missing if it's completely empty
+    if (!book.description || book.description === '') {
       missing.push('Description');
     }
     
-    // Only update state if the missing fields have actually changed
-    // to avoid infinite render cycles - using JSON.stringify for deep comparison
-    const currentMissingFieldsJSON = JSON.stringify(missing);
-    const previousMissingFieldsJSON = JSON.stringify(missingFields);
-    
-    if (currentMissingFieldsJSON !== previousMissingFieldsJSON) {
+    // Only update state and show dialog if we actually have missing fields
+    if (missing.length > 0) {
       setMissingFields(missing);
       
-      // Show the contribution dialog if we're missing important fields
-      if (missing.length > 0) {
-        // Small delay to ensure the user sees the page first
-        // Store the timeout reference so we can clean it up
-        dialogTimeoutRef.current = setTimeout(() => {
-          setOpenContributionDialog(true);
-          dialogTimeoutRef.current = null;
-        }, 1500);
-      }
+      // Small delay to ensure the user sees the page first
+      dialogTimeoutRef.current = setTimeout(() => {
+        setOpenContributionDialog(true);
+        dialogTimeoutRef.current = null;
+      }, 1500);
     }
   }, [book, loading, isbn, openContributionDialog]);
 
