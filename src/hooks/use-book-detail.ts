@@ -58,11 +58,13 @@ export const useBookDetail = (isbn: string | undefined) => {
     return markAsRead(book, setIsRead);
   }, [markAsRead, book, setIsRead]);
   
+  // Modify handleRateBook to not require the book parameter when called from BookReviewSection
   const handleRateBookWrapper = useCallback((rating: number) => {
     if (!book) return;
     return handleRateBook(book, rating);
   }, [handleRateBook, book]);
   
+  // Modify handleSubmitReview to not require the book parameter when called from BookReviewSection
   const handleSubmitReviewWrapper = useCallback(() => {
     if (!book) return;
     return handleSubmitReview(book);

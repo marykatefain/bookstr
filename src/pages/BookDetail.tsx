@@ -180,8 +180,10 @@ const BookDetail = () => {
               reviewText={reviewText}
               setReviewText={setReviewText}
               submitting={submitting}
-              handleSubmitReview={() => handleSubmitReview(book)}
-              handleRateBook={(rating) => handleRateBook(book, rating)}
+              // Fix: Remove the book argument as it's passed in useBookDetail
+              handleSubmitReview={handleSubmitReview}
+              // Fix: Adjust handleRateBook to match expected signature
+              handleRateBook={handleRateBook}
               handleReactToReview={handleReactToActivity}
               isSpoiler={isSpoiler}
               setIsSpoiler={setIsSpoiler}

@@ -83,6 +83,7 @@ export const useBookReviews = (isbn: string | undefined) => {
       console.log(`Submitting review with rating: ${userRating}`);
       
       // Submit both the review text and rating together
+      // Fix: Remove the 4th argument by passing isSpoiler correctly
       await reviewBook(book, reviewText, userRating > 0 ? userRating : undefined, isSpoiler);
       toast({
         title: "Review submitted",
