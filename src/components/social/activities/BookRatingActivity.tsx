@@ -14,7 +14,7 @@ interface BookRatingActivityProps {
 
 export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, rating }: BookRatingActivityProps) {
   // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = rating !== undefined ? convertRawRatingToDisplayRating(rating) : undefined;
+  const displayRating = convertRawRatingToDisplayRating(rating);
   
   return (
     <div>
@@ -27,7 +27,7 @@ export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, 
           {bookTitle}
         </Link>
       </p>
-      {displayRating && (
+      {displayRating !== undefined && (
         <div className="flex items-center mt-1">
           {Array(5).fill(0).map((_, index) => (
             <Star
