@@ -45,14 +45,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const isFinished = isRead || readingStatus === 'finished';
-  
-  const sizeClasses = {
-    xxsmall: "",
-    xsmall: "",
-    small: "",
-    medium: "",
-    large: ""
-  };
 
   useEffect(() => {
     if (coverUrl) {
@@ -113,13 +105,13 @@ export const BookCover: React.FC<BookCoverProps> = ({
           )}
         </div>
       )}
-      {coverUrl && (
+      {coverUrl && !imageError && (
         <img
           src={coverUrl}
           alt={`${title} by ${author}`}
           className={`object-cover w-full h-full rounded-t-lg book-cover ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
           onLoad={() => setImageLoaded(true)}
-          onError={(e) => {
+          onError={() => {
             console.log(`Image error loading: ${coverUrl}`);
             setImageError(true);
             setImageLoaded(true);

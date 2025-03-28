@@ -126,20 +126,32 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
 
 /**
  * Process search results quickly without fetching additional details
+ * Improved to ensure valid cover URLs and better handling of missing data
  */
 export async function processBasicSearchResults(docs: any[], limit: number): Promise<Book[]> {
+  if (!docs || !Array.isArray(docs) || docs.length === 0) {
+    console.log("No documents to process in processBasicSearchResults");
+    return [];
+  }
+
+  console.log(`Processing ${docs.length} basic search results`);
   const processedBooks: Book[] = [];
   
   for (let i = 0; i < Math.min(docs.length, limit); i++) {
     const doc = docs[i];
+    if (!doc) continue;
     
     // Extract ISBN (try various possible sources)
     let isbn = "";
-    if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+    if (doc.isbn_13 && Array.isArray(doc.isbn_13) && doc.isbn_13.length > 0) {
+      isbn = doc.isbn_13[0];
+    } else if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
       isbn = doc.isbn[0];
+    } else if (doc.availability && doc.availability.isbn) {
+      isbn = doc.availability.isbn;
     }
     
-    // Generate cover URL more carefully
+    // Generate cover URL with multiple fallbacks
     let coverUrl = "";
     
     // Try to get the best available cover URL with multiple fallbacks
@@ -148,7 +160,9 @@ export async function processBasicSearchResults(docs: any[], limit: number): Pro
     } else if (doc.cover_edition_key) {
       coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`;
     } else if (isbn) {
-      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+      // Clean ISBN (remove any hyphens or spaces)
+      const cleanIsbn = isbn.replace(/[\s-]/g, '');
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
     }
     
     // Make sure we have required fields for a valid book object
