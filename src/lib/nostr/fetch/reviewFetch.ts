@@ -1,4 +1,3 @@
-
 import { type Filter, type Event } from "nostr-tools";
 import { BookReview, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
@@ -71,6 +70,29 @@ async function fetchAuthorProfiles(reviews: BookReview[]): Promise<BookReview[]>
 }
 
 /**
+ * Filter reviews to keep only the most recent review per user
+ * This prevents multiple reviews from the same user from appearing
+ */
+function filterDuplicateReviews(reviews: BookReview[]): BookReview[] {
+  // Create a map to store the most recent review from each user
+  const userLatestReviews = new Map<string, BookReview>();
+  
+  // Process each review
+  reviews.forEach(review => {
+    // Get existing review for this user (if any)
+    const existingReview = userLatestReviews.get(review.pubkey);
+    
+    // If no existing review or current review is more recent, update the map
+    if (!existingReview || review.createdAt > existingReview.createdAt) {
+      userLatestReviews.set(review.pubkey, review);
+    }
+  });
+  
+  // Return the values (most recent reviews) from the map
+  return Array.from(userLatestReviews.values());
+}
+
+/**
  * Fetch reviews for a specific book
  */
 export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
@@ -109,9 +131,14 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
       });
     }
     
-    // Fetch author profiles and return sorted reviews
+    // Fetch author profiles
     const reviewsWithAuthors = await fetchAuthorProfiles(reviews);
-    return reviewsWithAuthors.sort((a, b) => b.createdAt - a.createdAt);
+    
+    // Filter out duplicate reviews by the same user, keeping only the most recent
+    const filteredReviews = filterDuplicateReviews(reviewsWithAuthors);
+    
+    // Return sorted reviews (most recent first)
+    return filteredReviews.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     console.error("Error fetching book reviews:", error);
     return [];
@@ -153,9 +180,14 @@ export async function fetchBookRatings(isbn: string): Promise<BookReview[]> {
       }
     }
     
-    // Fetch author profiles and return sorted ratings
+    // Fetch author profiles
     const ratingsWithAuthors = await fetchAuthorProfiles(ratings);
-    return ratingsWithAuthors.sort((a, b) => b.createdAt - a.createdAt);
+    
+    // Filter out duplicate ratings by the same user, keeping only the most recent
+    const filteredRatings = filterDuplicateReviews(ratingsWithAuthors);
+    
+    // Return sorted ratings (most recent first)
+    return filteredRatings.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     console.error("Error fetching book ratings:", error);
     return [];
@@ -244,8 +276,25 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
       });
     }
     
+    // Group reviews by ISBN to keep only the latest per book
+    const reviewsByIsbn = new Map<string, BookReview>();
+    
+    reviews.forEach(review => {
+      if (review.bookIsbn) {
+        const existingReview = reviewsByIsbn.get(review.bookIsbn);
+        
+        // If no existing review for this ISBN or this one is more recent, update the map
+        if (!existingReview || review.createdAt > existingReview.createdAt) {
+          reviewsByIsbn.set(review.bookIsbn, review);
+        }
+      }
+    });
+    
+    // Get de-duplicated reviews
+    const deduplicatedReviews = Array.from(reviewsByIsbn.values());
+    
     // First get author profiles for the reviews
-    const reviewsWithAuthors = await fetchAuthorProfiles(reviews);
+    const reviewsWithAuthors = await fetchAuthorProfiles(deduplicatedReviews);
     
     // Then fetch book details if we have ISBNs
     const isbns = reviewsWithAuthors

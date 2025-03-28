@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, ExternalLink, AlertTriangle } from "lucide-react";
+import { Star, ExternalLink, AlertTriangle, Info } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
 import { formatPubkey } from "@/lib/utils/format";
-import { isLoggedIn } from "@/lib/nostr";
+import { isLoggedIn, getCurrentUser } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { BookRating } from "./BookRating";
@@ -40,9 +41,21 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   setIsSpoiler
 }) => {
   const [spoilerRevealed, setSpoilerRevealed] = useState<{[key: string]: boolean}>({});
+  const [hasExistingReview, setHasExistingReview] = useState(false);
+  const currentUser = getCurrentUser();
   
   // Convert rating from 0-1 scale to 1-5 scale for display
   const displayRating = userRating > 0 ? convertRawRatingToDisplayRating(userRating) : 0;
+  
+  // Check if the current user has an existing review
+  useEffect(() => {
+    if (currentUser && reviews.length > 0) {
+      const existingReview = reviews.find(review => review.pubkey === currentUser.pubkey);
+      setHasExistingReview(!!existingReview && !!existingReview.content);
+    } else {
+      setHasExistingReview(false);
+    }
+  }, [reviews, currentUser]);
   
   return (
     <div className="space-y-6">
@@ -120,11 +133,21 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
           {renderRatingControls()}
           <Textarea
             className="mt-4"
-            placeholder="Write your review here..."
+            placeholder={hasExistingReview && !reviewText ? 
+              "Leave empty to preserve your previous review text when updating rating" : 
+              "Write your review here..."}
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
             rows={4}
           />
+          {hasExistingReview && !reviewText && (
+            <div className="flex items-center space-x-2 mt-2 text-muted-foreground text-sm">
+              <Info className="h-3.5 w-3.5" />
+              <span>
+                If you only want to update your rating, your existing review text will be preserved
+              </span>
+            </div>
+          )}
           <div className="flex items-center space-x-2 mt-3">
             <Switch
               id="spoiler-toggle"
@@ -143,9 +166,10 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
         <CardFooter>
           <Button 
             onClick={handleSubmitReview} 
-            disabled={!reviewText.trim() || submitting}
+            disabled={submitting}
           >
-            {submitting ? "Submitting..." : "Submit Review"}
+            {submitting ? "Submitting..." : (userRating && !reviewText && hasExistingReview) ? 
+              "Update Rating" : "Submit Review"}
           </Button>
         </CardFooter>
       </Card>

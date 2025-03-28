@@ -65,6 +65,10 @@ const Books = () => {
   }, []);
 
   const enrichBooksWithReadingStatus = useCallback((bookList: Book[]): Book[] => {
+    if (!bookList || bookList.length === 0) {
+      return [];
+    }
+    
     return bookList.map(book => {
       if (book.isbn) {
         const readingStatus = getBookReadingStatus(book.isbn);
@@ -143,7 +147,7 @@ const Books = () => {
           
           // Start with basic information to show immediately
           const quickResults = await searchBooks(debouncedSearch, 20, true);
-          if (quickResults.length > 0) {
+          if (quickResults && quickResults.length > 0) {
             const enrichedQuickResults = enrichBooksWithReadingStatus(quickResults);
             setPartialResults(enrichedQuickResults);
             setIsLoading(false); // Stop initial loading when we have partial results
@@ -151,13 +155,13 @@ const Books = () => {
           
           // Then get full information
           results = await searchBooks(debouncedSearch, 20);
+          console.log(`Search returned ${results?.length || 0} full results`);
         } else if (activeCategory !== "All") {
           console.log(`Searching for books in category: "${activeCategory}"`);
           
           // For category searches, use the same pattern
-          // FIX HERE: For quick results (third argument is true) we need to ensure we're using the correct function that accepts 3 arguments
           const quickResults = await searchBooksByGenre(activeCategory, 20, true);
-          if (quickResults.length > 0) {
+          if (quickResults && quickResults.length > 0) {
             const enrichedQuickResults = enrichBooksWithReadingStatus(quickResults);
             setPartialResults(enrichedQuickResults);
             setIsLoading(false); // Stop initial loading when we have partial results
@@ -165,17 +169,17 @@ const Books = () => {
           
           // Then for full results
           results = await searchBooksByGenre(activeCategory, 20);
+          console.log(`Category search returned ${results?.length || 0} full results`);
         }
-
-        console.log(`Search returned ${results.length} results`);
 
         previousSearchRef.current = { query: debouncedSearch, category: activeCategory };
 
-        if (results.length > 0) {
+        if (results && results.length > 0) {
           const enrichedResults = enrichBooksWithReadingStatus(results);
           setBooks(enrichedResults);
           setPartialResults([]); // Clear partial results when full results arrive
         } else {
+          // Only clear books if we didn't get any results
           setBooks([]);
           setPartialResults([]); // Clear partial results if no results
         }

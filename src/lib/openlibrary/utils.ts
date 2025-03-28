@@ -17,13 +17,25 @@ const AUTHOR_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
 /**
  * Generate the most appropriate cover URL for a book
+ * With improved fallbacks and error handling
  */
 export function getCoverUrl(isbn: string, coverId?: number): string {
+  if (!isbn && !coverId) {
+    return "";
+  }
+
+  // Prioritize cover ID if available (more reliable)
   if (coverId) {
     return `${API_BASE_URL}/covers.openlibrary.org/b/id/${coverId}-M.jpg`;
-  } else if (isbn) {
-    return `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+  } 
+  
+  // Fallback to ISBN-based cover
+  if (isbn && isbn.trim() !== '') {
+    // Clean ISBN (remove any hyphens or spaces)
+    const cleanIsbn = isbn.replace(/[\s-]/g, '');
+    return `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
   }
+  
   return "";
 }
 
@@ -237,14 +249,24 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
 
 /**
  * Convert an OpenLibrary doc to a Book object
+ * With improved cover URL generation
  */
 export function docToBook(doc: any): Book {
   // Get the best available cover URL
-  const coverUrl = doc.cover_i 
-    ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
-    : (doc.cover_edition_key 
-      ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
-      : "");
+  let coverUrl = "";
+  
+  // Try to get cover URL in a more reliable way
+  if (doc.cover_i) {
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+  } else if (doc.cover_edition_key) {
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`;
+  }
+  
+  // If we have an ISBN but no cover yet, try ISBN-based cover
+  if (!coverUrl && doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+    const cleanIsbn = doc.isbn[0].replace(/[\s-]/g, '');
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
+  }
   
   // Extract the first available ISBN - try to get all possible ISBN sources
   let isbn = "";

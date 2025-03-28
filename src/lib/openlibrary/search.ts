@@ -126,35 +126,64 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
 
 /**
  * Process search results quickly without fetching additional details
+ * Improved to ensure valid cover URLs and better handling of missing data
  */
 export async function processBasicSearchResults(docs: any[], limit: number): Promise<Book[]> {
+  if (!docs || !Array.isArray(docs) || docs.length === 0) {
+    console.log("No documents to process in processBasicSearchResults");
+    return [];
+  }
+
+  console.log(`Processing ${docs.length} basic search results`);
   const processedBooks: Book[] = [];
   
   for (let i = 0; i < Math.min(docs.length, limit); i++) {
     const doc = docs[i];
+    if (!doc) continue;
     
     // Extract ISBN (try various possible sources)
     let isbn = "";
-    if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+    if (doc.isbn_13 && Array.isArray(doc.isbn_13) && doc.isbn_13.length > 0) {
+      isbn = doc.isbn_13[0];
+    } else if (doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
       isbn = doc.isbn[0];
+    } else if (doc.availability && doc.availability.isbn) {
+      isbn = doc.availability.isbn;
     }
     
-    // Get the best available cover URL
-    const coverUrl = getCoverUrl(isbn, doc.cover_i);
+    // Generate cover URL with multiple fallbacks
+    let coverUrl = "";
+    
+    // Try to get the best available cover URL with multiple fallbacks
+    if (doc.cover_i) {
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+    } else if (doc.cover_edition_key) {
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`;
+    } else if (isbn) {
+      // Clean ISBN (remove any hyphens or spaces)
+      const cleanIsbn = isbn.replace(/[\s-]/g, '');
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
+    }
+    
+    // Make sure we have required fields for a valid book object
+    const title = doc.title || "Unknown Title";
+    const author = doc.author_name?.[0] || "Unknown Author";
     
     processedBooks.push({
-      id: doc.key || `search-${doc.title}-${Math.random().toString(36).substring(2, 8)}`,
-      title: doc.title || "Unknown Title",
-      author: doc.author_name?.[0] || "Unknown Author",
+      id: doc.key || `search-${title}-${Math.random().toString(36).substring(2, 8)}`,
+      title: title,
+      author: author,
       isbn: isbn,
       coverUrl: coverUrl,
       description: doc.description || "",
       pubDate: doc.first_publish_year?.toString() || "",
       pageCount: doc.number_of_pages_median || 0,
-      categories: doc.subject?.slice(0, 3) || []
+      categories: doc.subject?.slice(0, 3) || [],
+      author_name: doc.author_name || []
     });
   }
   
+  console.log(`Processed ${processedBooks.length} books from basic search results`);
   return processedBooks;
 }
 
