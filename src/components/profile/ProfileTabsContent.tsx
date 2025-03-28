@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post/PostCard";
 import { ReviewCard } from "@/components/ReviewCard";
 import { EmptyState } from "./EmptyState";
 import { Book as BookType, BookReview, Post } from "@/lib/nostr/types";
+import { Link } from "react-router-dom";
 
 interface ProfileTabsContentProps {
   activeTab: string;
@@ -54,12 +55,14 @@ export const ProfileTabsContent: React.FC<ProfileTabsContentProps> = ({
         <FileText className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium mb-2">No posts yet</h3>
         <p className="text-muted-foreground mb-4 max-w-md">
-          You haven't shared any posts yet
+          Share your thoughts about books you've read or are currently reading
         </p>
-        <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
-          <Book className="mr-2 h-4 w-4" />
-          Share What You're Reading
-        </Button>
+        <Link to="/books">
+          <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
+            <Book className="mr-2 h-4 w-4" />
+            Find Books to Post About
+          </Button>
+        </Link>
       </div>
     );
   };
@@ -85,12 +88,14 @@ export const ProfileTabsContent: React.FC<ProfileTabsContentProps> = ({
         <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium mb-2">No reviews yet</h3>
         <p className="text-muted-foreground mb-4 max-w-md">
-          You haven't written any book reviews yet
+          Find books to read and share your thoughts by writing reviews
         </p>
-        <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
-          <Book className="mr-2 h-4 w-4" />
-          Discover Books to Review
-        </Button>
+        <Link to="/books">
+          <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
+            <Book className="mr-2 h-4 w-4" />
+            Discover Books to Review
+          </Button>
+        </Link>
       </div>
     );
   };
