@@ -240,11 +240,19 @@ export async function fetchAuthorDetails(authorKey: string): Promise<string> {
  */
 export function docToBook(doc: any): Book {
   // Get the best available cover URL
-  const coverUrl = doc.cover_i 
-    ? `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` 
-    : (doc.cover_edition_key 
-      ? `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`
-      : "");
+  let coverUrl = "";
+  
+  // Try to get cover URL in a more reliable way
+  if (doc.cover_i) {
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+  } else if (doc.cover_edition_key) {
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`;
+  }
+  
+  // If we have an ISBN but no cover yet, try ISBN-based cover
+  if (!coverUrl && doc.isbn && Array.isArray(doc.isbn) && doc.isbn.length > 0) {
+    coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${doc.isbn[0]}-M.jpg`;
+  }
   
   // Extract the first available ISBN - try to get all possible ISBN sources
   let isbn = "";

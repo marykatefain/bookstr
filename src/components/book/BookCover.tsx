@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Check, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
@@ -22,7 +21,7 @@ interface BookCoverProps {
   size?: "xxsmall" | "xsmall" | "small" | "medium" | "large";
   rating?: number;
   onRatingChange?: (rating: number) => void;
-  book?: Book; // Add optional book prop for full book data
+  book?: Book;
 }
 
 export const BookCover: React.FC<BookCoverProps> = ({
@@ -43,12 +42,10 @@ export const BookCover: React.FC<BookCoverProps> = ({
   const { toast } = useToast();
   const [isRating, setIsRating] = useState(false);
   const [ratingHover, setRatingHover] = useState<number | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(!!coverUrl && coverUrl !== "");
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const isFinished = isRead || readingStatus === 'finished';
   
-  // We're not using these fixed height classes anymore
-  // Instead, we'll let the parent component (BookCard) handle the sizing
   const sizeClasses = {
     xxsmall: "",
     xsmall: "",
@@ -57,8 +54,16 @@ export const BookCover: React.FC<BookCoverProps> = ({
     large: ""
   };
 
+  useEffect(() => {
+    if (coverUrl) {
+      setImageLoaded(false);
+      setImageError(false);
+    } else {
+      setImageError(true);
+    }
+  }, [coverUrl]);
+
   const handleRateBook = async (newRating: number) => {
-    // Get ISBN from props or book object
     const bookIsbn = isbn || book?.isbn;
     
     if (!bookIsbn) {
@@ -76,8 +81,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
       if (onRatingChange) {
         onRatingChange(newRating);
       } else {
-        // Fallback direct rating if no callback provided
-        // Use the isbn string directly
         await rateBook(bookIsbn, newRating);
         toast({
           title: "Rating saved",
@@ -96,7 +99,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
     }
   };
 
-  // The cover element now handles progressive loading
   const coverElement = (
     <div className="w-full h-full relative">
       {(!imageLoaded || imageError) && (
@@ -111,25 +113,26 @@ export const BookCover: React.FC<BookCoverProps> = ({
           )}
         </div>
       )}
-      <img
-        src={coverUrl || ""}
-        alt={`${title} by ${author}`}
-        className={`object-cover w-full h-full rounded-t-lg book-cover ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
-        onLoad={() => setImageLoaded(true)}
-        onError={(e) => {
-          console.log(`Image error loading: ${coverUrl}`);
-          setImageError(true);
-          setImageLoaded(true);
-        }}
-        loading="lazy"
-      />
+      {coverUrl && (
+        <img
+          src={coverUrl}
+          alt={`${title} by ${author}`}
+          className={`object-cover w-full h-full rounded-t-lg book-cover ${!imageLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            console.log(`Image error loading: ${coverUrl}`);
+            setImageError(true);
+            setImageLoaded(true);
+          }}
+          loading="lazy"
+        />
+      )}
     </div>
   );
 
   const renderRatingStars = () => {
     const starCount = 5;
     
-    // Use the hover rating if available, otherwise use the prop rating
     const hoverRating = ratingHover !== null 
       ? ratingHover 
       : rating;
@@ -182,10 +185,8 @@ export const BookCover: React.FC<BookCoverProps> = ({
 
   const actionButton = () => {
     if (isFinished) {
-      // Show star rating for finished books
       return renderRatingStars();
     } else if (onReadAction) {
-      // Show mark as read button for unfinished books
       return (
         <button
           onClick={onReadAction}
@@ -221,7 +222,6 @@ export const BookCover: React.FC<BookCoverProps> = ({
   );
 };
 
-// BookReadButton component for reuse
 export const BookReadButton: React.FC<{
   isRead: boolean;
   pendingAction: string | null;

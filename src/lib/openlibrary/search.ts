@@ -139,8 +139,17 @@ export async function processBasicSearchResults(docs: any[], limit: number): Pro
       isbn = doc.isbn[0];
     }
     
-    // Get the best available cover URL
-    const coverUrl = getCoverUrl(isbn, doc.cover_i);
+    // Generate cover URL more carefully
+    let coverUrl = "";
+    
+    // Try to get the best available cover URL with multiple fallbacks
+    if (doc.cover_i) {
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+    } else if (doc.cover_edition_key) {
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/olid/${doc.cover_edition_key}-M.jpg`;
+    } else if (isbn) {
+      coverUrl = `${API_BASE_URL}/covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+    }
     
     // Make sure we have required fields for a valid book object
     const title = doc.title || "Unknown Title";
