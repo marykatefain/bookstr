@@ -22,17 +22,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const messages = {
     reading: {
       title: "No books currently reading",
-      description: "Start reading a book by searching for one to add to your library",
+      description: "Search for books to add to your library",
       icon: BookOpen
     },
     read: {
       title: "No books read yet",
-      description: "Mark books as read after you finish them",
+      description: "Search for books to add to your library",
       icon: Book
     },
     "want-to-read": {
       title: "No books in your want to read list",
-      description: "Add books to your reading list by searching for them",
+      description: "Search for books to add to your library",
       icon: BookMarked
     }
   };
@@ -41,7 +41,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const message = type ? messages[type as keyof typeof messages] : null;
   const Icon = message?.icon || Book;
   const titleText = title || message?.title || "No items found";
-  const descriptionText = description || message?.description || "Items will appear here";
+  const descriptionText = description || message?.description || "Search for books to add to your library";
 
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -53,7 +53,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <Link to="/books">
         <Button className="bg-bookverse-accent hover:bg-bookverse-highlight">
           <Book className="mr-2 h-4 w-4" />
-          {actionText || "Find Books to Add"}
+          {actionText || "Search for Books"}
         </Button>
       </Link>
     </div>

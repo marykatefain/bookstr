@@ -1,8 +1,4 @@
 
-// Assuming the file exists but we need to update it with our new EmptyState improvements
-// Since this file isn't provided in the current code context, we'll create it with 
-// proper support for our updated empty states
-
 import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { EmptyState } from "@/components/profile/EmptyState";
@@ -27,7 +23,7 @@ export const BookSection: React.FC<BookSectionProps> = ({
       {books.length === 0 ? (
         <EmptyState 
           type={emptyStateType} 
-          actionText="Find Books to Add"
+          actionText="Search for Books"
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">

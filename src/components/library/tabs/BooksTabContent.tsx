@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BookSection } from "./BookSection";
 import { Book } from "@/lib/nostr/types";
@@ -40,8 +39,8 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.reading.length === 0 ? (
           <EmptyState 
             type="reading" 
-            description="Start reading a book by searching for one to add to your library"
-            actionText="Find Books to Read"
+            description="Search for books to add to your library"
+            actionText="Search for Books"
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -61,8 +60,8 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.tbr.length === 0 ? (
           <EmptyState 
             type="want-to-read" 
-            description="Add books to your reading list by searching for them"
-            actionText="Find Books to Add"
+            description="Search for books to add to your library"
+            actionText="Search for Books"
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -82,8 +81,8 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
         {books.read.length === 0 ? (
           <EmptyState 
             type="read" 
-            description="Mark books as read after you finish them"
-            actionText="Find Books to Read"
+            description="Search for books to add to your library"
+            actionText="Search for Books"
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -93,8 +92,8 @@ export const BooksTabContent: React.FC<BooksTabContentProps> = ({
                 book={book} 
                 size="medium" 
                 onUpdate={onUpdate} 
-              />
-            ))}
+              />)
+            )}
           </div>
         )}
       </div>

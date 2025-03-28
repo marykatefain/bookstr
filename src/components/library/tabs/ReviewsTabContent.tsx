@@ -25,8 +25,8 @@ export const ReviewsTabContent: React.FC<ReviewsTabContentProps> = ({ reviews, i
       <div className="py-8">
         <EmptyState 
           title="No reviews yet" 
-          description="Find books to read and share your thoughts by writing reviews"
-          actionText="Discover Books to Review"
+          description="Search for books to add to your library"
+          actionText="Search for Books"
         />
       </div>
     );
