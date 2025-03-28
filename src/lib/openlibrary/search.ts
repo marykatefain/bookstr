@@ -142,19 +142,25 @@ export async function processBasicSearchResults(docs: any[], limit: number): Pro
     // Get the best available cover URL
     const coverUrl = getCoverUrl(isbn, doc.cover_i);
     
+    // Make sure we have required fields for a valid book object
+    const title = doc.title || "Unknown Title";
+    const author = doc.author_name?.[0] || "Unknown Author";
+    
     processedBooks.push({
-      id: doc.key || `search-${doc.title}-${Math.random().toString(36).substring(2, 8)}`,
-      title: doc.title || "Unknown Title",
-      author: doc.author_name?.[0] || "Unknown Author",
+      id: doc.key || `search-${title}-${Math.random().toString(36).substring(2, 8)}`,
+      title: title,
+      author: author,
       isbn: isbn,
       coverUrl: coverUrl,
       description: doc.description || "",
       pubDate: doc.first_publish_year?.toString() || "",
       pageCount: doc.number_of_pages_median || 0,
-      categories: doc.subject?.slice(0, 3) || []
+      categories: doc.subject?.slice(0, 3) || [],
+      author_name: doc.author_name || []
     });
   }
   
+  console.log(`Processed ${processedBooks.length} books from basic search results`);
   return processedBooks;
 }
 
