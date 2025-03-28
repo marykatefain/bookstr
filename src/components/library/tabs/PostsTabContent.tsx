@@ -25,9 +25,8 @@ export const PostsTabContent: React.FC<PostsTabContentProps> = ({ posts, isLoadi
       <div className="py-8">
         <EmptyState 
           title="No posts yet" 
-          description="You haven't created any book posts yet"
-          actionText="Create a post"
-          actionType="post"
+          description="Share your thoughts about books you've read or are currently reading"
+          actionText="Find Books to Post About"
         />
       </div>
     );
