@@ -60,9 +60,9 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
       return results;
     }
     
-    // For full results, we no longer filter by publication year
-    // Instead, we prioritize books with complete data (ISBN and cover)
-    const filteredDocs = data.docs
+    // For full results, we now include ALL books without filtering
+    // We still sort them so books with complete data come first
+    const sortedDocs = data.docs
       .sort((a, b) => {
         // Prioritize books with complete data
         const aComplete = Boolean(a.isbn && a.cover_i);
@@ -78,7 +78,7 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
       });
     
     // Get the final limit of books
-    const finalDocs = filteredDocs.slice(0, limit);
+    const finalDocs = sortedDocs.slice(0, limit);
     
     // For each book, fetch additional details if needed
     const bookPromises = finalDocs.map(doc => {
