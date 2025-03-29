@@ -1,4 +1,3 @@
-
 import { Book } from "@/lib/nostr/types";
 import { BASE_URL } from './types';
 import { getCoverUrl, fetchISBNFromEditionKey, docToBook } from './utils';
@@ -12,6 +11,7 @@ const searchCache: Record<string, { data: Book[], timestamp: number }> = {};
 const SEARCH_CACHE_TTL = 1000 * 60 * 10; // 10 minutes cache for searches
 
 // Calculate the minimum publication year for the 5-year filter
+// This is now only used for genre searches, not for general search
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_PUB_YEAR = CURRENT_YEAR - 5;
 
@@ -60,13 +60,9 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
       return results;
     }
     
-    // For full results, we want to filter by publication year and complete data
-    const filteredDocs = data.docs
-      .filter(doc => {
-        // Keep books with a recent publication year
-        const pubYear = doc.first_publish_year || doc.publish_year?.[0] || 0;
-        return pubYear >= MIN_PUB_YEAR || (doc.isbn && doc.cover_i);
-      })
+    // For full results, we now include ALL books without filtering
+    // We still sort them so books with complete data come first
+    const sortedDocs = data.docs
       .sort((a, b) => {
         // Prioritize books with complete data
         const aComplete = Boolean(a.isbn && a.cover_i);
@@ -82,7 +78,7 @@ export async function searchBooks(query: string, limit: number = 20, quickMode: 
       });
     
     // Get the final limit of books
-    const finalDocs = filteredDocs.slice(0, limit);
+    const finalDocs = sortedDocs.slice(0, limit);
     
     // For each book, fetch additional details if needed
     const bookPromises = finalDocs.map(doc => {
@@ -189,6 +185,7 @@ export async function processBasicSearchResults(docs: any[], limit: number): Pro
 
 /**
  * Search books by genre/subject - enhanced version for search.ts that supports quickMode
+ * Note: For genre searches, we KEEP the publication year filtering
  */
 export async function searchBooksByGenre(
   genre: string, 
@@ -230,6 +227,7 @@ export async function searchBooksByGenre(
       return [];
     }
     
+    // For genre searches, we KEEP the publication year filter
     // Filter works by publication year and availability of complete data
     const filteredWorks = data.works
       .filter(work => {
