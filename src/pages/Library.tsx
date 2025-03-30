@@ -99,4 +99,6 @@ const Library: React.FC = () => {
       </div>
     </Layout>
   );
-</div>
+};
+
+export default Library;
