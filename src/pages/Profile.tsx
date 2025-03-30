@@ -57,6 +57,27 @@ const Profile = () => {
       }
     }
   };
+  
+  const refreshUserProfile = async () => {
+    if (user?.pubkey) {
+      try {
+        const profileData = await fetchProfileData(user.pubkey);
+        if (profileData) {
+          setUser(prev => prev ? { ...prev, ...profileData } : prev);
+          toast({
+            title: "Profile updated",
+            description: "Your profile has been refreshed with the latest data"
+          });
+        }
+      } catch (error) {
+        console.error("Error refreshing profile:", error);
+        toast({
+          title: "Error refreshing profile",
+          description: "Could not refresh your profile. Please try again later."
+        });
+      }
+    }
+  };
 
   useEffect(() => {
     if (user?.pubkey) {
@@ -113,7 +134,8 @@ const Profile = () => {
         <div className="flex flex-col space-y-8">
           <ProfileHeader 
             user={user} 
-            toggleRelaySettings={toggleRelaySettings} 
+            toggleRelaySettings={toggleRelaySettings}
+            refreshUserProfile={refreshUserProfile}
           />
 
           {showRelaySettings && (

@@ -1,16 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Book, Link, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
+import { EditProfileModal } from "./EditProfileModal";
+import { updateUserProfileEvent, fetchProfileData } from "@/lib/nostr";
 
 interface ProfileHeaderProps {
   user: {
@@ -22,11 +16,16 @@ interface ProfileHeaderProps {
     about?: string;
   } | null;
   toggleRelaySettings: () => void;
+  refreshUserProfile?: () => void;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelaySettings }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
+  user, 
+  toggleRelaySettings,
+  refreshUserProfile
+}) => {
   const { toast } = useToast();
-  const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   const copyProfileLink = () => {
     // Use the pubkey instead of npub for the URL, and change the domain to bookstr.xyz
@@ -37,6 +36,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelayS
       title: "Link copied!",
       description: "Your profile link has been copied to clipboard"
     });
+  };
+
+  const handleUpdateProfile = async (displayName: string, bio: string) => {
+    const success = await updateUserProfileEvent(displayName, bio);
+    
+    if (success && refreshUserProfile) {
+      // Refresh the user profile to show the updated data
+      refreshUserProfile();
+    }
+    
+    return success !== null;
   };
 
   return (
@@ -64,7 +74,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelayS
           <Button 
             size="sm" 
             className="bg-bookverse-accent hover:bg-bookverse-highlight"
-            onClick={() => setShowEditProfileDialog(true)}
+            onClick={() => setShowEditProfileModal(true)}
           >
             <Book className="h-4 w-4 mr-2" />
             Edit Profile
@@ -76,27 +86,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, toggleRelayS
         </div>
       </div>
       
-      {/* Edit Profile Feature Not Available Dialog */}
-      <Dialog open={showEditProfileDialog} onOpenChange={setShowEditProfileDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-bookverse-ink">Profile Editing Coming Soon</DialogTitle>
-            <DialogDescription className="pt-2">
-              The ability to edit your profile is not yet supported in this prototype version of Bookstr.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              We're working on implementing profile customization in a future update. Stay tuned for this exciting feature!
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowEditProfileDialog(false)} className="w-full sm:w-auto">
-              I Understand
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditProfileModal
+        open={showEditProfileModal}
+        onOpenChange={setShowEditProfileModal}
+        onSubmit={handleUpdateProfile}
+        initialDisplayName={user?.display_name || user?.name || ""}
+        initialBio={user?.about || ""}
+      />
     </div>
   );
 };

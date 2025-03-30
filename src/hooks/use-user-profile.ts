@@ -10,7 +10,7 @@ import {
 } from "@/lib/nostr";
 import { nip19 } from "nostr-tools";
 import { useToast } from "@/hooks/use-toast";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 export function useUserProfile(pubkeyOrNpub: string | undefined) {
   const { toast } = useToast();
@@ -39,7 +39,8 @@ export function useUserProfile(pubkeyOrNpub: string | undefined) {
   const {
     data: profile,
     isLoading: profileLoading,
-    error: profileError
+    error: profileError,
+    refetch: refetchProfile
   } = useQuery({
     queryKey: ['userProfile', normalizedPubkey],
     queryFn: async () => {
@@ -144,6 +145,13 @@ export function useUserProfile(pubkeyOrNpub: string | undefined) {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
+  // Add a callback to refresh the profile
+  const refreshProfile = useCallback(() => {
+    if (normalizedPubkey) {
+      refetchProfile();
+    }
+  }, [normalizedPubkey, refetchProfile]);
+  
   const isLoading = profileLoading || followingLoading;
   const totalBooks = userBooks.tbr.length + userBooks.reading.length + userBooks.read.length;
   
@@ -158,6 +166,7 @@ export function useUserProfile(pubkeyOrNpub: string | undefined) {
     booksLoading,
     reviewsLoading,
     totalBooks,
-    refetchPosts
+    refetchPosts,
+    refreshProfile
   };
 }

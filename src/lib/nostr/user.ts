@@ -1,8 +1,11 @@
+
 import { toast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { NostrProfile } from "./types";
 import { loadRelaysFromStorage, getUserRelays } from "./relay";
 import { fetchProfileData } from "./profile";
+import { NOSTR_KINDS } from "./types/constants";
+import { publishToNostr } from "./publish";
 
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 let currentUser: NostrProfile | null = null;
@@ -158,6 +161,82 @@ export function updateUserProfile(profileData: Partial<NostrProfile>): void {
   };
   
   localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+}
+
+// New function to update user profile via Nostr event
+export async function updateUserProfileEvent(displayName: string, bio: string): Promise<string | null> {
+  if (!isLoggedIn()) {
+    toast({
+      title: "Login required",
+      description: "You must be logged in to update your profile",
+      variant: "destructive"
+    });
+    return null;
+  }
+
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error("User not logged in");
+
+    // Get the latest profile data
+    const latestProfile = await fetchProfileData(currentUser.pubkey);
+    
+    // Prepare the content by parsing existing profile data
+    let profileContent: any = {};
+    
+    if (latestProfile?.content) {
+      try {
+        profileContent = JSON.parse(latestProfile.content);
+      } catch (e) {
+        console.error("Failed to parse existing profile content:", e);
+      }
+    } else if (currentUser) {
+      // Use current user data as fallback
+      profileContent = {
+        name: currentUser.name,
+        display_name: currentUser.display_name,
+        picture: currentUser.picture,
+        about: currentUser.about
+      };
+    }
+    
+    // Update only the specific fields
+    profileContent.display_name = displayName;
+    profileContent.about = bio;
+    
+    // Create the event
+    const event = {
+      kind: NOSTR_KINDS.SET_METADATA,
+      content: JSON.stringify(profileContent),
+      tags: []
+    };
+    
+    console.log("Publishing profile update event:", event);
+    
+    // Publish to Nostr
+    const eventId = await publishToNostr(event);
+    
+    if (eventId) {
+      // Update local user profile data
+      updateUserProfile({
+        display_name: displayName,
+        about: bio,
+        pubkey: currentUser.pubkey
+      });
+      
+      return eventId;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to update profile:", error);
+    toast({
+      title: "Update failed",
+      description: error instanceof Error ? error.message : "Failed to update profile",
+      variant: "destructive"
+    });
+    return null;
+  }
 }
 
 function pubkeyToNpub(pubkey: string): string {

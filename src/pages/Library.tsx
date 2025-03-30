@@ -8,11 +8,13 @@ import { LibraryLoginState } from "@/components/library/LibraryLoginState";
 import { RelaySettingsPanel } from "@/components/library/RelaySettingsPanel";
 import { LibraryTabs } from "@/components/library/LibraryTabs";
 import { useLibraryData } from "@/hooks/use-library-data";
-import { isLoggedIn } from "@/lib/nostr";
+import { isLoggedIn, fetchProfileData } from "@/lib/nostr";
+import { useToast } from "@/hooks/use-toast";
 
 const Library: React.FC = () => {
   const [activeTab, setActiveTab] = useState("books");
   const [showRelaySettings, setShowRelaySettings] = useState(false);
+  const { toast } = useToast();
   const { 
     user, 
     books, 
@@ -21,7 +23,8 @@ const Library: React.FC = () => {
     booksLoading, 
     postsLoading, 
     reviewsLoading,
-    refetchBooks 
+    refetchBooks,
+    setUser 
   } = useLibraryData();
 
   const toggleRelaySettings = () => {
@@ -30,6 +33,27 @@ const Library: React.FC = () => {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+  };
+
+  const refreshUserProfile = async () => {
+    if (user?.pubkey) {
+      try {
+        const profileData = await fetchProfileData(user.pubkey);
+        if (profileData) {
+          setUser(prev => prev ? { ...prev, ...profileData } : prev);
+          toast({
+            title: "Profile updated",
+            description: "Your profile has been refreshed with the latest data"
+          });
+        }
+      } catch (error) {
+        console.error("Error refreshing profile:", error);
+        toast({
+          title: "Error refreshing profile",
+          description: "Could not refresh your profile. Please try again later."
+        });
+      }
+    }
   };
 
   if (!isLoggedIn()) {
@@ -47,6 +71,7 @@ const Library: React.FC = () => {
           <ProfileHeader 
             user={user} 
             toggleRelaySettings={toggleRelaySettings} 
+            refreshUserProfile={refreshUserProfile}
           />
 
           <RelaySettingsPanel visible={showRelaySettings} />
@@ -74,6 +99,4 @@ const Library: React.FC = () => {
       </div>
     </Layout>
   );
-};
-
-export default Library;
+</div>
