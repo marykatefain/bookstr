@@ -189,6 +189,13 @@ export async function updateUserProfileEvent(displayName: string, bio: string): 
         profileContent = JSON.parse(latestProfile.content);
       } catch (e) {
         console.error("Failed to parse existing profile content:", e);
+        // If we can't parse the content, create a basic structure from what we know
+        profileContent = {
+          name: latestProfile.name || currentUser.name,
+          display_name: latestProfile.display_name || currentUser.display_name,
+          picture: latestProfile.picture || currentUser.picture,
+          about: latestProfile.about || currentUser.about
+        };
       }
     } else if (currentUser) {
       // Use current user data as fallback

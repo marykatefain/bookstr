@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (displayName: string, bio: string) => Promise<void>;
+  onSubmit: (displayName: string, bio: string) => Promise<boolean | void>;
   initialDisplayName?: string;
   initialBio?: string;
 }

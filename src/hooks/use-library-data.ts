@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   getCurrentUser, 
   fetchProfileData,
@@ -94,6 +94,30 @@ export function useLibraryData() {
     fetchBooks();
   };
 
+  // Add the missing functions for use in other components
+  const getBookReadingStatus = useCallback((isbn: string | undefined) => {
+    if (!isbn || !books) return null;
+    
+    if (books.read.some(book => book.isbn === isbn)) {
+      return 'finished';
+    } else if (books.reading.some(book => book.isbn === isbn)) {
+      return 'reading';
+    } else if (books.tbr.some(book => book.isbn === isbn)) {
+      return 'to-read';
+    }
+    
+    return null;
+  }, [books]);
+
+  const getBookByISBN = useCallback((isbn: string | undefined) => {
+    if (!isbn || !books) return null;
+    
+    return books.read.find(book => book.isbn === isbn) || 
+           books.reading.find(book => book.isbn === isbn) || 
+           books.tbr.find(book => book.isbn === isbn) || 
+           null;
+  }, [books]);
+
   return {
     user,
     setUser,
@@ -103,6 +127,8 @@ export function useLibraryData() {
     booksLoading,
     reviewsLoading,
     postsLoading,
-    refetchBooks
+    refetchBooks,
+    getBookReadingStatus,
+    getBookByISBN
   };
 }

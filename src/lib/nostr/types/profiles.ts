@@ -10,6 +10,7 @@ export interface NostrProfile {
   lud16?: string;
   banner?: string;
   relays: string[];
+  content?: string;  // Added content field to support raw profile event content
 }
 
 export interface FollowList {

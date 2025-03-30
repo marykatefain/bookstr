@@ -38,7 +38,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     });
   };
 
-  const handleUpdateProfile = async (displayName: string, bio: string) => {
+  const handleUpdateProfile = async (displayName: string, bio: string): Promise<boolean> => {
     const success = await updateUserProfileEvent(displayName, bio);
     
     if (success && refreshUserProfile) {
