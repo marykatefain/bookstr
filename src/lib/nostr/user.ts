@@ -105,30 +105,14 @@ async function checkNostrExtensionState() {
     return;
   }
   
-  // Check if we can get a public key from the extension
-  if (hasExtension && typeof window.nostr.getPublicKey === 'function') {
-    try {
-      // Try to silently get the public key without prompting the user
-      // This will succeed if the user just authorized in the extension
-      console.log("Trying to get public key from Nostr extension");
-      const pubkey = await window.nostr.getPublicKey();
-      
-      if (pubkey && !hasSavedUser) {
-        console.log(`Got public key from extension: ${pubkey}. Auto-logging in...`);
-        await loginWithNostr();
-        lastNostrState.isLoggedIn = true;
-        stopNostrExtensionWatcher(); // Stop checking once logged in
-      }
-    } catch (error) {
-      // This error is expected if the user hasn't authorized yet
-      if (error instanceof Error && error.message !== "User rejected") {
-        console.error("Error checking Nostr extension state:", error);
-      }
-    }
+  // For users who aren't logged in, don't try to automatically get the public key
+  // This prevents the unwanted popup until they explicitly click the login button
+  if (!hasSavedUser) {
+    return;
   }
 }
 
-export async function loginWithNostr() {
+export async function loginWithNostr(manualLogin = true) {
   try {
     if (typeof window.nostr === 'undefined') {
       console.error("Nostr extension not found");
@@ -191,6 +175,13 @@ export async function loginWithNostr() {
       title: "Login successful",
       description: "You're now logged in with Nostr",
     });
+
+    // If this was a manual login (button click), they may log in through
+    // the extension in the future, so make sure we're watching for that
+    if (manualLogin) {
+      lastNostrState.isLoggedIn = true;
+      startNostrExtensionWatcher();
+    }
 
     return userProfile;
   } catch (error) {

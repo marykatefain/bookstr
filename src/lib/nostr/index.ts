@@ -4,6 +4,8 @@ export * from './user';
 export * from './profile';
 // Export verification utilities
 export * from './verification';
+// Export external login detection
+export * from './externalLogin';
 // We'll handle publish exports separately
 // Don't export everything from './publish'
 export {
