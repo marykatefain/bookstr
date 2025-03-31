@@ -1,11 +1,17 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Book, Link, Settings, CheckCircle2 } from "lucide-react";
+import { Book, Link as LinkIcon, Settings, CheckCircle2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { updateUserProfileEvent } from "@/lib/nostr";
 import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProfileHeaderProps {
   user: {
@@ -15,6 +21,7 @@ interface ProfileHeaderProps {
     pubkey?: string;
     about?: string;
     nip05?: string;
+    website?: string;
   } | null;
   toggleRelaySettings: () => void;
 }
@@ -37,8 +44,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     });
   };
 
-  const handleUpdateProfile = async (displayName: string, bio: string, nip05?: string): Promise<boolean> => {
-    const success = await updateUserProfileEvent(displayName, bio, nip05);
+  const handleUpdateProfile = async (displayName: string, bio: string, website?: string, nip05?: string): Promise<boolean> => {
+    const success = await updateUserProfileEvent(displayName, bio, website, nip05);
     return success !== null;
   };
 
@@ -62,14 +69,44 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <p className="text-muted-foreground flex items-center gap-1">
             {displayId}
             {isVerified && (
-              <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified NIP-05 identifier" />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CheckCircle2 className="h-4 w-4 text-green-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[250px]">
+                    <div className="space-y-2">
+                      <p>This user has a verified NIP-05 identifier.</p>
+                      <a 
+                        href="https://nostr.how/en/guides/get-verified"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+                      >
+                        What is NIP-05 Identity? <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </p>
+          {user?.website && (
+            <a 
+              href={user.website.startsWith('http') ? user.website : `https://${user.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-bookverse-accent hover:text-bookverse-highlight flex items-center gap-1 text-sm mt-1"
+            >
+              <LinkIcon className="h-3 w-3" />
+              {user.website.replace(/^https?:\/\//i, '')}
+            </a>
+          )}
           <p className="mt-2">{user?.about || "No bio yet"}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" size="sm" onClick={copyProfileLink}>
-            <Link className="h-4 w-4 mr-2" />
+            <LinkIcon className="h-4 w-4 mr-2" />
             Copy Profile Link
           </Button>
           <Button 
@@ -93,6 +130,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         onSubmit={handleUpdateProfile}
         initialName={user?.name || ""}
         initialBio={user?.about || ""}
+        initialWebsite={user?.website || ""}
         initialNip05={user?.nip05 || ""}
       />
     </div>

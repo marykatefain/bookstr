@@ -3,13 +3,19 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Check, Plus, AlertTriangle, CheckCircle2, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
 import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface UserProfileHeaderProps {
   profile: NostrProfile | null;
@@ -112,9 +118,39 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
           {displayId}
           {isVerified && (
-            <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified NIP-05 identifier" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CheckCircle2 className="h-4 w-4 text-green-500 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[250px]">
+                  <div className="space-y-2">
+                    <p>This user has a verified NIP-05 identifier.</p>
+                    <a 
+                      href="https://nostr.how/en/guides/get-verified"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+                    >
+                      What is NIP-05 Identity? <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </p>
+        {profile?.website && (
+          <a 
+            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bookverse-accent hover:text-bookverse-highlight flex items-center justify-center gap-1 text-sm mt-1"
+          >
+            <LinkIcon className="h-3 w-3" />
+            {profile.website.replace(/^https?:\/\//i, '')}
+          </a>
+        )}
       </div>
       
       {profile?.about && (

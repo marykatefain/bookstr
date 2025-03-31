@@ -163,7 +163,12 @@ export function updateUserProfile(profileData: Partial<NostrProfile>): void {
 }
 
 // New function to update user profile via Nostr event
-export async function updateUserProfileEvent(name: string, bio: string, nip05?: string): Promise<string | null> {
+export async function updateUserProfileEvent(
+  name: string, 
+  bio: string, 
+  website?: string, 
+  nip05?: string
+): Promise<string | null> {
   if (!isLoggedIn()) {
     toast({
       title: "Login required",
@@ -193,6 +198,7 @@ export async function updateUserProfileEvent(name: string, bio: string, nip05?: 
           name: latestProfile.name || currentUser.name,
           picture: latestProfile.picture || currentUser.picture,
           about: latestProfile.about || currentUser.about,
+          website: latestProfile.website,
           nip05: latestProfile.nip05
         };
       }
@@ -202,6 +208,7 @@ export async function updateUserProfileEvent(name: string, bio: string, nip05?: 
         name: currentUser.name,
         picture: currentUser.picture,
         about: currentUser.about,
+        website: currentUser.website,
         nip05: currentUser.nip05
       };
     }
@@ -209,6 +216,11 @@ export async function updateUserProfileEvent(name: string, bio: string, nip05?: 
     // Update only the specific fields
     profileContent.name = name;
     profileContent.about = bio;
+    
+    // Only update website if provided
+    if (website !== undefined) {
+      profileContent.website = website;
+    }
     
     // Only update nip05 if provided - this allows for clearing the field
     // by passing an empty string, or keeping the existing value by not passing it
@@ -246,6 +258,7 @@ export async function updateUserProfileEvent(name: string, bio: string, nip05?: 
         updateUserProfile({
           name: name,
           about: bio,
+          website: website,
           nip05: nip05,
           pubkey: currentUser.pubkey
         });

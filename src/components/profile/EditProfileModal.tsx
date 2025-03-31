@@ -14,19 +14,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { ExternalLink } from "lucide-react";
 
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (name: string, bio: string, nip05?: string) => Promise<boolean | void>;
+  onSubmit: (name: string, bio: string, website?: string, nip05?: string) => Promise<boolean | void>;
   initialName?: string;
   initialBio?: string;
+  initialWebsite?: string;
   initialNip05?: string;
 }
 
 interface FormValues {
   name: string;
   bio: string;
+  website?: string;
   nip05?: string;
 }
 
@@ -36,6 +39,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onSubmit,
   initialName = "",
   initialBio = "",
+  initialWebsite = "",
   initialNip05 = ""
 }) => {
   const { toast } = useToast();
@@ -43,6 +47,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     defaultValues: {
       name: initialName,
       bio: initialBio,
+      website: initialWebsite,
       nip05: initialNip05
     }
   });
@@ -54,15 +59,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     form.reset({
       name: initialName,
       bio: initialBio,
+      website: initialWebsite,
       nip05: initialNip05
     });
-  }, [initialName, initialBio, initialNip05, form]);
+  }, [initialName, initialBio, initialWebsite, initialNip05, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      const success = await onSubmit(values.name, values.bio, values.nip05);
+      const success = await onSubmit(values.name, values.bio, values.website, values.nip05);
       
       if (success) {
         toast({
@@ -131,6 +137,26 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             
             <FormField
               control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://yourwebsite.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Your personal website or blog.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="nip05"
               render={({ field }) => (
                 <FormItem>
@@ -142,8 +168,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     />
                   </FormControl>
                   <FormDescription className="text-xs">
-                    A verified identity like an email address (e.g., name@domain.com).
-                    Shows a checkmark next to your name.
+                    <div className="space-y-1">
+                      <p>A verified identity like an email address (e.g., name@domain.com).
+                      Shows a checkmark next to your name.</p>
+                      <a 
+                        href="https://nostr.how/en/guides/get-verified"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-bookverse-accent hover:text-bookverse-highlight mt-1"
+                      >
+                        Learn how to get one <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
