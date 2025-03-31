@@ -4,6 +4,8 @@ import { useSocialFeed } from "@/hooks/use-social-feed";
 import { PostCard } from "@/components/post/PostCard";
 import { ActivityCard } from "@/components/social/ActivityCard";
 import { useReactionContext } from "@/contexts/ReactionContext";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 interface UserPostsFeedProps {
   refreshTrigger?: number;
@@ -16,11 +18,15 @@ export function UserPostsFeed({
     activities,
     loading,
     error,
-    refreshFeed
+    refreshFeed,
+    loadMore,
+    hasMore,
+    loadingMore
   } = useSocialFeed({
     type: "global",
-    maxItems: 15,
-    refreshTrigger
+    maxItems: 10,
+    refreshTrigger,
+    enablePagination: true
   });
 
   // Use our new reaction context
@@ -34,21 +40,95 @@ export function UserPostsFeed({
 
   // Fetch posts on initial render and when refresh is triggered
   useEffect(() => {
-    refreshFeed();
+    console.log('UserPostsFeed: Refreshing feed');
+    refreshFeed().then(() => {
+      console.log('UserPostsFeed: Feed refresh completed');
+    });
   }, [refreshFeed, refreshTrigger]);
+  
+  // Extra effect to ensure timestamps are properly set
+  useEffect(() => {
+    // If we have activities but no timestamp setup is being applied
+    if (activities.length > 0) {
+      console.log('UserPostsFeed: Ensuring timestamp setup');
+    }
+  }, [activities]);
+
+  // Handle loading more posts
+  const handleLoadMore = () => {
+    console.log('Load more button clicked');
+    
+    // Debug the current activities
+    if (activities.length > 0) {
+      const lastActivity = activities[activities.length - 1];
+      console.log('Last activity:', {
+        id: lastActivity.id,
+        type: lastActivity.type,
+        createdAt: lastActivity.createdAt
+      });
+    }
+    
+    loadMore();
+  };
 
   if (loading && activities.length === 0) {
-    return <div className="space-y-4 mt-6">
-        {[...Array(2)].map((_, i) => <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-lg h-[150px] animate-pulse" />)}
-      </div>;
+    return (
+      <div className="space-y-4 mt-6">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-lg h-[150px] animate-pulse" />
+        ))}
+      </div>
+    );
   }
+
   if (activities.length === 0) {
-    return <div className="text-center mt-6 p-6 bg-muted/50 rounded-lg">
+    return (
+      <div className="text-center mt-6 p-6 bg-muted/50 rounded-lg">
         <p className="text-muted-foreground">No global activities yet. Create your first post above or add books to your lists!</p>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-4 mt-6">
+
+  return (
+    <div className="space-y-4 mt-6">
       <h3 className="text-lg font-medium my-[4px]">#Bookstr Community Feed</h3>
-      {activities.map(activity => activity.type === 'post' ? <PostCard key={activity.id} post={activity} onReaction={handleReaction} /> : <ActivityCard key={activity.id} activity={activity} onReaction={handleReaction} />)}
-    </div>;
+      
+      {activities.map(activity => 
+        activity.type === 'post' ? (
+          <PostCard key={activity.id} post={activity} onReaction={handleReaction} />
+        ) : (
+          <ActivityCard key={activity.id} activity={activity} onReaction={handleReaction} />
+        )
+      )}
+
+      {/* Load More Button */}
+      {activities.length > 0 && (
+        <div className="flex justify-center pt-4 pb-8">
+          {hasMore ? (
+            <Button 
+              variant="outline"
+
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="w-full max-w-[200px]"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Load More
+                </>
+              )}
+            </Button>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">No more posts to load</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

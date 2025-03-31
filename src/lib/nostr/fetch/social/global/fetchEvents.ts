@@ -11,8 +11,11 @@ const LONG_CACHE_TTL = 300000; // 5 minutes for long-term cache
 
 /**
  * Fetch events for the global feed with caching and timeout
+ * @param limit Number of items to fetch
+ * @param until Optional timestamp to fetch events before (for pagination)
+ * @returns Promise resolving to array of nostr events
  */
-export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
+export async function fetchGlobalEvents(limit: number, until?: number): Promise<Event[]> {
   const relays = getUserRelays();
   
   // Make sure we have relays to query
@@ -34,43 +37,51 @@ export async function fetchGlobalEvents(limit: number): Promise<Event[]> {
     limit: limit * 2, // Increase limit as we'll filter later
     "#t": ["bookstr"]
   };
+
+  // Add until parameter for pagination if provided
+  if (until) {
+    combinedFilter.until = until;
+  }
   
   // Generate cache key for this query
   const cacheKey = generateCacheKey(combinedFilter);
   
-  // Check if we have a recent cached result - first check short-term cache
-  const cachedEvents = getCachedQueryResult(cacheKey);
-  if (cachedEvents && cachedEvents.length > 0) {
-    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
-    const cacheTimestamp = cachedEvents[0]._cacheTimestamp || 0;
-    const cacheAge = Date.now() - cacheTimestamp;
+  // For paginated requests (with until), skip cache to ensure fresh data
+  if (!until) {
+    // Check if we have a recent cached result - first check short-term cache
+    const cachedEvents = getCachedQueryResult(cacheKey);
+    if (cachedEvents && cachedEvents.length > 0) {
+      // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
+      const cacheTimestamp = cachedEvents[0]._cacheTimestamp || 0;
+      const cacheAge = Date.now() - cacheTimestamp;
+      
+      if (cacheAge < SHORT_CACHE_TTL) {
+        console.log("Using cached events for global feed, count:", cachedEvents.length);
+        return cachedEvents;
+      }
+    }
     
-    if (cacheAge < SHORT_CACHE_TTL) {
-      console.log("Using cached events for global feed, count:", cachedEvents.length);
-      return cachedEvents;
+    // Check if we have a long-term cache - if we do, use it while we fetch fresh data
+    const longTermCachedEvents = getCachedQueryResult(cacheKey);
+    if (longTermCachedEvents && longTermCachedEvents.length > 0) {
+      // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
+      const cacheTimestamp = longTermCachedEvents[0]._cacheTimestamp || 0;
+      const cacheAge = Date.now() - cacheTimestamp;
+      
+      if (cacheAge < LONG_CACHE_TTL) {
+        console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
+        
+        // Execute fetch in background
+        fetchFreshEvents(relays, combinedFilter, cacheKey).catch(error => {
+          console.error("Background fetch error:", error);
+        });
+        
+        return longTermCachedEvents;
+      }
     }
   }
   
-  // Check if we have a long-term cache - if we do, use it while we fetch fresh data
-  const longTermCachedEvents = getCachedQueryResult(cacheKey);
-  if (longTermCachedEvents && longTermCachedEvents.length > 0) {
-    // Make sure we have a _cacheTimestamp, otherwise use 0 to force refresh
-    const cacheTimestamp = longTermCachedEvents[0]._cacheTimestamp || 0;
-    const cacheAge = Date.now() - cacheTimestamp;
-    
-    if (cacheAge < LONG_CACHE_TTL) {
-      console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
-      
-      // Execute fetch in background
-      fetchFreshEvents(relays, combinedFilter, cacheKey).catch(error => {
-        console.error("Background fetch error:", error);
-      });
-      
-      return longTermCachedEvents;
-    }
-  }
-  
-  // No cache available, wait for fresh data
+  // No cache available or pagination request, wait for fresh data
   return await fetchFreshEvents(relays, combinedFilter, cacheKey);
 }
 
@@ -105,8 +116,8 @@ async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: stri
       _cacheTimestamp: Date.now()
     }));
     
-    // Cache the result for future use
-    if (timestampedEvents && timestampedEvents.length > 0) {
+    // Cache the result for future use (only if not a paginated request)
+    if (!filter.until && timestampedEvents && timestampedEvents.length > 0) {
       cacheQueryResult(cacheKey, timestampedEvents);
       console.log(`Cached ${timestampedEvents.length} events for future use`);
     }
