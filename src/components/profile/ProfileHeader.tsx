@@ -1,17 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Book, Link as LinkIcon, Settings, CheckCircle2, ExternalLink } from "lucide-react";
+import { Book, Link as LinkIcon, Settings, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { updateUserProfileEvent } from "@/lib/nostr";
-import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
+import { NIP05VerificationIndicator } from "./NIP05VerificationIndicator";
 
 interface ProfileHeaderProps {
   user: {
@@ -49,7 +44,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return success !== null;
   };
 
-  const isVerified = hasVerifiedIdentifier(user || {});
   const displayId = getDisplayIdentifier(user || {});
 
   return (
@@ -68,27 +62,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </h1>
           <p className="text-muted-foreground flex items-center gap-1">
             {displayId}
-            {isVerified && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CheckCircle2 className="h-4 w-4 text-green-500 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-[250px]">
-                    <div className="space-y-2">
-                      <p>This user has a verified NIP-05 identifier.</p>
-                      <a 
-                        href="https://nostr.how/en/guides/get-verified"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-bookverse-accent hover:text-bookverse-highlight"
-                      >
-                        What is NIP-05 Identity? <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            {user?.nip05 && user?.pubkey && (
+              <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
             )}
           </p>
           {user?.website && (

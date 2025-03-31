@@ -10,13 +10,13 @@ import {
   X,
   Search,
   Info,
-  Database,
-  CheckCircle2
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { NostrLoginButton } from "./NostrLoginButton";
-import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
+import { NIP05VerificationIndicator } from "../profile/NIP05VerificationIndicator";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -43,7 +43,6 @@ export const MobileSidebar = ({
 
   const filteredLinks = navLinks.filter(() => true); // All links are shown now
   
-  const isVerified = user ? hasVerifiedIdentifier(user) : false;
   const displayId = user ? getDisplayIdentifier(user) : "";
 
   return (
@@ -83,8 +82,8 @@ export const MobileSidebar = ({
                     <p className="text-sm font-medium truncate">{user.name || "Nostr User"}</p>
                     <div className="flex items-center gap-1">
                       <p className="text-xs text-muted-foreground truncate">{displayId}</p>
-                      {isVerified && (
-                        <CheckCircle2 className="h-3 w-3 text-green-500" title="Verified NIP-05 identifier" />
+                      {user?.nip05 && user?.pubkey && (
+                        <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
                       )}
                     </div>
                   </div>

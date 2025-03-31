@@ -2,6 +2,8 @@
 // Re-export core functions
 export * from './user';
 export * from './profile';
+// Export verification utilities
+export * from './verification';
 // We'll handle publish exports separately
 // Don't export everything from './publish'
 export {
