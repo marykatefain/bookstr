@@ -10,7 +10,7 @@ interface ProfileHeaderProps {
   user: {
     picture?: string;
     name?: string;
-    display_name?: string;
+    name?: string;
     npub?: string;
     pubkey?: string;
     about?: string;
@@ -61,7 +61,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="flex-1 space-y-4">
         <div>
           <h1 className="text-3xl font-bold font-serif text-bookverse-ink">
-            {user?.name || user?.display_name || "Nostr User"}
+            {user?.name || user?.name || "Nostr User"}
           </h1>
           <p className="text-muted-foreground">{user?.npub}</p>
           <p className="mt-2">{user?.about || "No bio yet"}</p>
@@ -90,7 +90,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         open={showEditProfileModal}
         onOpenChange={setShowEditProfileModal}
         onSubmit={handleUpdateProfile}
-        initialDisplayName={user?.display_name || user?.name || ""}
+        initialDisplayName={user?.name || user?.name || ""}
         initialBio={user?.about || ""}
       />
     </div>

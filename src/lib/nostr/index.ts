@@ -10,6 +10,9 @@ export {
 } from './publish';
 export * from './relay';
 
+// Export the profilePublisher separately
+export { updateNostrProfile } from './profilePublisher';
+
 // Re-export fetch utility
 // Don't re-export everything from ./fetch - we'll handle specific exports to avoid conflicts
 // export * from './fetch';

@@ -18,13 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (displayName: string, bio: string) => Promise<boolean | void>;
-  initialDisplayName?: string;
+  onSubmit: (name: string, bio: string) => Promise<boolean | void>;
+  initialName?: string;
   initialBio?: string;
 }
 
 interface FormValues {
-  displayName: string;
+  name: string;
   bio: string;
 }
 
@@ -32,13 +32,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   open, 
   onOpenChange, 
   onSubmit,
-  initialDisplayName = "",
+  initialName = "",
   initialBio = ""
 }) => {
   const { toast } = useToast();
   const form = useForm<FormValues>({
     defaultValues: {
-      displayName: initialDisplayName,
+      name: initialName,
       bio: initialBio
     }
   });
@@ -48,16 +48,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   React.useEffect(() => {
     // Update form values when initial values change
     form.reset({
-      displayName: initialDisplayName,
+      name: initialName,
       bio: initialBio
     });
-  }, [initialDisplayName, initialBio, form]);
+  }, [initialName, initialBio, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      await onSubmit(values.displayName, values.bio);
+      await onSubmit(values.name, values.bio);
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
@@ -89,7 +89,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="displayName"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Display Name</FormLabel>

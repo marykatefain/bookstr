@@ -110,7 +110,7 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
           npub: pubkey, // This will be converted to npub format in the UI
           pubkey: pubkey,
           name: profileData.name,
-          display_name: profileData.display_name,
+          name: profileData.name,
           picture: profileData.picture,
           about: profileData.about,
           website: profileData.website,
@@ -216,7 +216,7 @@ export async function batchFetchUserProfiles(pubkeys: string[]): Promise<Map<str
           npub: pubkey,
           pubkey: pubkey,
           name: profileData.name,
-          display_name: profileData.display_name,
+          name: profileData.name,
           picture: profileData.picture,
           about: profileData.about,
           website: profileData.website,

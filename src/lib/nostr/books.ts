@@ -469,7 +469,7 @@ async function fetchProfilesForPubkeys(pubkeys: string[]): Promise<Record<string
       try {
         const profileData = JSON.parse(event.content);
         profiles[event.pubkey] = {
-          name: profileData.name || profileData.display_name,
+          name: profileData.name || profileData.name,
           picture: profileData.picture,
           npub: event.pubkey
         };

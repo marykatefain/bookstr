@@ -44,7 +44,7 @@ async function fetchAuthorProfiles(reviews: BookReview[]): Promise<BookReview[]>
       try {
         const profileData = JSON.parse(profileEvent.content);
         profileMap.set(profileEvent.pubkey, {
-          name: profileData.name || profileData.display_name,
+          name: profileData.name || profileData.name,
           picture: profileData.picture,
           npub: profileEvent.pubkey
         });

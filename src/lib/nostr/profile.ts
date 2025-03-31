@@ -14,7 +14,6 @@ const parseProfileContent = (content: string): Partial<NostrProfile> => {
     const profileData = JSON.parse(content);
     return {
       name: profileData.name,
-      display_name: profileData.display_name || profileData.displayName,
       picture: profileData.picture,
       about: profileData.about
     };

@@ -5,7 +5,7 @@ import { NostrProfile } from "./types";
 import { loadRelaysFromStorage, getUserRelays } from "./relay";
 import { fetchProfileData } from "./profile";
 import { NOSTR_KINDS } from "./types/constants";
-import { publishToNostr } from "./publish";
+import { updateNostrProfile } from "./profilePublisher";
 
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 let currentUser: NostrProfile | null = null;
@@ -80,7 +80,6 @@ export async function loginWithNostr() {
       npub,
       pubkey,
       name: "Nostr User",
-      display_name: "Nostr Book Lover",
       picture: "https://i.pravatar.cc/300",
       about: "I love reading books and sharing my thoughts on Nostr!",
       relays: [...getUserRelays()]
@@ -164,7 +163,7 @@ export function updateUserProfile(profileData: Partial<NostrProfile>): void {
 }
 
 // New function to update user profile via Nostr event
-export async function updateUserProfileEvent(displayName: string, bio: string): Promise<string | null> {
+export async function updateUserProfileEvent(name: string, bio: string): Promise<string | null> {
   if (!isLoggedIn()) {
     toast({
       title: "Login required",
@@ -192,7 +191,6 @@ export async function updateUserProfileEvent(displayName: string, bio: string): 
         // If we can't parse the content, create a basic structure from what we know
         profileContent = {
           name: latestProfile.name || currentUser.name,
-          display_name: latestProfile.display_name || currentUser.display_name,
           picture: latestProfile.picture || currentUser.picture,
           about: latestProfile.about || currentUser.about
         };
@@ -201,14 +199,13 @@ export async function updateUserProfileEvent(displayName: string, bio: string): 
       // Use current user data as fallback
       profileContent = {
         name: currentUser.name,
-        display_name: currentUser.display_name,
         picture: currentUser.picture,
         about: currentUser.about
       };
     }
     
     // Update only the specific fields
-    profileContent.display_name = displayName;
+    profileContent.name = name;
     profileContent.about = bio;
     
     // Create the event
@@ -221,12 +218,12 @@ export async function updateUserProfileEvent(displayName: string, bio: string): 
     console.log("Publishing profile update event:", event);
     
     // Publish to Nostr
-    const eventId = await publishToNostr(event);
+    const eventId = await updateNostrProfile(event, currentUser);
     
     if (eventId) {
       // Update local user profile data
       updateUserProfile({
-        display_name: displayName,
+        name: name,
         about: bio,
         pubkey: currentUser.pubkey
       });

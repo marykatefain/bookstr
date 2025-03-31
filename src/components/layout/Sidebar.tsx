@@ -66,7 +66,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name || user.display_name || "Nostr User"}</p>
+                <p className="text-sm font-medium truncate">{user.name || user.name || "Nostr User"}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
               </div>
             </div>

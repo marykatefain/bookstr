@@ -67,7 +67,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
         
         toast({
           title: "Login successful",
-          description: `Welcome to Bookstr, ${user.name || user.display_name || "Nostr User"}!`
+          description: `Welcome to Bookstr, ${user.name || user.name || "Nostr User"}!`
         });
         onLoginComplete?.();
       }

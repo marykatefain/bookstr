@@ -97,13 +97,13 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
         <AvatarImage src={profile?.picture} />
         <AvatarFallback className="text-xl">
-          {(profile?.name || profile?.display_name || 'U')[0].toUpperCase()}
+          {(profile?.name || profile?.name || 'U')[0].toUpperCase()}
         </AvatarFallback>
       </Avatar>
       
       <div className="text-center">
         <h1 className="text-2xl font-bold">
-          {profile?.name || profile?.display_name || formatPubkey(profile?.pubkey || '')}
+          {profile?.name || profile?.name || formatPubkey(profile?.pubkey || '')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {profile?.pubkey ? formatPubkey(profile.pubkey) : ''}

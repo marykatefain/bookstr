@@ -61,7 +61,7 @@ export function CreatePostBox({ onPostSuccess }: CreatePostBoxProps) {
         <div className="flex gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.picture} />
-            <AvatarFallback>{user?.name?.[0] || user?.display_name?.[0] || 'U'}</AvatarFallback>
+            <AvatarFallback>{user?.name?.[0] || user?.name?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-4">
             <Textarea
