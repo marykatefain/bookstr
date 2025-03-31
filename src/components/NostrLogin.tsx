@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loginWithNostr, getCurrentUser, initNostr } from "@/lib/nostr";
+import { setupExternalLoginDetection } from "@/lib/nostr/externalLogin";
 import { useToast } from "@/hooks/use-toast";
 import { connectToRelays, loadRelaysFromStorage } from "@/lib/nostr/relay";
 
@@ -47,20 +48,17 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
     initializeNostr();
   }, [connectionAttempted, onLoginComplete]);
 
-  // Listen for when the user becomes logged in through auto-detection
+  // Set up external login detection (when user logs in through extension outside our app)
   useEffect(() => {
-    // Check if user is logged in every second (in case auto-login happens)
-    const checkLoginInterval = setInterval(() => {
-      const user = getCurrentUser();
-      if (user) {
-        // User is now logged in, handle it
-        onLoginComplete?.();
-        clearInterval(checkLoginInterval);
-      }
-    }, 1000);
+    // Only set up detection if the user isn't already logged in
+    if (getCurrentUser()) return;
     
-    // Clean up interval on unmount
-    return () => clearInterval(checkLoginInterval);
+    // This will detect if a user logs in through the extension directly
+    const cleanup = setupExternalLoginDetection(() => {
+      onLoginComplete?.();
+    });
+    
+    return cleanup;
   }, [onLoginComplete]);
 
   const handleLogin = async () => {
