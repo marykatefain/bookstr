@@ -160,3 +160,13 @@ export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<Nost
     return [];
   }
 }
+
+/**
+ * Clear the profile cache for a specific user to force a fresh fetch
+ */
+export function clearProfileCache(pubkey: string): void {
+  if (profileCache.has(pubkey)) {
+    console.log(`Clearing profile cache for ${pubkey.slice(0, 8)}`);
+    profileCache.delete(pubkey);
+  }
+}

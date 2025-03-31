@@ -3,7 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { NostrProfile } from "./types";
 import { loadRelaysFromStorage, getUserRelays } from "./relay";
-import { fetchProfileData } from "./profile";
+import { fetchProfileData, clearProfileCache } from "./profile";
 import { NOSTR_KINDS } from "./types/constants";
 import { updateNostrProfile } from "./profilePublisher";
 
@@ -221,12 +221,26 @@ export async function updateUserProfileEvent(name: string, bio: string): Promise
     const eventId = await updateNostrProfile(event, currentUser);
     
     if (eventId) {
-      // Update local user profile data
-      updateUserProfile({
-        name: name,
-        about: bio,
-        pubkey: currentUser.pubkey
-      });
+      // Clear the profile cache to force a fresh fetch
+      clearProfileCache(currentUser.pubkey);
+      
+      // Fetch the latest profile data
+      const updatedProfile = await fetchProfileData(currentUser.pubkey);
+      
+      // Update local user profile data with the freshly fetched data
+      if (updatedProfile) {
+        updateUserProfile({
+          ...updatedProfile,
+          pubkey: currentUser.pubkey
+        });
+      } else {
+        // Fallback if fetch fails - update with the values we know
+        updateUserProfile({
+          name: name,
+          about: bio,
+          pubkey: currentUser.pubkey
+        });
+      }
       
       return eventId;
     }

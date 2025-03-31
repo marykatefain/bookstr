@@ -57,12 +57,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setIsSubmitting(true);
     
     try {
-      await onSubmit(values.name, values.bio);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
-      });
-      onOpenChange(false);
+      const success = await onSubmit(values.name, values.bio);
+      
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
+        });
+        onOpenChange(false);
+      } else {
+        throw new Error("Failed to update profile");
+      }
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({

@@ -4,25 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Book, Link, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
-import { updateUserProfileEvent, fetchProfileData } from "@/lib/nostr";
+import { updateUserProfileEvent } from "@/lib/nostr";
 
 interface ProfileHeaderProps {
   user: {
     picture?: string;
-    name?: string;
     name?: string;
     npub?: string;
     pubkey?: string;
     about?: string;
   } | null;
   toggleRelaySettings: () => void;
-  refreshUserProfile?: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
   user, 
   toggleRelaySettings,
-  refreshUserProfile
 }) => {
   const { toast } = useToast();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -40,12 +37,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const handleUpdateProfile = async (displayName: string, bio: string): Promise<boolean> => {
     const success = await updateUserProfileEvent(displayName, bio);
-    
-    if (success && refreshUserProfile) {
-      // Refresh the user profile to show the updated data
-      refreshUserProfile();
-    }
-    
     return success !== null;
   };
 
@@ -61,7 +52,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="flex-1 space-y-4">
         <div>
           <h1 className="text-3xl font-bold font-serif text-bookverse-ink">
-            {user?.name || user?.name || "Nostr User"}
+            {user?.name || "Nostr User"}
           </h1>
           <p className="text-muted-foreground">{user?.npub}</p>
           <p className="mt-2">{user?.about || "No bio yet"}</p>
@@ -90,7 +81,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         open={showEditProfileModal}
         onOpenChange={setShowEditProfileModal}
         onSubmit={handleUpdateProfile}
-        initialDisplayName={user?.name || user?.name || ""}
+        initialName={user?.name || ""}
         initialBio={user?.about || ""}
       />
     </div>
