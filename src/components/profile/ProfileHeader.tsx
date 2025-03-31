@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Book, Link, Settings } from "lucide-react";
+import { Book, Link, Settings, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { updateUserProfileEvent } from "@/lib/nostr";
+import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
 
 interface ProfileHeaderProps {
   user: {
@@ -13,6 +14,7 @@ interface ProfileHeaderProps {
     npub?: string;
     pubkey?: string;
     about?: string;
+    nip05?: string;
   } | null;
   toggleRelaySettings: () => void;
 }
@@ -35,10 +37,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     });
   };
 
-  const handleUpdateProfile = async (displayName: string, bio: string): Promise<boolean> => {
-    const success = await updateUserProfileEvent(displayName, bio);
+  const handleUpdateProfile = async (displayName: string, bio: string, nip05?: string): Promise<boolean> => {
+    const success = await updateUserProfileEvent(displayName, bio, nip05);
     return success !== null;
   };
+
+  const isVerified = hasVerifiedIdentifier(user || {});
+  const displayId = getDisplayIdentifier(user || {});
 
   return (
     <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -54,7 +59,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <h1 className="text-3xl font-bold font-serif text-bookverse-ink">
             {user?.name || "Nostr User"}
           </h1>
-          <p className="text-muted-foreground">{user?.npub}</p>
+          <p className="text-muted-foreground flex items-center gap-1">
+            {displayId}
+            {isVerified && (
+              <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified NIP-05 identifier" />
+            )}
+          </p>
           <p className="mt-2">{user?.about || "No bio yet"}</p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -83,6 +93,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         onSubmit={handleUpdateProfile}
         initialName={user?.name || ""}
         initialBio={user?.about || ""}
+        initialNip05={user?.nip05 || ""}
       />
     </div>
   );

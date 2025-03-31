@@ -9,6 +9,7 @@ export interface NostrProfile {
   website?: string;
   lud16?: string;
   banner?: string;
+  nip05?: string;  // Add NIP-05 field
   relays: string[];
   content?: string;  // Added content field to support raw profile event content
 }

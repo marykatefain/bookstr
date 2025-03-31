@@ -15,7 +15,12 @@ const parseProfileContent = (content: string): Partial<NostrProfile> => {
     return {
       name: profileData.name,
       picture: profileData.picture,
-      about: profileData.about
+      about: profileData.about,
+      website: profileData.website,
+      lud16: profileData.lud16,
+      banner: profileData.banner,
+      nip05: profileData.nip05,
+      content: content // Store the raw content string
     };
   } catch (error) {
     console.error("Failed to parse profile data:", error);

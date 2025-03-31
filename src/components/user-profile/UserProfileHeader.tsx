@@ -3,12 +3,13 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Plus, AlertTriangle } from "lucide-react";
+import { Check, Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
 import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
 
 interface UserProfileHeaderProps {
   profile: NostrProfile | null;
@@ -92,21 +93,27 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 
   if (!profile) return null;
 
+  const isVerified = hasVerifiedIdentifier(profile);
+  const displayId = getDisplayIdentifier(profile);
+
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
         <AvatarImage src={profile?.picture} />
         <AvatarFallback className="text-xl">
-          {(profile?.name || profile?.name || 'U')[0].toUpperCase()}
+          {(profile?.name?.[0] || 'U').toUpperCase()}
         </AvatarFallback>
       </Avatar>
       
       <div className="text-center">
         <h1 className="text-2xl font-bold">
-          {profile?.name || profile?.name || formatPubkey(profile?.pubkey || '')}
+          {profile?.name || formatPubkey(profile?.npub || '')}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {profile?.pubkey ? formatPubkey(profile.pubkey) : ''}
+        <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+          {displayId}
+          {isVerified && (
+            <CheckCircle2 className="h-4 w-4 text-green-500" title="Verified NIP-05 identifier" />
+          )}
         </p>
       </div>
       

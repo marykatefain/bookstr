@@ -9,7 +9,8 @@ import {
   LogOut,
   Search,
   Info,
-  Database
+  Database,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +20,7 @@ import {
 } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLoginButton } from "./NostrLoginButton";
+import { getDisplayIdentifier, hasVerifiedIdentifier } from "@/lib/utils/user-display";
 
 interface SidebarProps {
   user: any;
@@ -43,6 +45,9 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
       navigate(`/user/${user.pubkey}`);
     }
   };
+  
+  const isVerified = user ? hasVerifiedIdentifier(user) : false;
+  const displayId = user ? getDisplayIdentifier(user) : "";
 
   return (
     <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
@@ -66,8 +71,13 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name || user.name || "Nostr User"}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
+                <p className="text-sm font-medium truncate">{user.name || "Nostr User"}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground truncate">{displayId}</p>
+                  {isVerified && (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" title="Verified NIP-05 identifier" />
+                  )}
+                </div>
               </div>
             </div>
             <Button

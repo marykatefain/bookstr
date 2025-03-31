@@ -12,20 +12,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (name: string, bio: string) => Promise<boolean | void>;
+  onSubmit: (name: string, bio: string, nip05?: string) => Promise<boolean | void>;
   initialName?: string;
   initialBio?: string;
+  initialNip05?: string;
 }
 
 interface FormValues {
   name: string;
   bio: string;
+  nip05?: string;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
@@ -33,13 +35,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onOpenChange, 
   onSubmit,
   initialName = "",
-  initialBio = ""
+  initialBio = "",
+  initialNip05 = ""
 }) => {
   const { toast } = useToast();
   const form = useForm<FormValues>({
     defaultValues: {
       name: initialName,
-      bio: initialBio
+      bio: initialBio,
+      nip05: initialNip05
     }
   });
   
@@ -49,15 +53,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     // Update form values when initial values change
     form.reset({
       name: initialName,
-      bio: initialBio
+      bio: initialBio,
+      nip05: initialNip05
     });
-  }, [initialName, initialBio, form]);
+  }, [initialName, initialBio, initialNip05, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      const success = await onSubmit(values.name, values.bio);
+      const success = await onSubmit(values.name, values.bio, values.nip05);
       
       if (success) {
         toast({
@@ -119,6 +124,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       {...field} 
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="nip05"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>NIP-05 Identifier</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="username@example.com" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    A verified identity like an email address (e.g., name@domain.com).
+                    Shows a checkmark next to your name.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
