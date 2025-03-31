@@ -19,6 +19,8 @@ import {
 } from "@/lib/nostr";
 import { useToast } from "@/components/ui/use-toast";
 import { NostrLoginButton } from "./NostrLoginButton";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
+import { NIP05VerificationIndicator } from "../profile/NIP05VerificationIndicator";
 
 interface SidebarProps {
   user: any;
@@ -43,6 +45,8 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
       navigate(`/user/${user.pubkey}`);
     }
   };
+  
+  const displayId = user ? getDisplayIdentifier(user) : "";
 
   return (
     <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
@@ -66,8 +70,13 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.name || user.display_name || "Nostr User"}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.npub?.substring(0, 8)}...</p>
+                <p className="text-sm font-medium truncate">{user.name || "Nostr User"}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground truncate">{displayId}</p>
+                  {user?.nip05 && user?.pubkey && (
+                    <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
+                  )}
+                </div>
               </div>
             </div>
             <Button

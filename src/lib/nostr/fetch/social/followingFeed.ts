@@ -102,7 +102,7 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     
     for (const profile of profiles) {
       profileMap.set(profile.pubkey, {
-        name: profile.name || profile.display_name,
+        name: profile.name || profile.name,
         picture: profile.picture,
         npub: profile.pubkey
       });

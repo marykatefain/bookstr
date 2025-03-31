@@ -12,34 +12,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { ExternalLink } from "lucide-react";
 
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (displayName: string, bio: string) => Promise<boolean | void>;
-  initialDisplayName?: string;
+  onSubmit: (name: string, bio: string, website?: string, nip05?: string) => Promise<boolean | void>;
+  initialName?: string;
   initialBio?: string;
+  initialWebsite?: string;
+  initialNip05?: string;
 }
 
 interface FormValues {
-  displayName: string;
+  name: string;
   bio: string;
+  website?: string;
+  nip05?: string;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
   open, 
   onOpenChange, 
   onSubmit,
-  initialDisplayName = "",
-  initialBio = ""
+  initialName = "",
+  initialBio = "",
+  initialWebsite = "",
+  initialNip05 = ""
 }) => {
   const { toast } = useToast();
   const form = useForm<FormValues>({
     defaultValues: {
-      displayName: initialDisplayName,
-      bio: initialBio
+      name: initialName,
+      bio: initialBio,
+      website: initialWebsite,
+      nip05: initialNip05
     }
   });
   
@@ -48,21 +57,28 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   React.useEffect(() => {
     // Update form values when initial values change
     form.reset({
-      displayName: initialDisplayName,
-      bio: initialBio
+      name: initialName,
+      bio: initialBio,
+      website: initialWebsite,
+      nip05: initialNip05
     });
-  }, [initialDisplayName, initialBio, form]);
+  }, [initialName, initialBio, initialWebsite, initialNip05, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      await onSubmit(values.displayName, values.bio);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
-      });
-      onOpenChange(false);
+      const success = await onSubmit(values.name, values.bio, values.website, values.nip05);
+      
+      if (success) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully",
+        });
+        onOpenChange(false);
+      } else {
+        throw new Error("Failed to update profile");
+      }
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
@@ -89,7 +105,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="displayName"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Display Name</FormLabel>
@@ -114,6 +130,57 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       {...field} 
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://yourwebsite.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Your personal website or blog.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="nip05"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>NIP-05 Identifier</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="username@example.com" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    <div className="space-y-1">
+                      <p>A verified identity like an email address (e.g., name@domain.com).
+                      Shows a checkmark next to your name.</p>
+                      <a 
+                        href="https://nostr.how/en/guides/get-verified"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-bookverse-accent hover:text-bookverse-highlight mt-1"
+                      >
+                        Learn how to get one <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

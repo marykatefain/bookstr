@@ -20,7 +20,7 @@ import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 
 // Service imports
-import { initNostr } from "./lib/nostr";
+import { initNostr, cleanupNostr } from "./lib/nostr";
 
 // Create a react-query client
 const queryClient = new QueryClient();
@@ -29,6 +29,11 @@ function App() {
   useEffect(() => {
     // Initialize Nostr connection on app start
     initNostr();
+    
+    // Cleanup Nostr connection on app unmount
+    return () => {
+      cleanupNostr();
+    };
   }, []);
 
   return (

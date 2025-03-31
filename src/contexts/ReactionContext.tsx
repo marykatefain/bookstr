@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { isLoggedIn, reactToContent } from "@/lib/nostr";
@@ -77,7 +76,7 @@ function reactionReducer(state: ReactionState, action: ReactionAction): Reaction
 }
 
 // Provider component
-export function ReactionProvider({ children }: { children: React.ReactNode }) {
+export const ReactionProvider = React.memo(function ReactionProviderComponent({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reactionReducer, {
     reactions: {},
     pendingReactions: new Set<string>()
@@ -158,25 +157,28 @@ export function ReactionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [toast, isPending]);
 
-  const value = {
+  const value = React.useMemo(() => ({
     getReactionState,
     isPending,
     toggleReaction,
     updateReactionState
-  };
+  }), [getReactionState, isPending, toggleReaction, updateReactionState]);
 
   return (
     <ReactionContext.Provider value={value}>
       {children}
     </ReactionContext.Provider>
   );
-}
+});
 
-// Custom hook to use the reaction context
-export function useReactionContext() {
+// Define a constant export for the hook
+export const useReactionContext = () => {
   const context = useContext(ReactionContext);
   if (context === undefined) {
     throw new Error('useReactionContext must be used within a ReactionProvider');
   }
   return context;
-}
+};
+
+// Re-export for compatibility with existing imports
+export { useReactionContext as default };

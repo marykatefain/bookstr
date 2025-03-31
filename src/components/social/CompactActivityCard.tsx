@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SocialActivity } from "@/lib/nostr/types";
 import { Button } from "@/components/ui/button";
 import { nip19 } from "nostr-tools";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
 
 interface CompactActivityCardProps {
   activity: SocialActivity;
@@ -14,17 +15,8 @@ interface CompactActivityCardProps {
 }
 
 export function CompactActivityCard({ activity, onReaction }: CompactActivityCardProps) {
-  const formatPubkey = (pubkey: string): string => {
-    try {
-      const npub = nip19.npubEncode(pubkey);
-      return `${npub.slice(0, 8)}...${npub.slice(-4)}`;
-    } catch {
-      return `${pubkey.slice(0, 6)}...${pubkey.slice(-4)}`;
-    }
-  };
-
   const renderActivityContent = () => {
-    const userName = activity.author?.name || formatPubkey(activity.pubkey);
+    const userName = activity.author?.name || getDisplayIdentifier(activity.author || { pubkey: activity.pubkey });
     const bookTitle = activity.book.title;
     
     switch (activity.type) {
@@ -58,7 +50,7 @@ export function CompactActivityCard({ activity, onReaction }: CompactActivityCar
               to={`/user/${activity.pubkey}`} 
               className="font-medium hover:underline mr-1"
             >
-              {activity.author?.name || formatPubkey(activity.pubkey)}
+              {activity.author?.name || getDisplayIdentifier(activity.author || { pubkey: activity.pubkey })}
             </Link>
             <span className="text-muted-foreground">{renderActivityContent()}</span>
           </div>

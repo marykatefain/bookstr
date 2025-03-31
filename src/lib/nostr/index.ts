@@ -2,6 +2,8 @@
 // Re-export core functions
 export * from './user';
 export * from './profile';
+// Export verification utilities
+export * from './verification';
 // We'll handle publish exports separately
 // Don't export everything from './publish'
 export {
@@ -9,6 +11,9 @@ export {
   updateNostrEvent
 } from './publish';
 export * from './relay';
+
+// Export the profilePublisher separately
+export { updateNostrProfile } from './profilePublisher';
 
 // Re-export fetch utility
 // Don't re-export everything from ./fetch - we'll handle specific exports to avoid conflicts

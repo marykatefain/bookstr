@@ -1,28 +1,29 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Book, Link, Settings } from "lucide-react";
+import { Book, Link as LinkIcon, Settings, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
-import { updateUserProfileEvent, fetchProfileData } from "@/lib/nostr";
+import { updateUserProfileEvent } from "@/lib/nostr";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
+import { NIP05VerificationIndicator } from "./NIP05VerificationIndicator";
 
 interface ProfileHeaderProps {
   user: {
     picture?: string;
     name?: string;
-    display_name?: string;
     npub?: string;
     pubkey?: string;
     about?: string;
+    nip05?: string;
+    website?: string;
   } | null;
   toggleRelaySettings: () => void;
-  refreshUserProfile?: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
   user, 
   toggleRelaySettings,
-  refreshUserProfile
 }) => {
   const { toast } = useToast();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -38,16 +39,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     });
   };
 
-  const handleUpdateProfile = async (displayName: string, bio: string): Promise<boolean> => {
-    const success = await updateUserProfileEvent(displayName, bio);
-    
-    if (success && refreshUserProfile) {
-      // Refresh the user profile to show the updated data
-      refreshUserProfile();
-    }
-    
+  const handleUpdateProfile = async (displayName: string, bio: string, website?: string, nip05?: string): Promise<boolean> => {
+    const success = await updateUserProfileEvent(displayName, bio, website, nip05);
     return success !== null;
   };
+
+  const displayId = getDisplayIdentifier(user || {});
 
   return (
     <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -61,14 +58,30 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="flex-1 space-y-4">
         <div>
           <h1 className="text-3xl font-bold font-serif text-bookverse-ink">
-            {user?.name || user?.display_name || "Nostr User"}
+            {user?.name || "Nostr User"}
           </h1>
-          <p className="text-muted-foreground">{user?.npub}</p>
+          <p className="text-muted-foreground flex items-center gap-1">
+            {displayId}
+            {user?.nip05 && user?.pubkey && (
+              <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
+            )}
+          </p>
+          {user?.website && (
+            <a 
+              href={user.website.startsWith('http') ? user.website : `https://${user.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-bookverse-accent hover:text-bookverse-highlight flex items-center gap-1 text-sm mt-1"
+            >
+              <LinkIcon className="h-3 w-3" />
+              {user.website.replace(/^https?:\/\//i, '')}
+            </a>
+          )}
           <p className="mt-2">{user?.about || "No bio yet"}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" size="sm" onClick={copyProfileLink}>
-            <Link className="h-4 w-4 mr-2" />
+            <LinkIcon className="h-4 w-4 mr-2" />
             Copy Profile Link
           </Button>
           <Button 
@@ -90,8 +103,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         open={showEditProfileModal}
         onOpenChange={setShowEditProfileModal}
         onSubmit={handleUpdateProfile}
-        initialDisplayName={user?.display_name || user?.name || ""}
+        initialName={user?.name || ""}
         initialBio={user?.about || ""}
+        initialWebsite={user?.website || ""}
+        initialNip05={user?.nip05 || ""}
       />
     </div>
   );

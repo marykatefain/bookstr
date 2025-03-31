@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
 import { createBookPost, isLoggedIn, getCurrentUser, fetchUserBooks } from "@/lib/nostr";
@@ -40,7 +40,10 @@ interface UsePostBoxProps {
   onPostSuccess?: () => void;
 }
 
-export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult {
+// Named export function
+export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
+  const { onPostSuccess } = props;
+  
   const [content, setContent] = useState("#bookstr ");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [pendingBook, setPendingBook] = useState<Book | null>(null);
@@ -58,13 +61,13 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
   const [loadingUserBooks, setLoadingUserBooks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const user = getCurrentUser();
+  const user = useMemo(() => getCurrentUser(), []);
 
   useEffect(() => {
     if (isLoggedIn() && user) {
       loadUserBooks();
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -81,7 +84,9 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
   const loadUserBooks = async () => {
     setLoadingUserBooks(true);
     try {
-      const books = await fetchUserBooks(user!.pubkey);
+      if (!user || !user.pubkey) return;
+      
+      const books = await fetchUserBooks(user.pubkey);
       const allBooks = [
         ...books.reading,
         ...books.tbr,
@@ -264,3 +269,6 @@ export function usePostBox({ onPostSuccess }: UsePostBoxProps): UsePostBoxResult
     user
   };
 }
+
+// Default export for backwards compatibility
+export default usePostBox;

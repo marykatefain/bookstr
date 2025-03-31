@@ -164,7 +164,7 @@ export async function fetchBookPosts(isbn: string, useMockData: boolean = true):
         const authorProfile = profiles.find(p => p.pubkey === post.pubkey);
         if (authorProfile) {
           post.author = {
-            name: authorProfile.name || authorProfile.display_name,
+            name: authorProfile.name || authorProfile.name,
             picture: authorProfile.picture,
             npub: authorProfile.npub
           };

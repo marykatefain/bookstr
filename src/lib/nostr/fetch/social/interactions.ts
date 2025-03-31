@@ -232,7 +232,7 @@ export async function fetchRepliesForEvent(eventId: string): Promise<Reply[]> {
     try {
       const profileData = JSON.parse(profileEvent.content);
       profileMap.set(profileEvent.pubkey, {
-        name: profileData.name || profileData.display_name,
+        name: profileData.name || profileData.name,
         picture: profileData.picture
       });
     } catch (e) {
@@ -315,7 +315,7 @@ export async function batchFetchReplies(eventIds: string[]): Promise<Record<stri
     try {
       const profileData = JSON.parse(profileEvent.content);
       profileMap.set(profileEvent.pubkey, {
-        name: profileData.name || profileData.display_name,
+        name: profileData.name || profileData.name,
         picture: profileData.picture
       });
     } catch (e) {

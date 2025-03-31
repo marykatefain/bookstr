@@ -57,27 +57,16 @@ const Profile = () => {
       }
     }
   };
-  
-  const refreshUserProfile = async () => {
-    if (user?.pubkey) {
-      try {
-        const profileData = await fetchProfileData(user.pubkey);
-        if (profileData) {
-          setUser(prev => prev ? { ...prev, ...profileData } : prev);
-          toast({
-            title: "Profile updated",
-            description: "Your profile has been refreshed with the latest data"
-          });
-        }
-      } catch (error) {
-        console.error("Error refreshing profile:", error);
-        toast({
-          title: "Error refreshing profile",
-          description: "Could not refresh your profile. Please try again later."
-        });
-      }
+
+  // This effect will run whenever the current user changes
+  // which will happen when updateUserProfile is called after profile updates
+  useEffect(() => {
+    const storedUser = getCurrentUser();
+    if (storedUser && JSON.stringify(storedUser) !== JSON.stringify(user)) {
+      setUser(storedUser);
+      console.log("User state updated from localStorage", storedUser);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user?.pubkey) {
@@ -135,7 +124,6 @@ const Profile = () => {
           <ProfileHeader 
             user={user} 
             toggleRelaySettings={toggleRelaySettings}
-            refreshUserProfile={refreshUserProfile}
           />
 
           {showRelaySettings && (

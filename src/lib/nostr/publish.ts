@@ -1,5 +1,4 @@
 import { Event, UnsignedEvent, getEventHash, validateEvent } from "nostr-tools";
-import { SimplePool } from "nostr-tools";
 import { getSharedPool } from "./utils/poolManager";
 import { getUserRelays, getActiveConnections, ensureConnections } from "./relay";
 import { isLoggedIn, getCurrentUser } from "./user";
