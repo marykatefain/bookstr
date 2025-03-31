@@ -11,6 +11,7 @@ interface UseFeedFetcherOptions {
   useMockData?: boolean;
   isBackgroundRefresh?: boolean;
   onComplete?: () => void;
+  until?: number;
 }
 
 interface UseFeedFetcherResult {
@@ -25,7 +26,8 @@ export function useFeedFetcher({
   maxItems,
   useMockData = false,
   isBackgroundRefresh = false,
-  onComplete
+  onComplete,
+  until
 }: UseFeedFetcherOptions): UseFeedFetcherResult {
   const previousActivitiesRef = useRef<SocialActivity[]>([]);
   
@@ -43,14 +45,16 @@ export function useFeedFetcher({
     type,
     maxItems,
     onComplete,
-    isBackgroundRefresh 
+    isBackgroundRefresh,
+    until
   });
   
   // Use our data fetching hook
   const { fetchFeedData, canRefresh } = useFeedData({
     type,
     maxItems,
-    useMockData
+    useMockData,
+    until
   });
   
   // Use the retry hook
@@ -68,7 +72,8 @@ export function useFeedFetcher({
     }
     
     // For global feed, implement a cooldown to prevent too frequent refreshes
-    if (!canRefresh()) {
+    // (skip this check for pagination requests)
+    if (!until && !canRefresh()) {
       console.log(`Skipping global feed refresh due to cooldown`);
       return;
     }
@@ -89,7 +94,7 @@ export function useFeedFetcher({
         previousActivitiesRef.current = [...activities];
       }
       
-      console.log(`Starting feed data fetch, background: ${isBackgroundRefresh}`);
+      console.log(`Starting feed data fetch, background: ${isBackgroundRefresh}, pagination: ${until ? 'yes' : 'no'}`);
       const fetchedActivities = await fetchFeedData(isBackgroundRefresh);
       console.log(`Feed data fetch completed, received ${fetchedActivities.length} activities`);
       
@@ -113,8 +118,8 @@ export function useFeedFetcher({
     } catch (error) {
       const newError = handleFetchError(error);
       
-      if (!isBackgroundRefresh) {
-        // Schedule retries for non-background refreshes
+      if (!isBackgroundRefresh && !until) {
+        // Schedule retries for non-background refreshes and non-paginated requests
         scheduleRetry(() => fetchFeedData(false).then(fetchedActivities => {
           handleFetchSuccess(fetchedActivities);
           return Promise.resolve();
@@ -128,7 +133,7 @@ export function useFeedFetcher({
     }
   }, [
     activities, 
-    isBackgroundRefresh, 
+    isBackgroundRefresh,
     fetchFeedData,
     canRefresh,
     resetRetryCount, 
@@ -136,7 +141,8 @@ export function useFeedFetcher({
     ensureConnection,
     handleFetchSuccess,
     handleFetchError,
-    setLoadingState
+    setLoadingState,
+    until
   ]);
 
   return {

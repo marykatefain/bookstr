@@ -15,6 +15,7 @@ interface UseFeedDataOptions {
   type: "followers" | "global";
   maxItems?: number;
   useMockData?: boolean;
+  until?: number;
 }
 
 // In-memory cache for feed data
@@ -24,7 +25,8 @@ const FEED_CACHE_TTL = 60000; // 1 minute
 export function useFeedData({
   type,
   maxItems,
-  useMockData = false
+  useMockData = false,
+  until
 }: UseFeedDataOptions) {
   // Keep a reference to the last fetched data for better UX
   const lastFetchedDataRef = useRef<SocialActivity[]>([]);
@@ -37,10 +39,11 @@ export function useFeedData({
     }
     
     // Generate cache key
-    const cacheKey = `feed-${type}-${maxItems || 20}`;
+    const cacheKey = `feed-${type}-${maxItems || 20}${until ? `-until-${until}` : ''}`;
     
-    // Check cache first (only for non-background fetches)
-    if (!isBackgroundFetch) {
+    // For paginated requests or background fetches, skip cache check
+    if (!isBackgroundFetch && !until) {
+      // Check cache first (only for non-background fetches)
       const now = Date.now();
       const cached = feedCache.get(cacheKey);
       
@@ -59,17 +62,22 @@ export function useFeedData({
       if (type === "followers") {
         feed = await fetchSocialFeed(maxItems || 20);
       } else {
-        // For global feed, update timestamp
-        if (type === "global" && !isBackgroundFetch) {
+        // For global feed, update timestamp (but not for paginated requests)
+        if (type === "global" && !isBackgroundFetch && !until) {
           updateGlobalRefreshTimestamp();
         }
-        console.log(`Calling fetchGlobalSocialFeed with limit ${maxItems || 30}`);
-        feed = await fetchGlobalSocialFeed(maxItems || 30);
+        console.log(`Calling fetchGlobalSocialFeed with limit ${maxItems || 30}${until ? ` until ${until}` : ''}`);
+        feed = await fetchGlobalSocialFeed(maxItems || 30, until);
       }
       
       console.log(`Received ${feed.length} activities from Nostr network for ${type} feed`);
     } catch (error) {
       console.error(`Error fetching ${type} feed:`, error);
+      
+      // Skip fallbacks for pagination requests
+      if (until) {
+        return [];
+      }
       
       // If we have cached data, return it instead of throwing
       const cached = feedCache.get(cacheKey);
@@ -88,7 +96,7 @@ export function useFeedData({
     }
     
     // If no activities were returned but we have cache, use cache
-    if ((!feed || feed.length === 0) && !isBackgroundFetch) {
+    if ((!feed || feed.length === 0) && !isBackgroundFetch && !until) {
       const cached = feedCache.get(cacheKey);
       if (cached) {
         console.log(`Using cached ${type} feed data because new fetch returned no data`);
@@ -117,13 +125,13 @@ export function useFeedData({
       }
     }
     
-    // Apply maxItems limit if specified
-    if (maxItems && processedFeed.length > maxItems) {
+    // Apply maxItems limit if specified (but not for paginated requests)
+    if (maxItems && !until && processedFeed.length > maxItems) {
       processedFeed = processedFeed.slice(0, maxItems);
     }
     
-    // Update cache and last fetched data (only for non-background fetches)
-    if (!isBackgroundFetch && processedFeed.length > 0) {
+    // Update cache and last fetched data (only for non-background fetches and non-paginated requests)
+    if (!isBackgroundFetch && !until && processedFeed.length > 0) {
       feedCache.set(cacheKey, {
         data: processedFeed,
         timestamp: Date.now()
@@ -133,7 +141,7 @@ export function useFeedData({
     }
     
     return processedFeed;
-  }, [type, maxItems, useMockData]);
+  }, [type, maxItems, useMockData, until]);
   
   // Background fetch function that doesn't update the UI
   const backgroundFetch = useCallback(async (): Promise<void> => {
@@ -146,8 +154,8 @@ export function useFeedData({
 
   // Check if we can refresh the global feed
   const canRefresh = useCallback(() => {
-    return type !== "global" || canRefreshGlobalFeed();
-  }, [type]);
+    return type !== "global" || until !== undefined || canRefreshGlobalFeed();
+  }, [type, until]);
 
   return {
     fetchFeedData,
