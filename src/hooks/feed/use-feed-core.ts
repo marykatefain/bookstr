@@ -16,6 +16,7 @@ interface UseFeedCoreProps {
   refreshTrigger?: number;
   onComplete?: () => void;
   isBackgroundRefresh?: boolean;
+  until?: number;
 }
 
 export function useFeedCore({
@@ -23,7 +24,8 @@ export function useFeedCore({
   maxItems = 15,
   refreshTrigger = 0,
   onComplete,
-  isBackgroundRefresh = false
+  isBackgroundRefresh = false,
+  until
 }: UseFeedCoreProps) {
   const [activities, setActivities] = useState<SocialActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +38,8 @@ export function useFeedCore({
 
   // Create a cache key based on feed type and max items
   const getCacheKey = useCallback(() => {
-    return `${type}-${maxItems}`;
-  }, [type, maxItems]);
+    return `${type}-${maxItems}${until ? `-until-${until}` : ''}`;
+  }, [type, maxItems, until]);
 
   // Function to ensure connection to relays
   const ensureConnection = useCallback(async () => {
@@ -108,8 +110,8 @@ export function useFeedCore({
     const now = Date.now();
     const cached = feedCache[cacheKey];
 
-    // Use cache if available and not expired
-    if (cached && now - cached.timestamp < CACHE_TTL && !isBackgroundRefreshing) {
+    // Use cache if available and not expired (but skip for pagination requests)
+    if (!until && cached && now - cached.timestamp < CACHE_TTL && !isBackgroundRefreshing) {
       console.log(`Using cached ${type} feed data`);
       setActivities(cached.activities);
       setLoading(false);
@@ -124,7 +126,7 @@ export function useFeedCore({
     setError(null);
 
     try {
-      console.log(`Fetching ${type} feed...`);
+      console.log(`Fetching ${type} feed...${until ? ` (pagination: until=${until})` : ''}`);
       
       // Check connection status first
       await ensureConnection();
@@ -134,13 +136,15 @@ export function useFeedCore({
       if (type === "followers") {
         results = await fetchSocialFeed(maxItems);
       } else {
-        results = await fetchGlobalSocialFeed(maxItems);
+        results = await fetchGlobalSocialFeed(maxItems, until);
       }
 
       console.log(`Fetched ${results.length} activities for ${type} feed`);
       
-      // Update cache
-      feedCache[cacheKey] = { activities: results, timestamp: Date.now() };
+      // Update cache (skip for pagination requests)
+      if (!until) {
+        feedCache[cacheKey] = { activities: results, timestamp: Date.now() };
+      }
       
       // Update state
       setActivities(results);
@@ -152,8 +156,8 @@ export function useFeedCore({
     } catch (err) {
       console.error(`Error fetching ${type} feed:`, err);
       
-      // Use cached data as fallback if available
-      if (cached) {
+      // Use cached data as fallback if available (but not for pagination)
+      if (!until && cached) {
         console.log("Using cached data as fallback after error");
         setActivities(cached.activities);
       } else {
@@ -178,7 +182,7 @@ export function useFeedCore({
       fetchInProgress.current = false;
       isRefreshingRef.current = false;
     }
-  }, [type, maxItems, isBackgroundRefreshing, getCacheKey, loggedIn, ensureConnection, onComplete]);
+  }, [type, maxItems, until, isBackgroundRefreshing, getCacheKey, loggedIn, ensureConnection, onComplete]);
 
   // Function to manually refresh the feed
   const refreshFeed = useCallback(() => {
