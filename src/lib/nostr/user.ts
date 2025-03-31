@@ -10,6 +10,13 @@ import { updateNostrProfile } from "./profilePublisher";
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 let currentUser: NostrProfile | null = null;
 
+// For detecting Nostr extension changes
+let nostrExtensionCheckInterval: number | null = null;
+let lastNostrState: { hasExtension: boolean, isLoggedIn: boolean } = { 
+  hasExtension: false, 
+  isLoggedIn: false 
+};
+
 export async function initNostr() {
   try {
     // Load relays first
@@ -29,12 +36,95 @@ export async function initNostr() {
           .catch(err => console.error("Error fetching profile on init:", err));
       }
       
+      // Start watching for Nostr extension changes
+      startNostrExtensionWatcher();
+      
       return currentUser;
     }
+    
+    // Even if no saved user, start watching for Nostr extension changes
+    startNostrExtensionWatcher();
     return null;
   } catch (error) {
     console.error("Failed to initialize Nostr:", error);
+    // Still attempt to watch extension changes even on error
+    startNostrExtensionWatcher();
     return null;
+  }
+}
+
+// Watch for changes in the Nostr extension state
+function startNostrExtensionWatcher() {
+  // Don't start multiple intervals
+  if (nostrExtensionCheckInterval !== null) return;
+  
+  // Check immediately once
+  checkNostrExtensionState();
+  
+  // Then check periodically
+  nostrExtensionCheckInterval = window.setInterval(checkNostrExtensionState, 2000);
+  
+  console.log("Started watching for Nostr extension changes");
+}
+
+// Stop watching for extension changes
+function stopNostrExtensionWatcher() {
+  if (nostrExtensionCheckInterval !== null) {
+    window.clearInterval(nostrExtensionCheckInterval);
+    nostrExtensionCheckInterval = null;
+    console.log("Stopped watching for Nostr extension changes");
+  }
+}
+
+// Check the current state of the Nostr extension
+async function checkNostrExtensionState() {
+  const hasExtension = typeof window.nostr !== 'undefined';
+  const hasSavedUser = getCurrentUser() !== null;
+  
+  // Extension disappeared - nothing to do
+  if (!hasExtension) {
+    if (lastNostrState.hasExtension) {
+      console.log("Nostr extension no longer detected");
+      lastNostrState = { hasExtension: false, isLoggedIn: false };
+    }
+    return;
+  }
+  
+  // Extension appeared - update state
+  if (!lastNostrState.hasExtension) {
+    console.log("Nostr extension detected");
+    lastNostrState.hasExtension = true;
+  }
+  
+  // If we're already logged in, no need to check further
+  if (hasSavedUser) {
+    if (!lastNostrState.isLoggedIn) {
+      lastNostrState.isLoggedIn = true;
+      stopNostrExtensionWatcher(); // No need to keep checking once logged in
+    }
+    return;
+  }
+  
+  // Check if we can get a public key from the extension
+  if (hasExtension && typeof window.nostr.getPublicKey === 'function') {
+    try {
+      // Try to silently get the public key without prompting the user
+      // This will succeed if the user just authorized in the extension
+      console.log("Trying to get public key from Nostr extension");
+      const pubkey = await window.nostr.getPublicKey();
+      
+      if (pubkey && !hasSavedUser) {
+        console.log(`Got public key from extension: ${pubkey}. Auto-logging in...`);
+        await loginWithNostr();
+        lastNostrState.isLoggedIn = true;
+        stopNostrExtensionWatcher(); // Stop checking once logged in
+      }
+    } catch (error) {
+      // This error is expected if the user hasn't authorized yet
+      if (error instanceof Error && error.message !== "User rejected") {
+        console.error("Error checking Nostr extension state:", error);
+      }
+    }
   }
 }
 
@@ -122,6 +212,11 @@ export function logoutNostr() {
     title: "Logged out",
     description: "You've been logged out from Nostr",
   });
+  
+  // Reset Nostr extension state tracking
+  lastNostrState.isLoggedIn = false;
+  // Start watching again in case the user logs back in through the extension
+  startNostrExtensionWatcher();
 }
 
 export function getCurrentUser(): NostrProfile | null {
@@ -276,6 +371,14 @@ export async function updateUserProfileEvent(
       variant: "destructive"
     });
     return null;
+  }
+}
+
+export function cleanupNostr() {
+  if (nostrExtensionCheckInterval !== null) {
+    window.clearInterval(nostrExtensionCheckInterval);
+    nostrExtensionCheckInterval = null;
+    console.log("Cleaned up Nostr extension watcher");
   }
 }
 

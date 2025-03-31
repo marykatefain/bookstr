@@ -32,6 +32,9 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
           try {
             await connectToRelays(undefined, false);
             console.info("Relay connections established");
+            
+            // Call onLoginComplete when user is already logged in from initialization
+            onLoginComplete?.();
           } catch (error) {
             console.error("Failed to connect to relays:", error);
           }
@@ -42,7 +45,23 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
     };
     
     initializeNostr();
-  }, [connectionAttempted]);
+  }, [connectionAttempted, onLoginComplete]);
+
+  // Listen for when the user becomes logged in through auto-detection
+  useEffect(() => {
+    // Check if user is logged in every second (in case auto-login happens)
+    const checkLoginInterval = setInterval(() => {
+      const user = getCurrentUser();
+      if (user) {
+        // User is now logged in, handle it
+        onLoginComplete?.();
+        clearInterval(checkLoginInterval);
+      }
+    }, 1000);
+    
+    // Clean up interval on unmount
+    return () => clearInterval(checkLoginInterval);
+  }, [onLoginComplete]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -67,7 +86,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
         
         toast({
           title: "Login successful",
-          description: `Welcome to Bookstr, ${user.name || user.name || "Nostr User"}!`
+          description: `Welcome to Bookstr, ${user.name || "Nostr User"}!`
         });
         onLoginComplete?.();
       }
