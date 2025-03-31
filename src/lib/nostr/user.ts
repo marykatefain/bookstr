@@ -1,11 +1,21 @@
+
 import { toast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { NostrProfile } from "./types";
 import { loadRelaysFromStorage, getUserRelays } from "./relay";
-import { fetchProfileData } from "./profile";
+import { fetchProfileData, clearProfileCache } from "./profile";
+import { NOSTR_KINDS } from "./types/constants";
+import { updateNostrProfile } from "./profilePublisher";
 
 const NOSTR_USER_KEY = 'bookverse_nostr_user';
 let currentUser: NostrProfile | null = null;
+
+// For detecting Nostr extension changes
+let nostrExtensionCheckInterval: number | null = null;
+let lastNostrState: { hasExtension: boolean, isLoggedIn: boolean } = { 
+  hasExtension: false, 
+  isLoggedIn: false 
+};
 
 export async function initNostr() {
   try {
@@ -26,16 +36,83 @@ export async function initNostr() {
           .catch(err => console.error("Error fetching profile on init:", err));
       }
       
+      // Start watching for Nostr extension changes
+      startNostrExtensionWatcher();
+      
       return currentUser;
     }
+    
+    // Even if no saved user, start watching for Nostr extension changes
+    startNostrExtensionWatcher();
     return null;
   } catch (error) {
     console.error("Failed to initialize Nostr:", error);
+    // Still attempt to watch extension changes even on error
+    startNostrExtensionWatcher();
     return null;
   }
 }
 
-export async function loginWithNostr() {
+// Watch for changes in the Nostr extension state
+function startNostrExtensionWatcher() {
+  // Don't start multiple intervals
+  if (nostrExtensionCheckInterval !== null) return;
+  
+  // Check immediately once
+  checkNostrExtensionState();
+  
+  // Then check periodically
+  nostrExtensionCheckInterval = window.setInterval(checkNostrExtensionState, 2000);
+  
+  console.log("Started watching for Nostr extension changes");
+}
+
+// Stop watching for extension changes
+function stopNostrExtensionWatcher() {
+  if (nostrExtensionCheckInterval !== null) {
+    window.clearInterval(nostrExtensionCheckInterval);
+    nostrExtensionCheckInterval = null;
+    console.log("Stopped watching for Nostr extension changes");
+  }
+}
+
+// Check the current state of the Nostr extension
+async function checkNostrExtensionState() {
+  const hasExtension = typeof window.nostr !== 'undefined';
+  const hasSavedUser = getCurrentUser() !== null;
+  
+  // Extension disappeared - nothing to do
+  if (!hasExtension) {
+    if (lastNostrState.hasExtension) {
+      console.log("Nostr extension no longer detected");
+      lastNostrState = { hasExtension: false, isLoggedIn: false };
+    }
+    return;
+  }
+  
+  // Extension appeared - update state
+  if (!lastNostrState.hasExtension) {
+    console.log("Nostr extension detected");
+    lastNostrState.hasExtension = true;
+  }
+  
+  // If we're already logged in, no need to check further
+  if (hasSavedUser) {
+    if (!lastNostrState.isLoggedIn) {
+      lastNostrState.isLoggedIn = true;
+      stopNostrExtensionWatcher(); // No need to keep checking once logged in
+    }
+    return;
+  }
+  
+  // For users who aren't logged in, don't try to automatically get the public key
+  // This prevents the unwanted popup until they explicitly click the login button
+  if (!hasSavedUser) {
+    return;
+  }
+}
+
+export async function loginWithNostr(manualLogin = true) {
   try {
     if (typeof window.nostr === 'undefined') {
       console.error("Nostr extension not found");
@@ -77,7 +154,6 @@ export async function loginWithNostr() {
       npub,
       pubkey,
       name: "Nostr User",
-      display_name: "Nostr Book Lover",
       picture: "https://i.pravatar.cc/300",
       about: "I love reading books and sharing my thoughts on Nostr!",
       relays: [...getUserRelays()]
@@ -100,6 +176,13 @@ export async function loginWithNostr() {
       description: "You're now logged in with Nostr",
     });
 
+    // If this was a manual login (button click), they may log in through
+    // the extension in the future, so make sure we're watching for that
+    if (manualLogin) {
+      lastNostrState.isLoggedIn = true;
+      startNostrExtensionWatcher();
+    }
+
     return userProfile;
   } catch (error) {
     console.error("Nostr login error:", error);
@@ -120,6 +203,11 @@ export function logoutNostr() {
     title: "Logged out",
     description: "You've been logged out from Nostr",
   });
+  
+  // Reset Nostr extension state tracking
+  lastNostrState.isLoggedIn = false;
+  // Start watching again in case the user logs back in through the extension
+  startNostrExtensionWatcher();
 }
 
 export function getCurrentUser(): NostrProfile | null {
@@ -158,6 +246,131 @@ export function updateUserProfile(profileData: Partial<NostrProfile>): void {
   };
   
   localStorage.setItem(NOSTR_USER_KEY, JSON.stringify(currentUser));
+}
+
+// New function to update user profile via Nostr event
+export async function updateUserProfileEvent(
+  name: string, 
+  bio: string, 
+  website?: string, 
+  nip05?: string
+): Promise<string | null> {
+  if (!isLoggedIn()) {
+    toast({
+      title: "Login required",
+      description: "You must be logged in to update your profile",
+      variant: "destructive"
+    });
+    return null;
+  }
+
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error("User not logged in");
+
+    // Get the latest profile data
+    const latestProfile = await fetchProfileData(currentUser.pubkey);
+    
+    // Prepare the content by parsing existing profile data
+    let profileContent: any = {};
+    
+    if (latestProfile?.content) {
+      try {
+        profileContent = JSON.parse(latestProfile.content);
+      } catch (e) {
+        console.error("Failed to parse existing profile content:", e);
+        // If we can't parse the content, create a basic structure from what we know
+        profileContent = {
+          name: latestProfile.name || currentUser.name,
+          picture: latestProfile.picture || currentUser.picture,
+          about: latestProfile.about || currentUser.about,
+          website: latestProfile.website,
+          nip05: latestProfile.nip05
+        };
+      }
+    } else if (currentUser) {
+      // Use current user data as fallback
+      profileContent = {
+        name: currentUser.name,
+        picture: currentUser.picture,
+        about: currentUser.about,
+        website: currentUser.website,
+        nip05: currentUser.nip05
+      };
+    }
+    
+    // Update only the specific fields
+    profileContent.name = name;
+    profileContent.about = bio;
+    
+    // Only update website if provided
+    if (website !== undefined) {
+      profileContent.website = website;
+    }
+    
+    // Only update nip05 if provided - this allows for clearing the field
+    // by passing an empty string, or keeping the existing value by not passing it
+    if (nip05 !== undefined) {
+      profileContent.nip05 = nip05;
+    }
+    
+    // Create the event
+    const event = {
+      kind: NOSTR_KINDS.SET_METADATA,
+      content: JSON.stringify(profileContent),
+      tags: []
+    };
+    
+    console.log("Publishing profile update event:", event);
+    
+    // Publish to Nostr
+    const eventId = await updateNostrProfile(event, currentUser);
+    
+    if (eventId) {
+      // Clear the profile cache to force a fresh fetch
+      clearProfileCache(currentUser.pubkey);
+      
+      // Fetch the latest profile data
+      const updatedProfile = await fetchProfileData(currentUser.pubkey);
+      
+      // Update local user profile data with the freshly fetched data
+      if (updatedProfile) {
+        updateUserProfile({
+          ...updatedProfile,
+          pubkey: currentUser.pubkey
+        });
+      } else {
+        // Fallback if fetch fails - update with the values we know
+        updateUserProfile({
+          name: name,
+          about: bio,
+          website: website,
+          nip05: nip05,
+          pubkey: currentUser.pubkey
+        });
+      }
+      
+      return eventId;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to update profile:", error);
+    toast({
+      title: "Update failed",
+      description: error instanceof Error ? error.message : "Failed to update profile",
+      variant: "destructive"
+    });
+    return null;
+  }
+}
+
+export function cleanupNostr() {
+  if (nostrExtensionCheckInterval !== null) {
+    window.clearInterval(nostrExtensionCheckInterval);
+    nostrExtensionCheckInterval = null;
+    console.log("Cleaned up Nostr extension watcher");
+  }
 }
 
 function pubkeyToNpub(pubkey: string): string {

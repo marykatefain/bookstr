@@ -60,7 +60,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     const profileMap = new Map();
     profiles.forEach(profile => {
       profileMap.set(profile.pubkey, {
-        name: profile.name || profile.display_name,
+        name: profile.name || profile.name,
         picture: profile.picture,
         npub: profile.pubkey
       });

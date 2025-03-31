@@ -110,12 +110,12 @@ export async function fetchUserProfile(pubkey: string): Promise<NostrProfile | n
           npub: pubkey, // This will be converted to npub format in the UI
           pubkey: pubkey,
           name: profileData.name,
-          display_name: profileData.display_name,
           picture: profileData.picture,
           about: profileData.about,
           website: profileData.website,
           lud16: profileData.lud16,
           banner: profileData.banner,
+          nip05: profileData.nip05,
           relays: []
         };
       } catch (error) {
@@ -216,12 +216,12 @@ export async function batchFetchUserProfiles(pubkeys: string[]): Promise<Map<str
           npub: pubkey,
           pubkey: pubkey,
           name: profileData.name,
-          display_name: profileData.display_name,
           picture: profileData.picture,
           about: profileData.about,
           website: profileData.website,
           lud16: profileData.lud16,
           banner: profileData.banner,
+          nip05: profileData.nip05,
           relays: []
         };
         

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loginWithNostr, getCurrentUser, initNostr } from "@/lib/nostr";
+import { setupExternalLoginDetection } from "@/lib/nostr/externalLogin";
 import { useToast } from "@/hooks/use-toast";
 import { connectToRelays, loadRelaysFromStorage } from "@/lib/nostr/relay";
 
@@ -32,6 +33,9 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
           try {
             await connectToRelays(undefined, false);
             console.info("Relay connections established");
+            
+            // Call onLoginComplete when user is already logged in from initialization
+            onLoginComplete?.();
           } catch (error) {
             console.error("Failed to connect to relays:", error);
           }
@@ -42,7 +46,20 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
     };
     
     initializeNostr();
-  }, [connectionAttempted]);
+  }, [connectionAttempted, onLoginComplete]);
+
+  // Set up external login detection (when user logs in through extension outside our app)
+  useEffect(() => {
+    // Only set up detection if the user isn't already logged in
+    if (getCurrentUser()) return;
+    
+    // This will detect if a user logs in through the extension directly
+    const cleanup = setupExternalLoginDetection(() => {
+      onLoginComplete?.();
+    });
+    
+    return cleanup;
+  }, [onLoginComplete]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -67,7 +84,7 @@ export const NostrLogin = ({ onLoginComplete }: NostrLoginProps) => {
         
         toast({
           title: "Login successful",
-          description: `Welcome to Bookstr, ${user.name || user.display_name || "Nostr User"}!`
+          description: `Welcome to Bookstr, ${user.name || "Nostr User"}!`
         });
         onLoginComplete?.();
       }

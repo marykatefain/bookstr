@@ -14,9 +14,13 @@ const parseProfileContent = (content: string): Partial<NostrProfile> => {
     const profileData = JSON.parse(content);
     return {
       name: profileData.name,
-      display_name: profileData.display_name || profileData.displayName,
       picture: profileData.picture,
-      about: profileData.about
+      about: profileData.about,
+      website: profileData.website,
+      lud16: profileData.lud16,
+      banner: profileData.banner,
+      nip05: profileData.nip05,
+      content: content // Store the raw content string
     };
   } catch (error) {
     console.error("Failed to parse profile data:", error);
@@ -159,5 +163,15 @@ export async function fetchUserProfiles(pubkeys: string[]): Promise<Partial<Nost
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return [];
+  }
+}
+
+/**
+ * Clear the profile cache for a specific user to force a fresh fetch
+ */
+export function clearProfileCache(pubkey: string): void {
+  if (profileCache.has(pubkey)) {
+    console.log(`Clearing profile cache for ${pubkey.slice(0, 8)}`);
+    profileCache.delete(pubkey);
   }
 }

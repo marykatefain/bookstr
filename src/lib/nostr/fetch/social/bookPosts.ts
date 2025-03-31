@@ -123,7 +123,7 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
         const authorProfile = profiles.find(p => p.pubkey === post.pubkey);
         if (authorProfile) {
           post.author = {
-            name: authorProfile.name || authorProfile.display_name,
+            name: authorProfile.name || authorProfile.name,
             picture: authorProfile.picture,
             npub: authorProfile.npub
           };

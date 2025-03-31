@@ -3,12 +3,14 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Plus, AlertTriangle } from "lucide-react";
+import { Check, Plus, AlertTriangle, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
 import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getDisplayIdentifier } from "@/lib/utils/user-display";
+import { NIP05VerificationIndicator } from "@/components/profile/NIP05VerificationIndicator";
 
 interface UserProfileHeaderProps {
   profile: NostrProfile | null;
@@ -92,22 +94,38 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
 
   if (!profile) return null;
 
+  const displayId = getDisplayIdentifier(profile);
+
   return (
     <div className="flex flex-col items-center space-y-4">
       <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
         <AvatarImage src={profile?.picture} />
         <AvatarFallback className="text-xl">
-          {(profile?.name || profile?.display_name || 'U')[0].toUpperCase()}
+          {(profile?.name?.[0] || 'U').toUpperCase()}
         </AvatarFallback>
       </Avatar>
       
       <div className="text-center">
         <h1 className="text-2xl font-bold">
-          {profile?.name || profile?.display_name || formatPubkey(profile?.pubkey || '')}
+          {profile?.name || formatPubkey(profile?.npub || '')}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {profile?.pubkey ? formatPubkey(profile.pubkey) : ''}
+        <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+          {displayId}
+          {profile?.nip05 && profile?.pubkey && (
+            <NIP05VerificationIndicator nip05={profile.nip05} pubkey={profile.pubkey} />
+          )}
         </p>
+        {profile?.website && (
+          <a 
+            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-bookverse-accent hover:text-bookverse-highlight flex items-center justify-center gap-1 text-sm mt-1"
+          >
+            <LinkIcon className="h-3 w-3" />
+            {profile.website.replace(/^https?:\/\//i, '')}
+          </a>
+        )}
       </div>
       
       {profile?.about && (

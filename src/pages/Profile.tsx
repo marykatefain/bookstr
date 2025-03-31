@@ -58,6 +58,16 @@ const Profile = () => {
     }
   };
 
+  // This effect will run whenever the current user changes
+  // which will happen when updateUserProfile is called after profile updates
+  useEffect(() => {
+    const storedUser = getCurrentUser();
+    if (storedUser && JSON.stringify(storedUser) !== JSON.stringify(user)) {
+      setUser(storedUser);
+      console.log("User state updated from localStorage", storedUser);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user?.pubkey) {
       fetchProfileData(user.pubkey)
@@ -113,7 +123,7 @@ const Profile = () => {
         <div className="flex flex-col space-y-8">
           <ProfileHeader 
             user={user} 
-            toggleRelaySettings={toggleRelaySettings} 
+            toggleRelaySettings={toggleRelaySettings}
           />
 
           {showRelaySettings && (

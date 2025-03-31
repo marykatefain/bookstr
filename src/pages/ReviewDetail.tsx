@@ -91,7 +91,7 @@ const ReviewDetail = () => {
           bookAuthor: bookDetails?.author || "Unknown Author",
           bookCover: bookDetails?.coverUrl,
           author: authorProfile ? {
-            name: authorProfile.name || authorProfile.display_name || "Unknown User",
+            name: authorProfile.name || authorProfile.name || "Unknown User",
             picture: authorProfile.picture,
             npub: event.pubkey
           } : undefined,
