@@ -19,11 +19,12 @@ import { ExternalLink } from "lucide-react";
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (name: string, bio: string, website?: string, nip05?: string) => Promise<boolean | void>;
+  onSubmit: (name: string, bio: string, website?: string, nip05?: string, pictureUrl?: string) => Promise<boolean | void>;
   initialName?: string;
   initialBio?: string;
   initialWebsite?: string;
   initialNip05?: string;
+  initialPictureUrl?: string;
 }
 
 interface FormValues {
@@ -31,6 +32,7 @@ interface FormValues {
   bio: string;
   website?: string;
   nip05?: string;
+  pictureUrl?: string;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
@@ -40,7 +42,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   initialName = "",
   initialBio = "",
   initialWebsite = "",
-  initialNip05 = ""
+  initialNip05 = "",
+  initialPictureUrl = ""
 }) => {
   const { toast } = useToast();
   const form = useForm<FormValues>({
@@ -48,7 +51,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       name: initialName,
       bio: initialBio,
       website: initialWebsite,
-      nip05: initialNip05
+      nip05: initialNip05,
+      pictureUrl: initialPictureUrl
     }
   });
   
@@ -60,15 +64,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       name: initialName,
       bio: initialBio,
       website: initialWebsite,
-      nip05: initialNip05
+      nip05: initialNip05,
+      pictureUrl: initialPictureUrl
     });
-  }, [initialName, initialBio, initialWebsite, initialNip05, form]);
+  }, [initialName, initialBio, initialWebsite, initialNip05, initialPictureUrl, form]);
 
   const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      const success = await onSubmit(values.name, values.bio, values.website, values.nip05);
+      const success = await onSubmit(values.name, values.bio, values.website, values.nip05, values.pictureUrl);
       
       if (success) {
         toast({
@@ -130,6 +135,26 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       {...field} 
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="pictureUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profile Picture URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://example.com/avatar.jpg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Direct link to your profile picture image.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

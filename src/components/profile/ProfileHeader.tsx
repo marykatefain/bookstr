@@ -39,8 +39,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     });
   };
 
-  const handleUpdateProfile = async (displayName: string, bio: string, website?: string, nip05?: string): Promise<boolean> => {
-    const success = await updateUserProfileEvent(displayName, bio, website, nip05);
+  const handleUpdateProfile = async (displayName: string, bio: string, website?: string, nip05?: string, pictureUrl?: string): Promise<boolean> => {
+    const success = await updateUserProfileEvent(displayName, bio, website, nip05, pictureUrl);
     return success !== null;
   };
 
@@ -107,6 +107,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         initialBio={user?.about || ""}
         initialWebsite={user?.website || ""}
         initialNip05={user?.nip05 || ""}
+        initialPictureUrl={user?.picture || ""}
       />
     </div>
   );
