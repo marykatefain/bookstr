@@ -1,13 +1,24 @@
-
 import React from "react";
 import { Layout } from "@/components/layout/Layout";
-import { ExternalLink, Book, Shield, Users, Database, Library, Github } from "lucide-react";
+import { ExternalLink, Book, Shield, Users, Database, Library, Github, Bitcoin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 const About = () => {
+  const { toast } = useToast();
+  
+  const copyBitcoinAddress = () => {
+    const bitcoinAddress = "bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5";
+    navigator.clipboard.writeText(bitcoinAddress);
+    toast({
+      title: "Bitcoin address copied!",
+      description: "The donation address has been copied to your clipboard."
+    });
+  };
+  
   return (
     <Layout>
       <div className="container px-4 md:px-6 max-w-screen-lg mx-auto py-8 md:py-12">
@@ -224,6 +235,37 @@ const About = () => {
                   Learn How to Use Nostr <ExternalLink className="h-4 w-4 ml-2" />
                 </a>
               </Button>
+            </div>
+          </section>
+          
+          <section className="space-y-6 bg-bookverse-cream/30 p-8 rounded-lg text-center">
+            <h2 className="text-2xl font-serif font-bold text-bookverse-ink">Support Bookstr</h2>
+            <p className="max-w-2xl mx-auto">
+              Bookstr is an open source project maintained by volunteers who believe in decentralized, user-owned reading experiences. 
+              Your donations help cover server costs and development time to keep Bookstr growing.
+            </p>
+            
+            <div className="flex flex-col items-center space-y-4 max-w-md mx-auto bg-white/70 p-6 rounded-lg border border-bookverse-accent/20">
+              <div className="flex items-center space-x-3">
+                <Bitcoin className="h-6 w-6 text-bookverse-accent" />
+                <h3 className="text-lg font-medium">Donate Bitcoin</h3>
+              </div>
+              
+              <p className="text-sm">
+                Help us keep Bookstr running by donating Bitcoin. Your support makes a difference in maintaining this independent platform.
+              </p>
+              
+              <Button 
+                onClick={copyBitcoinAddress}
+                className="bg-bookverse-accent hover:bg-bookverse-highlight"
+              >
+                <Bitcoin className="h-4 w-4 mr-2" />
+                Copy Bitcoin Address
+              </Button>
+              
+              <p className="text-xs break-all bg-white p-3 rounded border border-bookverse-accent/20 w-full">
+                bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5
+              </p>
             </div>
           </section>
         </div>
