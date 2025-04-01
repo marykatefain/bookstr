@@ -29,17 +29,13 @@ export function setupExternalLoginDetection(onLogin: () => void): () => void {
       // We only want to check if the extension is available, not trigger a login prompt
       if (typeof window.nostr !== 'undefined') {
         try {
-          // We use a trick to detect if the user is logged in without triggering the prompt
-          // Most Nostr extensions have a property or internal state we can check
+          // Try to detect if user is logged in without triggering a prompt
+          // Use getPublicKey which most extensions support
+          // We'll catch the error if they're not logged in
+          const publicKey = await window.nostr.getPublicKey().catch(() => null);
           
-          // First try using window.nostr.isEnabled if available (some extensions have this)
-          const isEnabled = typeof window.nostr.isEnabled === 'function' 
-            ? await window.nostr.isEnabled() 
-            : undefined;
-            
-          if (isEnabled) {
-            // User is logged in through the extension, try to get their public key
-            // But use a flag to avoid showing the popup
+          if (publicKey) {
+            // User is logged in through the extension
             const user = await loginWithNostr(false);
             if (user) {
               console.log("Detected Nostr extension login outside app");

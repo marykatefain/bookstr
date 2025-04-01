@@ -9,7 +9,8 @@ import {
   LogOut,
   Search,
   Info,
-  Database
+  Database,
+  Bitcoin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +31,7 @@ interface SidebarProps {
 export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
@@ -47,6 +49,15 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
   };
   
   const displayId = user ? getDisplayIdentifier(user) : "";
+
+  const copyBitcoinAddress = () => {
+    const bitcoinAddress = "bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5";
+    navigator.clipboard.writeText(bitcoinAddress);
+    toast({
+      title: "Bitcoin address copied!",
+      description: "The donation address has been copied to your clipboard."
+    });
+  };
 
   return (
     <aside className="hidden md:flex md:w-64 flex-col border-r border-border bg-bookverse-paper dark:bg-gray-900 p-4">
@@ -143,6 +154,23 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           <Database className="h-4 w-4" />
           <span>Visit Open Library</span>
         </a>
+      </div>
+      
+      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
+        <h3 className="font-medium text-sm">Support Bookstr</h3>
+        <p className="text-xs text-muted-foreground">
+          Help us keep Bookstr running by donating Bitcoin. Your support makes a difference!
+        </p>
+        <button
+          onClick={copyBitcoinAddress}
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full"
+        >
+          <Bitcoin className="h-4 w-4" />
+          <span>Copy Bitcoin Address</span>
+        </button>
+        <p className="text-[10px] break-all bg-white/50 p-1 rounded border border-bookverse-accent/20">
+          bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5
+        </p>
       </div>
       
       <Separator className="my-4" />

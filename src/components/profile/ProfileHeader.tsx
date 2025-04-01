@@ -19,11 +19,13 @@ interface ProfileHeaderProps {
     website?: string;
   } | null;
   toggleRelaySettings: () => void;
+  refreshUserProfile?: () => Promise<void>;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
   user, 
   toggleRelaySettings,
+  refreshUserProfile
 }) => {
   const { toast } = useToast();
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -41,6 +43,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const handleUpdateProfile = async (displayName: string, bio: string, website?: string, nip05?: string, pictureUrl?: string): Promise<boolean> => {
     const success = await updateUserProfileEvent(displayName, bio, website, nip05, pictureUrl);
+    
+    // Call refreshUserProfile if available to update the UI with the latest profile data
+    if (success !== null && refreshUserProfile) {
+      await refreshUserProfile();
+    }
+    
     return success !== null;
   };
 
