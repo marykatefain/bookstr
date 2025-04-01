@@ -226,9 +226,7 @@ const About = () => {
                 <h3 className="text-lg font-medium">Donate Bitcoin</h3>
               </div>
               
-              <p className="text-sm">
-                Help us keep Bookstr running by donating Bitcoin. Your support makes a difference in maintaining this independent platform.
-              </p>
+              
               
               <Button onClick={copyBitcoinAddress} className="bg-bookverse-accent hover:bg-bookverse-highlight">
                 <Bitcoin className="h-4 w-4 mr-2" />
