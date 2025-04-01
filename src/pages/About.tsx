@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-
 const About = () => {
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   const copyBitcoinAddress = () => {
     const bitcoinAddress = "bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5";
     navigator.clipboard.writeText(bitcoinAddress);
@@ -18,9 +18,7 @@ const About = () => {
       description: "The donation address has been copied to your clipboard."
     });
   };
-  
-  return (
-    <Layout>
+  return <Layout>
       <div className="container px-4 md:px-6 max-w-screen-lg mx-auto py-8 md:py-12">
         <div className="space-y-8">
           <div className="text-center">
@@ -47,12 +45,7 @@ const About = () => {
                 </p>
                 <p className="mt-4 flex items-center">
                   <Github className="h-4 w-4 mr-2" />
-                  <a 
-                    href="https://github.com/marykatefain/bookverse-nostr" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-bookverse-accent hover:underline"
-                  >
+                  <a href="https://github.com/marykatefain/bookverse-nostr" target="_blank" rel="noopener noreferrer" className="text-bookverse-accent hover:underline">
                     View our open source code on GitHub
                   </a>
                 </p>
@@ -117,12 +110,7 @@ const About = () => {
               <div>
                 <p className="mb-4">
                   Nostr (Notes and Other Stuff Transmitted by Relays) is a simple, open protocol that enables global,
-                  <a 
-                    href="https://soapbox.pub/blog/comparing-protocols/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="ml-1 text-bookverse-accent hover:underline"
-                  >
+                  <a href="https://soapbox.pub/blog/comparing-protocols/" target="_blank" rel="noopener noreferrer" className="ml-1 text-bookverse-accent hover:underline">
                     decentralized, and censorship-resistant social media
                   </a>.
                 </p>
@@ -147,12 +135,7 @@ const About = () => {
                 
                 <p className="flex items-center">
                   Learn more:
-                  <a 
-                    href="https://soapbox.pub/blog/nostr101/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center ml-2 text-bookverse-accent hover:text-bookverse-highlight"
-                  >
+                  <a href="https://soapbox.pub/blog/nostr101/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center ml-2 text-bookverse-accent hover:text-bookverse-highlight">
                     Nostr 101 <ExternalLink className="h-4 w-4 ml-1" />
                   </a>
                 </p>
@@ -226,12 +209,7 @@ const About = () => {
                 <Link to="/">Start Exploring</Link>
               </Button>
               <Button variant="outline" asChild>
-                <a 
-                  href="https://soapbox.pub/blog/nostr101/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center"
-                >
+                <a href="https://soapbox.pub/blog/nostr101/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
                   Learn How to Use Nostr <ExternalLink className="h-4 w-4 ml-2" />
                 </a>
               </Button>
@@ -240,10 +218,7 @@ const About = () => {
           
           <section className="space-y-6 bg-bookverse-cream/30 p-8 rounded-lg text-center">
             <h2 className="text-2xl font-serif font-bold text-bookverse-ink">Support Bookstr</h2>
-            <p className="max-w-2xl mx-auto">
-              Bookstr is an open source project maintained by volunteers who believe in decentralized, user-owned reading experiences. 
-              Your donations help cover server costs and development time to keep Bookstr growing.
-            </p>
+            <p className="max-w-2xl mx-auto">Bookstr is an open source project maintained by volunteers who believe in decentralized, user-owned reading experiences. Your donations help cover development time and costs to keep Bookstr growing.</p>
             
             <div className="flex flex-col items-center space-y-4 max-w-md mx-auto bg-white/70 p-6 rounded-lg border border-bookverse-accent/20">
               <div className="flex items-center space-x-3">
@@ -255,10 +230,7 @@ const About = () => {
                 Help us keep Bookstr running by donating Bitcoin. Your support makes a difference in maintaining this independent platform.
               </p>
               
-              <Button 
-                onClick={copyBitcoinAddress}
-                className="bg-bookverse-accent hover:bg-bookverse-highlight"
-              >
+              <Button onClick={copyBitcoinAddress} className="bg-bookverse-accent hover:bg-bookverse-highlight">
                 <Bitcoin className="h-4 w-4 mr-2" />
                 Copy Bitcoin Address
               </Button>
@@ -270,8 +242,6 @@ const About = () => {
           </section>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default About;
