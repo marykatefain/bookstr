@@ -19,6 +19,7 @@ import { NostrLoginButton } from "./NostrLoginButton";
 import { getDisplayIdentifier } from "@/lib/utils/user-display";
 import { NIP05VerificationIndicator } from "../profile/NIP05VerificationIndicator";
 import { useToast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -75,126 +76,128 @@ export const MobileSidebar = ({
             </Button>
           </div>
           
-          <div className="p-4">
-            {user ? (
-              <div className="space-y-3">
-                <Link 
-                  to={`/user/${user.pubkey}`} 
-                  className="flex items-center space-x-3 p-3 hover:bg-bookverse-cream rounded-md transition-colors"
+          <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              {user ? (
+                <div className="space-y-3">
+                  <Link 
+                    to={`/user/${user.pubkey}`} 
+                    className="flex items-center space-x-3 p-3 hover:bg-bookverse-cream rounded-md transition-colors"
+                    onClick={onClose}
+                  >
+                    <div className="h-8 w-8 rounded-full overflow-hidden">
+                      <img
+                        src={user.picture || "https://i.pravatar.cc/300"}
+                        alt={user.name || "User"}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{user.name || "Nostr User"}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground truncate">{displayId}</p>
+                        {user?.nip05 && user?.pubkey && (
+                          <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      handleLogout();
+                      onClose();
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <NostrLoginButton onLoginComplete={onClose} />
+              )}
+            </div>
+
+            <Separator className="my-2" />
+
+            <nav className="p-4 space-y-1">
+              {filteredLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm transition-colors ${
+                    location.pathname === link.path
+                      ? "bg-bookverse-cream text-bookverse-accent font-medium"
+                      : "text-bookverse-ink hover:bg-bookverse-cream"
+                  }`}
                   onClick={onClose}
                 >
-                  <div className="h-8 w-8 rounded-full overflow-hidden">
-                    <img
-                      src={user.picture || "https://i.pravatar.cc/300"}
-                      alt={user.name || "User"}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.name || "Nostr User"}</p>
-                    <div className="flex items-center gap-1">
-                      <p className="text-xs text-muted-foreground truncate">{displayId}</p>
-                      {user?.nip05 && user?.pubkey && (
-                        <NIP05VerificationIndicator nip05={user.nip05} pubkey={user.pubkey} />
-                      )}
-                    </div>
-                  </div>
+                  <link.icon className="h-5 w-5" />
+                  <span>{link.label}</span>
                 </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    handleLogout();
-                    onClose();
-                  }}
+              ))}
+            </nav>
+            
+            <Separator className="my-2" />
+            
+            <div className="px-4 pt-2 pb-2">
+              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+                <h3 className="font-medium text-sm">What is Nostr?</h3>
+                <p className="text-xs text-muted-foreground">
+                  Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
+                </p>
+                <Link
+                  to="/about"
+                  className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+                  onClick={onClose}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
+                  <Info className="h-4 w-4" />
+                  <span>Learn more about Bookstr</span>
+                </Link>
               </div>
-            ) : (
-              <NostrLoginButton onLoginComplete={onClose} />
-            )}
-          </div>
-
-          <Separator className="my-2" />
-
-          <nav className="p-4 space-y-1">
-            {filteredLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center space-x-3 px-3 py-3 rounded-md text-sm transition-colors ${
-                  location.pathname === link.path
-                    ? "bg-bookverse-cream text-bookverse-accent font-medium"
-                    : "text-bookverse-ink hover:bg-bookverse-cream"
-                }`}
-                onClick={onClose}
-              >
-                <link.icon className="h-5 w-5" />
-                <span>{link.label}</span>
-              </Link>
-            ))}
-          </nav>
-          
-          <Separator className="my-2" />
-          
-          <div className="px-4 pt-2 pb-2">
-            <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
-              <h3 className="font-medium text-sm">What is Nostr?</h3>
-              <p className="text-xs text-muted-foreground">
-                Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
-              </p>
-              <Link
-                to="/about"
-                className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
-                onClick={onClose}
-              >
-                <Info className="h-4 w-4" />
-                <span>Learn more about Bookstr</span>
-              </Link>
             </div>
-          </div>
-          
-          <div className="px-4 pt-2 pb-2">
-            <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
-              <h3 className="font-medium text-sm">Open Library Data</h3>
-              <p className="text-xs text-muted-foreground">
-                Bookstr uses Open Library's API for book data. Help improve the ecosystem by contributing missing book information.
-              </p>
-              <a
-                href="https://openlibrary.org/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
-              >
-                <Database className="h-4 w-4" />
-                <span>Visit Open Library</span>
-              </a>
+            
+            <div className="px-4 pt-2 pb-2">
+              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+                <h3 className="font-medium text-sm">Open Library Data</h3>
+                <p className="text-xs text-muted-foreground">
+                  Bookstr uses Open Library's API for book data. Help improve the ecosystem by contributing missing book information.
+                </p>
+                <a
+                  href="https://openlibrary.org/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+                >
+                  <Database className="h-4 w-4" />
+                  <span>Visit Open Library</span>
+                </a>
+              </div>
             </div>
-          </div>
-          
-          <div className="px-4 pt-2 pb-4">
-            <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
-              <h3 className="font-medium text-sm">Support Bookstr</h3>
-              <p className="text-xs text-muted-foreground">
-                Help us keep Bookstr running by donating Bitcoin. Your support makes a difference!
-              </p>
-              <button
-                onClick={copyBitcoinAddress}
-                className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full"
-              >
-                <Bitcoin className="h-4 w-4" />
-                <span>Copy Bitcoin Address</span>
-              </button>
-              <p className="text-[10px] break-all bg-white/50 p-1 rounded border border-bookverse-accent/20">
-                bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5
-              </p>
+            
+            <div className="px-4 pt-2 pb-4">
+              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+                <h3 className="font-medium text-sm">Support Bookstr</h3>
+                <p className="text-xs text-muted-foreground">
+                  Help us keep Bookstr running by donating Bitcoin. Your support makes a difference!
+                </p>
+                <button
+                  onClick={copyBitcoinAddress}
+                  className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full"
+                >
+                  <Bitcoin className="h-4 w-4" />
+                  <span>Copy Bitcoin Address</span>
+                </button>
+                <p className="text-[10px] break-all bg-white/50 p-1 rounded border border-bookverse-accent/20">
+                  bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5
+                </p>
+              </div>
             </div>
-          </div>
-          
-          <Separator className="my-2" />
+            
+            <Separator className="my-2" />
+          </ScrollArea>
         </div>
         <div 
           className="flex-1 bg-black bg-opacity-50" 
@@ -205,3 +208,4 @@ export const MobileSidebar = ({
     </aside>
   );
 };
+
