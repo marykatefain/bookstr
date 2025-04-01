@@ -2,6 +2,7 @@
 import { toast } from "@/hooks/use-toast";
 import { nip19 } from "nostr-tools";
 import { NostrProfile } from "./types";
+import { NostrEventData } from "./types/common";
 import { loadRelaysFromStorage, getUserRelays } from "./relay";
 import { fetchProfileData, clearProfileCache } from "./profile";
 import { NOSTR_KINDS } from "./types/constants";
@@ -250,10 +251,11 @@ export function updateUserProfile(profileData: Partial<NostrProfile>): void {
 
 // New function to update user profile via Nostr event
 export async function updateUserProfileEvent(
-  name: string, 
-  bio: string, 
+  nameOrEventData: string | Partial<NostrEventData>, 
+  bio?: string, 
   website?: string, 
-  nip05?: string
+  nip05?: string,
+  pictureUrl?: string
 ): Promise<string | null> {
   if (!isLoggedIn()) {
     toast({
@@ -268,58 +270,73 @@ export async function updateUserProfileEvent(
     const currentUser = getCurrentUser();
     if (!currentUser) throw new Error("User not logged in");
 
-    // Get the latest profile data
-    const latestProfile = await fetchProfileData(currentUser.pubkey);
-    
-    // Prepare the content by parsing existing profile data
-    let profileContent: any = {};
-    
-    if (latestProfile?.content) {
-      try {
-        profileContent = JSON.parse(latestProfile.content);
-      } catch (e) {
-        console.error("Failed to parse existing profile content:", e);
-        // If we can't parse the content, create a basic structure from what we know
+    // Handle both function signatures - either a pre-formatted event or individual fields
+    let event: Partial<NostrEventData>;
+
+    if (typeof nameOrEventData === 'object') {
+      // Called with event object directly
+      event = nameOrEventData;
+    } else {
+      // Called with individual fields - legacy format
+      // Get the latest profile data
+      const latestProfile = await fetchProfileData(currentUser.pubkey);
+      
+      // Prepare the content by parsing existing profile data
+      let profileContent: any = {};
+      
+      if (latestProfile?.content) {
+        try {
+          profileContent = JSON.parse(latestProfile.content);
+        } catch (e) {
+          console.error("Failed to parse existing profile content:", e);
+          // If we can't parse the content, create a basic structure from what we know
+          profileContent = {
+            name: latestProfile.name || currentUser.name,
+            picture: latestProfile.picture || currentUser.picture,
+            about: latestProfile.about || currentUser.about,
+            website: latestProfile.website,
+            nip05: latestProfile.nip05
+          };
+        }
+      } else if (currentUser) {
+        // Use current user data as fallback
         profileContent = {
-          name: latestProfile.name || currentUser.name,
-          picture: latestProfile.picture || currentUser.picture,
-          about: latestProfile.about || currentUser.about,
-          website: latestProfile.website,
-          nip05: latestProfile.nip05
+          name: currentUser.name,
+          picture: currentUser.picture,
+          about: currentUser.about,
+          website: currentUser.website,
+          nip05: currentUser.nip05
         };
       }
-    } else if (currentUser) {
-      // Use current user data as fallback
-      profileContent = {
-        name: currentUser.name,
-        picture: currentUser.picture,
-        about: currentUser.about,
-        website: currentUser.website,
-        nip05: currentUser.nip05
+      
+      // Update only the specific fields
+      profileContent.name = nameOrEventData; // This is the name parameter
+      if (bio !== undefined) {
+        profileContent.about = bio;
+      }
+      
+      // Only update picture if provided
+      if (pictureUrl !== undefined) {
+        profileContent.picture = pictureUrl;
+      }
+      
+      // Only update website if provided
+      if (website !== undefined) {
+        profileContent.website = website;
+      }
+      
+      // Only update nip05 if provided
+      if (nip05 !== undefined) {
+        profileContent.nip05 = nip05;
+      }
+      
+      // Create the event
+      event = {
+        kind: NOSTR_KINDS.SET_METADATA,
+        content: JSON.stringify(profileContent),
+        tags: []
       };
     }
-    
-    // Update only the specific fields
-    profileContent.name = name;
-    profileContent.about = bio;
-    
-    // Only update website if provided
-    if (website !== undefined) {
-      profileContent.website = website;
-    }
-    
-    // Only update nip05 if provided - this allows for clearing the field
-    // by passing an empty string, or keeping the existing value by not passing it
-    if (nip05 !== undefined) {
-      profileContent.nip05 = nip05;
-    }
-    
-    // Create the event
-    const event = {
-      kind: NOSTR_KINDS.SET_METADATA,
-      content: JSON.stringify(profileContent),
-      tags: []
-    };
     
     console.log("Publishing profile update event:", event);
     
@@ -341,13 +358,32 @@ export async function updateUserProfileEvent(
         });
       } else {
         // Fallback if fetch fails - update with the values we know
-        updateUserProfile({
-          name: name,
-          about: bio,
-          website: website,
-          nip05: nip05,
-          pubkey: currentUser.pubkey
-        });
+        // Check if we're using the event object format or individual params
+        if (typeof nameOrEventData === 'object') {
+          try {
+            const content = JSON.parse(nameOrEventData.content || '{}');
+            updateUserProfile({
+              name: content.name,
+              about: content.about,
+              picture: content.picture,
+              website: content.website,
+              nip05: content.nip05,
+              pubkey: currentUser.pubkey
+            });
+          } catch (e) {
+            console.error("Failed to parse event content for local update:", e);
+          }
+        } else {
+          // Using individual params
+          updateUserProfile({
+            name: nameOrEventData,
+            about: bio,
+            website: website,
+            nip05: nip05,
+            picture: pictureUrl,
+            pubkey: currentUser.pubkey
+          });
+        }
       }
       
       return eventId;
