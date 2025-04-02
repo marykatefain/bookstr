@@ -126,54 +126,56 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
       
       <Separator className="my-4" />
       
-      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
-        <h3 className="font-medium text-sm">What is Nostr?</h3>
-        <p className="text-xs text-muted-foreground">
+      <div className="space-y-4 mb-4">
+        <h3 className="font-medium text-sm px-3">What is Nostr?</h3>
+        <p className="text-xs text-muted-foreground px-3">
           Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
         </p>
         <Link
           to="/about"
-          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight px-3"
         >
           <Info className="h-4 w-4" />
           <span>Learn more about Bookstr</span>
         </Link>
       </div>
       
-      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
-        <h3 className="font-medium text-sm">Open Library Data</h3>
-        <p className="text-xs text-muted-foreground">
+      <Separator className="my-4" />
+      
+      <div className="space-y-4 mb-4">
+        <h3 className="font-medium text-sm px-3">Open Library Data</h3>
+        <p className="text-xs text-muted-foreground px-3">
           Bookstr uses Open Library's API for book data. Help improve the ecosystem by contributing missing book information.
         </p>
         <a
           href="https://openlibrary.org/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight"
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight px-3"
         >
           <Database className="h-4 w-4" />
           <span>Visit Open Library</span>
         </a>
       </div>
       
-      <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md mb-4">
-        <h3 className="font-medium text-sm">Support Bookstr</h3>
-        <p className="text-xs text-muted-foreground">
+      <Separator className="my-4" />
+      
+      <div className="space-y-4 mb-4">
+        <h3 className="font-medium text-sm px-3">Support Bookstr</h3>
+        <p className="text-xs text-muted-foreground px-3">
           Help us keep Bookstr running by donating Bitcoin. Your support makes a difference!
         </p>
         <button
           onClick={copyBitcoinAddress}
-          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full"
+          className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight px-3 w-full text-left"
         >
           <Bitcoin className="h-4 w-4" />
           <span>Copy Bitcoin Address</span>
         </button>
-        <p className="text-[10px] break-all bg-white/50 p-1 rounded border border-bookverse-accent/20">
+        <p className="text-[10px] break-all bg-white/50 p-1 rounded border border-bookverse-accent/20 mx-3">
           bc1qv7lk3algpfg4zpyuhvxfm0uza9ck4parz3y3l5
         </p>
       </div>
-      
-      <Separator className="my-4" />
     </aside>
   );
 };
