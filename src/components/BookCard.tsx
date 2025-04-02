@@ -193,7 +193,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       await removeBookFromList(localBook, status);
       
-      let statusText = status === 'tbr' ? 'TBR' : status === 'reading' ? 'reading' : 'finished reading';
+      let statusText = status === 'tbr' ? 'TBR' : status === 'reading' ? 'Reading' : 'finished reading';
       toast({
         title: `Removed from your ${statusText} list`,
         description: `${localBook.title} has been removed from your ${statusText} list`

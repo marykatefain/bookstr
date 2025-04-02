@@ -87,7 +87,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             onAddToTbr={handleAddToTbr}
             onStartReading={handleStartReading}
             onMarkAsRead={handleMarkAsRead}
-            onRemove={undefined} // Remove the prop since we're now handling it above
+            onRemove={undefined}
           />
           
           <Button 
