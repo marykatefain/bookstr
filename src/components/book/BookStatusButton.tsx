@@ -77,7 +77,7 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from Read List"
@@ -150,7 +150,7 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from Reading List"
@@ -187,7 +187,7 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from TBR List"
