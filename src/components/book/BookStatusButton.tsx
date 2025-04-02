@@ -77,15 +77,15 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from Read List"
           >
             {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin text-white" />
             ) : (
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3 text-white" />
             )}
           </Button>
         )}
@@ -150,15 +150,15 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from Reading List"
           >
             {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin text-white" />
             ) : (
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3 text-white" />
             )}
           </Button>
         )}
@@ -187,15 +187,15 @@ export function BookStatusButton({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-1 -left-1 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-0"
+            className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm"
             onClick={onRemove}
             disabled={pendingAction !== null}
             title="Remove from TBR List"
           >
             {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-3 w-3 animate-spin text-white" />
             ) : (
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3 text-white" />
             )}
           </Button>
         )}
