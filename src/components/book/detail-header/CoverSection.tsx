@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookCover } from "@/components/book/BookCover";
 import { BookStatusButton } from "@/components/book/BookStatusButton";
@@ -54,6 +54,22 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
     <div className="md:w-1/3">
       <div className="sticky top-20">
         <div className="relative aspect-[2/3] overflow-hidden rounded-lg shadow-md">
+          {handleRemove && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 left-2 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-20 backdrop-blur-sm shadow-sm"
+              onClick={handleRemove}
+              disabled={pendingAction !== null}
+              title="Remove from List"
+            >
+              {pendingAction ? (
+                <Loader2 className="h-3 w-3 animate-spin text-white" />
+              ) : (
+                <X className="h-3 w-3 text-white" />
+              )}
+            </Button>
+          )}
           <BookCover
             isbn={book.isbn}
             title={book.title}
@@ -71,7 +87,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             onAddToTbr={handleAddToTbr}
             onStartReading={handleStartReading}
             onMarkAsRead={handleMarkAsRead}
-            onRemove={handleRemove ? () => handleRemove() : undefined}
+            onRemove={undefined} // Remove the prop since we're now handling it above
           />
           
           <Button 

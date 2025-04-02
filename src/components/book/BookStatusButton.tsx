@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { Button } from "@/components/ui/button";
-import { Check, BookOpen, Star, Loader2, X } from "lucide-react";
+import { Check, BookOpen, Star, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
 
@@ -73,23 +73,6 @@ export function BookStatusButton({
   if (isFinished) {
     return (
       <div className="w-full space-y-2 relative">
-        {onRemove && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -top-[30px] -left-[10px] h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm shadow-sm"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-            title="Remove from Read List"
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin text-white" />
-            ) : (
-              <X className="h-3 w-3 text-white" />
-            )}
-          </Button>
-        )}
-        
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
@@ -146,23 +129,6 @@ export function BookStatusButton({
   if (isReading) {
     return (
       <div className="w-full space-y-2 relative">
-        {onRemove && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -top-[30px] -left-[10px] h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm shadow-sm"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-            title="Remove from Reading List"
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin text-white" />
-            ) : (
-              <X className="h-3 w-3 text-white" />
-            )}
-          </Button>
-        )}
-        
         <Button
           className="w-full bg-green-600 hover:bg-green-700"
           size="sm"
@@ -183,23 +149,6 @@ export function BookStatusButton({
   if (isTbr) {
     return (
       <div className="w-full space-y-2 relative">
-        {onRemove && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute -top-[30px] -left-[10px] h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-10 backdrop-blur-sm shadow-sm"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-            title="Remove from TBR List"
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin text-white" />
-            ) : (
-              <X className="h-3 w-3 text-white" />
-            )}
-          </Button>
-        )}
-        
         <Button
           className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
           size="sm"
