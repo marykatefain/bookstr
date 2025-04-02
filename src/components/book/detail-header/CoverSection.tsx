@@ -86,4 +86,4 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
       </div>
     </div>
   );
-};
+}
