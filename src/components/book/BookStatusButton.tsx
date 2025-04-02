@@ -72,7 +72,7 @@ export function BookStatusButton({
   // Determine button appearance based on reading status
   if (isFinished) {
     return (
-      <div className="w-full space-y-2 relative">
+      <div className="w-full space-y-2">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
@@ -122,13 +122,28 @@ export function BookStatusButton({
             )}
           </div>
         </div>
+        
+        {onRemove && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={onRemove}
+            disabled={pendingAction !== null}
+          >
+            {pendingAction ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : null}
+            Remove from Read List
+          </Button>
+        )}
       </div>
     );
   }
 
   if (isReading) {
     return (
-      <div className="w-full space-y-2 relative">
+      <div className="w-full space-y-2">
         <Button
           className="w-full bg-green-600 hover:bg-green-700"
           size="sm"
@@ -142,13 +157,28 @@ export function BookStatusButton({
           )}
           Mark as Read
         </Button>
+        
+        {onRemove && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={onRemove}
+            disabled={pendingAction !== null}
+          >
+            {pendingAction ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : null}
+            Remove from Reading
+          </Button>
+        )}
       </div>
     );
   }
 
   if (isTbr) {
     return (
-      <div className="w-full space-y-2 relative">
+      <div className="w-full space-y-2">
         <Button
           className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
           size="sm"
@@ -162,6 +192,21 @@ export function BookStatusButton({
           )}
           Start Reading
         </Button>
+        
+        {onRemove && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={onRemove}
+            disabled={pendingAction !== null}
+          >
+            {pendingAction ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : null}
+            Remove from TBR
+          </Button>
+        )}
       </div>
     );
   }

@@ -1,10 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { X, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { 
   isLoggedIn, 
   addBookToTBR, 
@@ -33,7 +32,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   size = "medium",
   showDescription = false,
   showRating = true,
-  variant = "horizontal",
+  variant = "vertical",
   className = "",
   onUpdate
 }) => {
@@ -193,7 +192,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     try {
       await removeBookFromList(localBook, status);
       
-      let statusText = status === 'tbr' ? 'TBR' : status === 'reading' ? 'Reading' : 'finished reading';
+      let statusText = status === 'tbr' ? 'TBR' : status === 'reading' ? 'reading' : 'finished reading';
       toast({
         title: `Removed from your ${statusText} list`,
         description: `${localBook.title} has been removed from your ${statusText} list`
@@ -271,8 +270,6 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   const bookTitle = localBook.title || `Book (ISBN: ${localBook.isbn || "Unknown"})`;
   const authorDisplayName = localBook.author || "Unknown Author";
-  const readingStatus = localBook.readingStatus?.status;
-  const showRemoveButton = !!readingStatus;
 
   return (
     <Card className={getCardClasses()}>
@@ -280,22 +277,6 @@ export const BookCard: React.FC<BookCardProps> = ({
         {variant === "horizontal" ? (
           <div className="flex flex-row h-full">
             <div className={`relative flex-shrink-0 ${size === "small" ? "w-16 h-24" : "w-24 h-36"}`}>
-              {showRemoveButton && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-20 backdrop-blur-sm shadow-sm"
-                  onClick={handleRemove}
-                  disabled={pendingAction !== null}
-                  title={`Remove from ${readingStatus === 'tbr' ? 'TBR' : readingStatus === 'reading' ? 'Reading' : 'Read'} List`}
-                >
-                  {pendingAction ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-white" />
-                  ) : (
-                    <X className="h-3 w-3 text-white" />
-                  )}
-                </Button>
-              )}
               <BookCover 
                 isbn={localBook.isbn}
                 title={bookTitle}
@@ -330,6 +311,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 onAddToTbr={handleAddToTBR}
                 onStartReading={handleStartReading}
                 onMarkAsRead={handleMarkAsRead}
+                onRemove={handleRemove}
                 onRatingChange={handleRating}
                 horizontal={true}
                 size={size}
@@ -339,22 +321,6 @@ export const BookCard: React.FC<BookCardProps> = ({
         ) : (
           <>
             <div className="relative" style={{ paddingTop: "150%" }}>
-              {showRemoveButton && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-20 backdrop-blur-sm shadow-sm"
-                  onClick={handleRemove}
-                  disabled={pendingAction !== null}
-                  title={`Remove from ${readingStatus === 'tbr' ? 'TBR' : readingStatus === 'reading' ? 'Reading' : 'Read'} List`}
-                >
-                  {pendingAction ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-white" />
-                  ) : (
-                    <X className="h-3 w-3 text-white" />
-                  )}
-                </Button>
-              )}
               <div className="absolute inset-0">
                 <BookCover 
                   isbn={localBook.isbn}
@@ -391,6 +357,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                 onAddToTbr={handleAddToTBR}
                 onStartReading={handleStartReading}
                 onMarkAsRead={handleMarkAsRead}
+                onRemove={handleRemove}
                 onRatingChange={handleRating}
                 size={size}
               />
