@@ -58,7 +58,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 left-2 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-20 backdrop-blur-sm shadow-sm"
+              className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-black/40 hover:bg-black/60 dark:bg-gray-800/60 dark:hover:bg-gray-700/80 p-0 z-20 backdrop-blur-sm shadow-sm"
               onClick={handleRemove}
               disabled={pendingAction !== null}
               title="Remove from List"
