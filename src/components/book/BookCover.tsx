@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Check, Star, X } from "lucide-react";
+import { Loader2, BookCheck, Star, X } from "lucide-react";
 import { BookRating } from "./BookRating";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
@@ -179,19 +180,25 @@ export const BookCover: React.FC<BookCoverProps> = ({
     if (isFinished) {
       return renderRatingStars();
     } else if (onReadAction) {
+      const buttonSize = size === "large" ? "p-2 px-3" : "p-1.5 px-2";
+      const textSize = size === "large" ? "text-xs" : "text-[10px]";
+      
       return (
         <button
           onClick={onReadAction}
-          className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+          className={`absolute top-2 right-2 rounded-full ${buttonSize} transition-all duration-200 flex items-center gap-1
             ${isRead 
-              ? "bg-green-500 text-white" 
-              : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+              ? "bg-green-600 text-white" 
+              : "bg-bookverse-accent/90 backdrop-blur-sm border border-white/50 text-white hover:bg-green-600 hover:border-green-500"}`}
           title="Mark as read"
         >
           {pendingAction === 'finished' ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Check className="h-4 w-4" />
+            <>
+              <BookCheck className="h-4 w-4" />
+              <span className={`${textSize} font-medium`}>Read</span>
+            </>
           )}
         </button>
       );
@@ -222,16 +229,19 @@ export const BookReadButton: React.FC<{
   return (
     <button
       onClick={handleMarkAsRead}
-      className={`absolute top-2 right-2 rounded-full p-1.5 transition-all duration-200 
+      className={`absolute top-2 right-2 rounded-full p-1.5 px-3 transition-all duration-200 flex items-center gap-1
         ${isRead 
-          ? "bg-green-500 text-white" 
-          : "bg-white/30 backdrop-blur-sm border border-white/50 text-white hover:bg-green-500 hover:border-green-500"}`}
+          ? "bg-green-600 text-white" 
+          : "bg-bookverse-accent/90 backdrop-blur-sm border border-white/50 text-white hover:bg-green-600 hover:border-green-500"}`}
       title="Mark as read"
     >
       {pendingAction === 'finished' ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Check className="h-4 w-4" />
+        <>
+          <BookCheck className="h-4 w-4" />
+          <span className="text-xs font-medium">Read</span>
+        </>
       )}
     </button>
   );

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Check, Star, ShoppingCart } from "lucide-react";
+import { BookCheck, Check, Star, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookCover } from "@/components/book/BookCover";
 import { useToast } from "@/hooks/use-toast";
@@ -83,7 +83,7 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
                 {isTbr ? (
                   <Check className="mr-2 h-4 w-4" />
                 ) : (
-                  <BookOpen className="mr-2 h-4 w-4" />
+                  <BookCheck className="mr-2 h-4 w-4" />
                 )}
                 {isTbr ? "On TBR List" : "To Be Read"}
               </Button>
