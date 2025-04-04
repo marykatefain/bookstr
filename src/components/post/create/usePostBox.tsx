@@ -16,6 +16,11 @@ interface UsePostBoxResult {
   mediaPreview: string | null;
   mediaFile: File | null;
   mediaType: "image" | "video" | null;
+  mediaAltText: string;
+  setMediaAltText: (text: string) => void;
+  mediaUrl: string | null;
+  mediaService: string | null;
+  uploadProgress: number;
   isSpoiler: boolean;
   setIsSpoiler: (value: boolean) => void;
   posting: boolean;
@@ -26,6 +31,8 @@ interface UsePostBoxResult {
   fileInputRef: React.RefObject<HTMLInputElement>;
   showISBNModal: boolean;
   setShowISBNModal: (value: boolean) => void;
+  showAltTextModal: boolean;
+  setShowAltTextModal: (value: boolean) => void;
   pendingBook: Book | null;
   setPendingBook: (book: Book | null) => void;
   handleSearch: () => Promise<void>;
@@ -53,10 +60,15 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [mediaAltText, setMediaAltText] = useState("");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaService, setMediaService] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [posting, setPosting] = useState(false);
   const [open, setOpen] = useState(false);
   const [showISBNModal, setShowISBNModal] = useState(false);
+  const [showAltTextModal, setShowAltTextModal] = useState(false);
   const [userBooks, setUserBooks] = useState<Book[]>([]);
   const [loadingUserBooks, setLoadingUserBooks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +92,13 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
+
+  // Show alt text modal when media is uploaded for accessibility
+  useEffect(() => {
+    if (mediaFile && mediaType === 'image' && !mediaAltText) {
+      setShowAltTextModal(true);
+    }
+  }, [mediaFile, mediaType]);
 
   const loadUserBooks = async () => {
     setLoadingUserBooks(true);
@@ -145,10 +164,17 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
+    // Reset media related states when uploading a new image
+    setMediaAltText('');
+    setUploadProgress(0);
+    setMediaUrl(null);
+    setMediaService(null);
+
+    // Check file size (10MB max for uploads)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload a file smaller than 5MB",
+        description: "Please upload a file smaller than 10MB",
         variant: "destructive"
       });
       return;
@@ -177,6 +203,12 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
     setMediaPreview(null);
     setMediaFile(null);
     setMediaType(null);
+    setMediaAltText('');
+    setMediaUrl(null);
+    setMediaService(null);
+    setUploadProgress(0);
+    // Close Alt Text modal as part of clearing media state
+    setShowAltTextModal(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -201,26 +233,66 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
       return;
     }
 
+    // If it's an image and no alt text, encourage adding it
+    if (mediaType === 'image' && mediaFile && !mediaAltText.trim()) {
+      setShowAltTextModal(true);
+      return;
+    }
+
     setPosting(true);
     try {
-      const success = await createBookPost({
+      // Extract service from imeta tag if present
+      const extractService = (url: string) => {
+        // Common known services by URL pattern
+        if (url.includes('nostr.build')) return 'Nostr.build';
+        if (url.includes('void.cat')) return 'Void.cat';
+        if (url.includes('blossom.band')) return 'Blossom';
+        if (url.includes('nostrimg.com')) return 'NostrImg';
+        // Default to "Unknown service"
+        return 'a media hosting service';
+      };
+
+      const result = await createBookPost({
         content: content.trim(),
         book: selectedBook,
         mediaFile,
         mediaType,
-        isSpoiler
+        isSpoiler,
+        altText: mediaAltText,
+        onMediaUploadProgress: (progress) => {
+          setUploadProgress(progress);
+          // When upload is complete, reset progress after a delay
+          if (progress === 100) {
+            setTimeout(() => setUploadProgress(0), 1000);
+          }
+        }
       });
 
-      if (success) {
+      if (result.success) {
+        // Store the media URL if available
+        if (result.mediaUrl) {
+          setMediaUrl(result.mediaUrl);
+          // Determine the service from the URL
+          setMediaService(extractService(result.mediaUrl));
+        }
+        
         toast({
           title: "Post created",
           description: "Your post has been published"
         });
+        
+        // Clear form completely after successful post
         setContent("#bookstr ");
         setSelectedBook(null);
-        clearMedia();
         setIsSpoiler(false);
         
+        // Close the Alt Text modal if it's open
+        setShowAltTextModal(false);
+        
+        // Clear all media-related state for a fresh slate
+        clearMedia();
+        
+        // Trigger the refresh callback
         if (onPostSuccess) {
           onPostSuccess();
         }
@@ -251,6 +323,11 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
     mediaPreview,
     mediaFile,
     mediaType,
+    mediaAltText,
+    setMediaAltText,
+    mediaUrl,
+    mediaService,
+    uploadProgress,
     isSpoiler,
     setIsSpoiler,
     posting,
@@ -258,6 +335,8 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
     setOpen,
     showISBNModal,
     setShowISBNModal,
+    showAltTextModal,
+    setShowAltTextModal,
     userBooks,
     loadingUserBooks,
     fileInputRef,

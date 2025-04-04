@@ -16,6 +16,7 @@ import {
 import { BookCover } from "./book/BookCover";
 import { BookStatusButton } from "./book/BookStatusButton";
 import { ISBNEntryModal } from "./ISBNEntryModal";
+import { X, Loader2 } from "lucide-react";
 
 interface BookCardProps {
   book: Book;
@@ -277,6 +278,20 @@ export const BookCard: React.FC<BookCardProps> = ({
         {variant === "horizontal" ? (
           <div className="flex flex-row h-full">
             <div className={`relative flex-shrink-0 ${size === "small" ? "w-16 h-24" : "w-24 h-36"}`}>
+              {localBook.readingStatus?.status && (
+                <button 
+                  onClick={handleRemove}
+                  disabled={!!pendingAction}
+                  className="absolute top-1 left-1 z-10 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                  aria-label="Remove from list"
+                >
+                  {pendingAction ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
+                </button>
+              )}
               <BookCover 
                 isbn={localBook.isbn}
                 title={bookTitle}
@@ -321,6 +336,20 @@ export const BookCard: React.FC<BookCardProps> = ({
         ) : (
           <>
             <div className="relative" style={{ paddingTop: "150%" }}>
+              {localBook.readingStatus?.status && (
+                <button 
+                  onClick={handleRemove}
+                  disabled={!!pendingAction}
+                  className="absolute top-1 left-1 z-10 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                  aria-label="Remove from list"
+                >
+                  {pendingAction ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                </button>
+              )}
               <div className="absolute inset-0">
                 <BookCover 
                   isbn={localBook.isbn}

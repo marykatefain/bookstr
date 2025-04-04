@@ -510,7 +510,74 @@ Example Post that includes a book reference (i tag with isbn) and #bookstr (t ta
 
 ---
 
-## 4. AI Tips
+## 4. Media Upload to Blossom Servers
+
+### Overview of Blossom Protocol
+
+Blossom is a media hosting protocol for Nostr that allows users to upload, retrieve, and manage media files across decentralized servers. It uses Nostr signatures for authorization and SHA-256 hashes as the source of truth for content identification.
+
+### Key Concepts
+
+- **Blob**: A binary file with a unique SHA-256 hash identifier
+- **Authorization Event**: A Nostr event (kind 24242) that grants permission for specific operations
+- **Server List**: A user's preferred Blossom servers stored in a kind 10063 event
+
+### Authorization Model
+
+All operations requiring authorization use Nostr events with:
+- Kind: 24242
+- "t" tag: Specifying the operation ("upload", "get", "delete", "list", "media")
+- "expiration" tag: A future timestamp when authorization expires
+- "x" tag: The SHA-256 hash of the blob being operated on (for applicable operations)
+- Base64-encoded and sent via the `Authorization: Nostr <base64-event>` HTTP header
+
+### Key Endpoints
+
+1. **GET /\<sha256\>**: Retrieve a blob by its hash
+2. **PUT /upload**: Upload a new blob
+3. **DELETE /\<sha256\>**: Delete a blob
+4. **GET /list/\<pubkey\>**: List blobs uploaded by a pubkey
+5. **PUT /mirror**: Copy a blob from another URL
+6. **PUT /media**: Optimize media for distribution
+7. **HEAD /upload**: Check upload requirements before sending data
+
+### Example Upload Flow
+
+1. Calculate SHA-256 hash of the file
+2. Create and sign a kind 24242 event with:
+   - "t" tag set to "upload"
+   - "x" tag with the file hash
+   - "expiration" tag with future timestamp
+3. Use HEAD /upload to verify upload requirements
+4. PUT /upload with the file content and Authorization header
+5. Store the returned blob URL for use in Nostr events
+
+### User Server List
+
+Users publish a kind 10063 event with "server" tags listing their preferred Blossom servers. When uploading media:
+1. Upload to the first (primary) server
+2. Optionally mirror to other servers using the /mirror endpoint
+
+### Media Optimization
+
+For large images or videos, use the /media endpoint on a trusted server to optimize before distribution.
+
+### Error Handling
+
+- All responses include appropriate HTTP status codes
+- Error responses may include X-Reason header with human-readable explanation
+- Implement exponential backoff for failed uploads
+
+### Best Practices
+
+- Always verify file hashes after retrieval
+- Use the blob URL format: https://server.com/\<sha256\>.\<extension\>
+- Include authorization expiration dates reasonably in the future
+- Support fallback servers when a blob is unavailable from the original source
+
+---
+
+## 5. AI Tips
 
 **General Dos and Do NOTs** 
 

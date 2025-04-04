@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Book } from "@/lib/nostr/types";
 import { Button } from "@/components/ui/button";
@@ -150,21 +149,6 @@ export function BookStatusButton({
             )}
           </div>
         </div>
-        
-        {onRemove && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : null}
-            Remove from Read List
-          </Button>
-        )}
       </div>
     );
   }
