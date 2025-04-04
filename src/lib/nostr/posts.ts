@@ -9,6 +9,8 @@ import { getUserRelays } from "./relay";
 import { fetchUserProfiles } from "./profile";
 import { fetchBookPostsByISBN } from "./fetch/socialFetch";
 import { getSharedPool } from "./utils/poolManager";
+import { uploadMedia } from "@/lib/media";
+import { uploadMediaToBlossom } from "@/lib/media/blossom";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -19,12 +21,14 @@ interface CreatePostParams {
   mediaFile?: File | null;
   mediaType?: "image" | "video" | null;
   isSpoiler?: boolean;
+  altText?: string;
+  onMediaUploadProgress?: (progress: number) => void;
 }
 
 /**
  * Create a new book post
  */
-export async function createBookPost(params: CreatePostParams): Promise<boolean> {
+export async function createBookPost(params: CreatePostParams): Promise<{success: boolean; mediaUrl?: string}> {
   try {
     if (!isLoggedIn()) {
       toast({
@@ -32,7 +36,7 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
         description: "Please sign in to post",
         variant: "destructive"
       });
-      return false;
+      return { success: false };
     }
 
     // Build tags
@@ -47,9 +51,86 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
     // Add the bookstr tag for all kind 1 events
     tags.push(["t", "bookstr"]);
     
-    // Add media if provided
+    // Prepare content - we'll append media URL if one is uploaded
+    let finalContent = params.content;
+    
+    // Upload media to service if provided
+    let mediaUrl: string | undefined;
+    let uploadService: string | undefined;
+    
     if (params.mediaFile && params.mediaType) {
-      tags.push(["media", params.mediaType]);
+      try {
+        // Show uploading toast
+        const uploadToast = toast({
+          title: "Uploading media to Blossom",
+          description: "Please wait while we upload your media...",
+          duration: 60000, // Long duration while uploading
+        });
+        
+        // Upload to Blossom using the improved implementation
+        const uploadResult = await uploadMediaToBlossom({
+          file: params.mediaFile,
+          altText: params.altText,
+          onProgress: params.onMediaUploadProgress
+        });
+        
+        // Dismiss the upload toast
+        uploadToast.dismiss();
+        
+        // Get media URL from the response
+        mediaUrl = uploadResult.url;
+        uploadService = "Blossom";
+        
+        // Show success toast
+        toast({
+          title: "Media uploaded successfully",
+          description: `Your media was uploaded to Blossom.`,
+          duration: 3000,
+        });
+        
+        if (mediaUrl) {
+          // 1. Append the URL to the content text with newlines for separation
+          // This ensures clients that don't support media tags can still show the media
+          if (finalContent.trim()) {
+            finalContent += '\n\n';
+          }
+          finalContent += mediaUrl;
+          
+          // 2. Add "imeta" tag for better client compatibility (NIP-114)
+          // Create imeta tag with available metadata
+          const imetaTag = ["imeta", `url ${mediaUrl}`, `m ${params.mediaType}/${uploadResult.type?.split('/')[1] || 'jpeg'}`];
+          
+          // Add alt text if available
+          if (params.altText) {
+            imetaTag.push(`alt ${params.altText}`);
+          }
+          
+          // Add dimensions if available
+          if (uploadResult.dim) {
+            imetaTag.push(`dim ${uploadResult.dim}`);
+          }
+          
+          // Add hash for verifiability 
+          if (uploadResult.sha256) {
+            imetaTag.push(`x ${uploadResult.sha256}`);
+          }
+          
+          // Add service information as metadata
+          imetaTag.push(`service Blossom`);
+          
+          tags.push(imetaTag);
+          
+          // 3. Also add traditional media tag for backward compatibility
+          tags.push(["media", `${params.mediaType}/${uploadResult.type?.split('/')[1] || 'jpeg'}`, mediaUrl, params.altText || ""]);
+        }
+      } catch (uploadError) {
+        console.error("Error uploading media:", uploadError);
+        toast({
+          title: "Media upload failed",
+          description: "Could not upload your media. Your post will be created without media.",
+          variant: "destructive"
+        });
+      }
     }
     
     // Add content-warning tag if spoiler is marked (using standard Nostr tag)
@@ -61,12 +142,15 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
     // Create the event
     const eventData = {
       kind: NOSTR_KINDS.TEXT_NOTE,
-      content: params.content,
+      content: finalContent,
       tags: tags
     };
     
     const eventId = await publishToNostr(eventData);
-    return eventId !== null;
+    return { 
+      success: eventId !== null,
+      mediaUrl: mediaUrl 
+    };
   } catch (error) {
     console.error("Error creating book post:", error);
     toast({
@@ -74,7 +158,7 @@ export async function createBookPost(params: CreatePostParams): Promise<boolean>
       description: "Failed to create post",
       variant: "destructive"
     });
-    return false;
+    return { success: false };
   }
 }
 
