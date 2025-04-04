@@ -179,7 +179,7 @@ export function BookStatusButton({
       <div className="w-full">
         <div className="flex gap-1">
           <Button
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            className="w-full bg-green-600 hover:bg-green-700"
             size="sm"
             onClick={onMarkAsRead}
             disabled={pendingAction !== null}
@@ -191,22 +191,6 @@ export function BookStatusButton({
             )}
             <span className="ml-1 text-xs">Mark as Read</span>
           </Button>
-          
-          {onRemove && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRemove}
-              disabled={pendingAction !== null}
-              className="px-2"
-            >
-              {pendingAction === 'reading' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <span className="text-xs">Remove</span>
-              )}
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -238,7 +222,7 @@ export function BookStatusButton({
       <div className="w-full">
         <div className="flex gap-1">
           <Button
-            className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+            className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
             size="sm"
             onClick={onStartReading}
             disabled={pendingAction !== null}
@@ -250,22 +234,6 @@ export function BookStatusButton({
             )}
             <span className="ml-1 text-xs">Start Reading</span>
           </Button>
-          
-          {onRemove && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRemove}
-              disabled={pendingAction !== null}
-              className="px-2"
-            >
-              {pendingAction === 'tbr' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <span className="text-xs">Remove</span>
-              )}
-            </Button>
-          )}
         </div>
       </div>
     );
