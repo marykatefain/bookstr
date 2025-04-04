@@ -122,21 +122,6 @@ export function BookStatusButton({
             )}
           </div>
         </div>
-        
-        {onRemove && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : null}
-            Remove from Read List
-          </Button>
-        )}
       </div>
     );
   }
@@ -157,21 +142,6 @@ export function BookStatusButton({
           )}
           Mark as Read
         </Button>
-        
-        {onRemove && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : null}
-            Remove from Reading
-          </Button>
-        )}
       </div>
     );
   }
@@ -192,21 +162,6 @@ export function BookStatusButton({
           )}
           Start Reading
         </Button>
-        
-        {onRemove && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={onRemove}
-            disabled={pendingAction !== null}
-          >
-            {pendingAction ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : null}
-            Remove from TBR
-          </Button>
-        )}
       </div>
     );
   }
