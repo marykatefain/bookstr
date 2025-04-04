@@ -158,6 +158,12 @@ export function BookStatusButton({
     if (horizontal) {
       return (
         <div className="w-full">
+          <div className="flex items-center mb-2">
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <BookOpen className="mr-1 h-3 w-3" />
+              Reading
+            </div>
+          </div>
           <Button
             className="w-full flex-1 bg-green-600 hover:bg-green-700"
             size="sm"
@@ -177,6 +183,14 @@ export function BookStatusButton({
     
     return (
       <div className="w-full">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <BookOpen className="mr-1 h-3 w-3" />
+              Reading
+            </div>
+          </div>
+        </div>
         <div className="flex gap-1">
           <Button
             className="w-full bg-green-600 hover:bg-green-700"
@@ -201,6 +215,12 @@ export function BookStatusButton({
     if (horizontal) {
       return (
         <div className="w-full">
+          <div className="flex items-center mb-2">
+            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <Star className="mr-1 h-3 w-3" />
+              TBR
+            </div>
+          </div>
           <Button
             className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
             size="sm"
@@ -220,6 +240,14 @@ export function BookStatusButton({
     
     return (
       <div className="w-full">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <Star className="mr-1 h-3 w-3" />
+              TBR
+            </div>
+          </div>
+        </div>
         <div className="flex gap-1">
           <Button
             className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"

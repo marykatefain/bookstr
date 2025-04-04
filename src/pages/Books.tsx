@@ -31,7 +31,11 @@ const Books = () => {
     isError: trendingError
   } = useDailyTrendingQuery(20);
   
-  const { getBookReadingStatus, refetchBooks: refetchUserBooks } = useLibraryData();
+  const { 
+    getBookReadingStatus, 
+    getBookByISBN, 
+    refetchBooks: refetchUserBooks 
+  } = useLibraryData();
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimerRef = useRef<number | null>(null);
   const initialRenderRef = useRef(true);
@@ -71,21 +75,25 @@ const Books = () => {
     
     return bookList.map(book => {
       if (book.isbn) {
-        const readingStatus = getBookReadingStatus(book.isbn);
-        if (readingStatus) {
+        const status = getBookReadingStatus(book.isbn);
+        if (status) {
+          // Get the book from the user's library to access its rating if available
+          const userBook = getBookByISBN(book.isbn);
+          
           return {
             ...book,
             readingStatus: {
-              ...book.readingStatus,
-              status: readingStatus,
-              dateAdded: Date.now()
+              status,
+              dateAdded: Date.now(),
+              // Keep existing rating or use the one from user's library if available
+              rating: book.readingStatus?.rating || userBook?.readingStatus?.rating
             }
           };
         }
       }
       return book;
     }) as Book[];
-  }, [getBookReadingStatus]);
+  }, [getBookReadingStatus, getBookByISBN]);
 
   const handleCategoryChange = useCallback((category: string) => {
     setActiveCategory(category);

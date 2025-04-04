@@ -103,7 +103,7 @@ export function useLibraryData() {
     } else if (books.reading.some(book => book.isbn === isbn)) {
       return 'reading';
     } else if (books.tbr.some(book => book.isbn === isbn)) {
-      return 'to-read';
+      return 'tbr';
     }
     
     return null;
