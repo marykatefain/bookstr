@@ -207,6 +207,8 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
     setMediaUrl(null);
     setMediaService(null);
     setUploadProgress(0);
+    // Close Alt Text modal as part of clearing media state
+    setShowAltTextModal(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -279,13 +281,18 @@ export function usePostBox(props: UsePostBoxProps = {}): UsePostBoxResult {
           description: "Your post has been published"
         });
         
-        // Clear form after successful post, but keep the media preview if available
-        // so the user can see the post they just created
+        // Clear form completely after successful post
         setContent("#bookstr ");
         setSelectedBook(null);
         setIsSpoiler(false);
         
-        // Only trigger the refresh callback
+        // Close the Alt Text modal if it's open
+        setShowAltTextModal(false);
+        
+        // Clear all media-related state for a fresh slate
+        clearMedia();
+        
+        // Trigger the refresh callback
         if (onPostSuccess) {
           onPostSuccess();
         }
