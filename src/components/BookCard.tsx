@@ -1,25 +1,30 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Book } from "@/lib/nostr/types";
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, addBookToTBR, markBookAsReading, markBookAsRead, removeBookFromList, rateBook } from "@/lib/nostr";
+import { 
+  isLoggedIn, 
+  addBookToTBR, 
+  markBookAsReading, 
+  markBookAsRead, 
+  removeBookFromList, 
+  rateBook 
+} from "@/lib/nostr";
 
 import { BookCover } from "./book/BookCover";
-import { BookRating } from "./book/BookRating";
-import { BookCategories } from "./book/BookCategories";
-import { BookActionButtons } from "./book/BookActionButtons";
-import { BookActions } from "./BookActions";
+import { BookStatusButton } from "./book/BookStatusButton";
+import { ISBNEntryModal } from "./ISBNEntryModal";
 
 interface BookCardProps {
   book: Book;
   size?: "small" | "medium" | "large";
   showDescription?: boolean;
   showRating?: boolean;
-  showCategories?: boolean;
-  onUpdate?: () => void;
   variant?: "horizontal" | "vertical";
   className?: string;
+  onUpdate?: () => void;
 }
 
 export const BookCard: React.FC<BookCardProps> = ({
@@ -27,25 +32,18 @@ export const BookCard: React.FC<BookCardProps> = ({
   size = "medium",
   showDescription = false,
   showRating = true,
-  showCategories = true,
-  onUpdate,
   variant = "vertical",
-  className = ""
+  className = "",
+  onUpdate
 }) => {
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [isRead, setIsRead] = useState(book.readingStatus?.status === 'finished');
+  const [showModal, setShowModal] = useState(false);
+  const [pendingActionType, setPendingActionType] = useState<'tbr' | 'reading' | 'finished' | null>(null);
   const [localBook, setLocalBook] = useState<Book>(book);
 
   useEffect(() => {
-    if (!book.title || !book.author) {
-      console.warn(`BookCard received incomplete book data: ISBN=${book.isbn}, hasTitle=${!!book.title}, hasAuthor=${!!book.author}`);
-    }
-  }, [book]);
-
-  useEffect(() => {
     setLocalBook(book);
-    setIsRead(book.readingStatus?.status === 'finished');
   }, [book]);
 
   const getCardClasses = () => {
@@ -69,50 +67,48 @@ export const BookCard: React.FC<BookCardProps> = ({
     if (size === "large") return `${baseClasses} text-base`;
     return `${baseClasses} text-sm`;
   };
-
-  const handleAction = async (action: 'tbr' | 'reading' | 'finished') => {
+  
+  const checkLogin = () => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
         description: "Please sign in with Nostr to add books to your library",
         variant: "destructive"
       });
+      return false;
+    }
+    return true;
+  };
+  
+  const checkIsbn = () => {
+    if (!localBook.isbn) {
+      setShowModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddToTBR = async () => {
+    if (!checkLogin() || !checkIsbn()) {
+      setPendingActionType('tbr');
       return;
     }
 
-    if (!book.isbn) {
-      toast({
-        title: "Invalid book data",
-        description: "This book is missing an ISBN and cannot be added to your library",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setPendingAction(action);
-
+    setPendingAction('tbr');
+    
     try {
-      let result: string | null;
+      await removeFromOtherLists('tbr');
+      const result = await addBookToTBR(localBook);
       
-      if (action === 'tbr') {
-        result = await addBookToTBR(book);
-      } else if (action === 'reading') {
-        result = await markBookAsReading(book);
-      } else if (action === 'finished') {
-        result = await markBookAsRead(book);
-        setIsRead(true);
-      }
-
       if (result) {
-        let statusText = action === 'tbr' ? 'TBR' : action === 'reading' ? 'currently reading' : 'read';
         toast({
-          title: `Added to your ${statusText} list`,
-          description: `${book.title} has been added to your library and published to Nostr`
+          title: "Added to your TBR list",
+          description: `${localBook.title} has been added to your library`
         });
         if (onUpdate) onUpdate();
       }
     } catch (error) {
-      console.error("Error adding book:", error);
+      console.error("Error adding book to TBR:", error);
       toast({
         title: "Action failed",
         description: "There was an error processing your request",
@@ -123,39 +119,84 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
-  const handleRemove = async (listType: 'tbr' | 'reading' | 'finished') => {
-    if (!isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in with Nostr to remove books from your library",
-        variant: "destructive"
-      });
+  const handleStartReading = async () => {
+    if (!checkLogin() || !checkIsbn()) {
+      setPendingActionType('reading');
       return;
     }
 
-    if (!book.isbn) {
-      toast({
-        title: "Invalid book data",
-        description: "This book is missing an ISBN and cannot be removed from your library",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setPendingAction(listType);
-
+    setPendingAction('reading');
+    
     try {
-      await removeBookFromList(book, listType);
+      await removeFromOtherLists('reading');
+      const result = await markBookAsReading(localBook);
       
-      let statusText = listType === 'tbr' ? 'TBR' : listType === 'reading' ? 'currently reading' : 'read';
+      if (result) {
+        toast({
+          title: "Added to your reading list",
+          description: `${localBook.title} has been added to your reading list`
+        });
+        if (onUpdate) onUpdate();
+      }
+    } catch (error) {
+      console.error("Error marking book as reading:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error processing your request",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleMarkAsRead = async () => {
+    if (!checkLogin() || !checkIsbn()) {
+      setPendingActionType('finished');
+      return;
+    }
+
+    setPendingAction('finished');
+    
+    try {
+      await removeFromOtherLists('finished');
+      const result = await markBookAsRead(localBook);
+      
+      if (result) {
+        toast({
+          title: "Marked as read",
+          description: `${localBook.title} has been marked as read`
+        });
+        if (onUpdate) onUpdate();
+      }
+    } catch (error) {
+      console.error("Error marking book as read:", error);
+      toast({
+        title: "Action failed",
+        description: "There was an error processing your request",
+        variant: "destructive"
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!checkLogin()) return;
+    
+    const status = localBook.readingStatus?.status;
+    if (!status) return;
+    
+    setPendingAction(status);
+    
+    try {
+      await removeBookFromList(localBook, status);
+      
+      let statusText = status === 'tbr' ? 'TBR' : status === 'reading' ? 'reading' : 'finished reading';
       toast({
         title: `Removed from your ${statusText} list`,
-        description: `${book.title} has been removed from your ${statusText} list`
+        description: `${localBook.title} has been removed from your ${statusText} list`
       });
-      
-      if (listType === 'finished') {
-        setIsRead(false);
-      }
       
       if (onUpdate) onUpdate();
     } catch (error) {
@@ -169,38 +210,16 @@ export const BookCard: React.FC<BookCardProps> = ({
       setPendingAction(null);
     }
   };
-
-  const handleBookUpdate = () => {
-    if (onUpdate) {
-      onUpdate();
-    }
-  };
-
+  
   const handleRating = async (rating: number) => {
-    if (!isLoggedIn()) {
-      toast({
-        title: "Login required",
-        description: "Please sign in with Nostr to rate books",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!book.isbn) {
-      toast({
-        title: "Invalid book data",
-        description: "This book is missing an ISBN and cannot be rated",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!checkLogin() || !checkIsbn()) return;
 
     try {
-      await rateBook(book.isbn, rating);
+      await rateBook(localBook.isbn, rating);
       
       toast({
         title: "Rating saved",
-        description: `Your rating for ${book.title} has been saved`
+        description: `Your rating for ${localBook.title} has been saved`
       });
       
       setLocalBook(prev => ({
@@ -221,24 +240,33 @@ export const BookCard: React.FC<BookCardProps> = ({
       });
     }
   };
-
-  const coverContainerClasses = variant === "horizontal"
-    ? "relative flex-shrink-0" + (size === "small" ? " w-16 h-16" : " w-24 h-24")
-    : "relative" + (variant === "vertical" ? " style={{ paddingTop: '150%' }}" : "");
-
-  const contentContainerClasses = variant === "horizontal"
-    ? "p-2 space-y-1 flex-grow"
-    : "p-3 space-y-1.5 flex-grow";
-
-  let mappedReadingStatus: 'tbr' | 'reading' | 'finished' | null = null;
   
-  if (localBook.readingStatus?.status === 'tbr') {
-    mappedReadingStatus = 'tbr';
-  } else if (localBook.readingStatus?.status === 'reading') {
-    mappedReadingStatus = 'reading';
-  } else if (localBook.readingStatus?.status === 'finished') {
-    mappedReadingStatus = 'finished';
-  }
+  const removeFromOtherLists = async (targetList: 'tbr' | 'reading' | 'finished') => {
+    if (!localBook.isbn) return;
+    
+    const currentStatus = localBook.readingStatus?.status;
+    if (currentStatus && currentStatus !== targetList) {
+      try {
+        await removeBookFromList(localBook, currentStatus);
+      } catch (error) {
+        console.error(`Error removing book from ${currentStatus} list:`, error);
+      }
+    }
+  };
+  
+  const handleManualIsbn = (book: Book, isbn: string) => {
+    const updatedBook = { ...book, isbn };
+    setLocalBook(updatedBook);
+    
+    if (pendingActionType === 'tbr') {
+      handleAddToTBR();
+    } else if (pendingActionType === 'reading') {
+      handleStartReading();
+    } else if (pendingActionType === 'finished') {
+      handleMarkAsRead();
+    }
+    setPendingActionType(null);
+  };
 
   const bookTitle = localBook.title || `Book (ISBN: ${localBook.isbn || "Unknown"})`;
   const authorDisplayName = localBook.author || "Unknown Author";
@@ -248,24 +276,17 @@ export const BookCard: React.FC<BookCardProps> = ({
       <CardContent className="p-0 flex flex-col h-full">
         {variant === "horizontal" ? (
           <div className="flex flex-row h-full">
-            <div className={coverContainerClasses}>
+            <div className={`relative flex-shrink-0 ${size === "small" ? "w-16 h-24" : "w-24 h-36"}`}>
               <BookCover 
                 isbn={localBook.isbn}
                 title={bookTitle}
                 author={authorDisplayName}
                 coverUrl={localBook.coverUrl}
-                isRead={isRead}
-                pendingAction={pendingAction}
-                onReadAction={() => handleAction('finished')}
-                onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
-                readingStatus={mappedReadingStatus}
                 size={size}
-                rating={localBook.readingStatus?.rating}
-                onRatingChange={handleRating}
               />
             </div>
             
-            <div className={contentContainerClasses}>
+            <div className="p-2 space-y-2 flex-grow">
               <h3 className={getTitleClasses()}>
                 {localBook.isbn ? (
                   <Link 
@@ -280,22 +301,20 @@ export const BookCard: React.FC<BookCardProps> = ({
               </h3>
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
-              {showRating && (
-                <BookRating 
-                  rating={localBook.readingStatus?.rating} 
-                  readingStatus={mappedReadingStatus}
-                />
+              {showDescription && localBook.description && (
+                <p className="text-xs line-clamp-2 text-gray-600 dark:text-gray-300">{localBook.description}</p>
               )}
               
-              {showCategories && size !== "small" && (
-                <BookCategories categories={localBook.categories} />
-              )}
-              
-              <BookActions
+              <BookStatusButton
                 book={localBook}
-                onUpdate={handleBookUpdate}
-                size={size}
+                pendingAction={pendingAction}
+                onAddToTbr={handleAddToTBR}
+                onStartReading={handleStartReading}
+                onMarkAsRead={handleMarkAsRead}
+                onRemove={handleRemove}
+                onRatingChange={handleRating}
                 horizontal={true}
+                size={size}
               />
             </div>
           </div>
@@ -308,19 +327,12 @@ export const BookCard: React.FC<BookCardProps> = ({
                   title={bookTitle}
                   author={authorDisplayName}
                   coverUrl={localBook.coverUrl}
-                  isRead={isRead}
-                  pendingAction={pendingAction}
-                  onReadAction={() => handleAction('finished')}
-                  onRemoveAction={mappedReadingStatus ? () => handleRemove(mappedReadingStatus) : undefined}
-                  readingStatus={mappedReadingStatus}
                   size={size}
-                  rating={localBook.readingStatus?.rating}
-                  onRatingChange={handleRating}
                 />
               </div>
             </div>
             
-            <div className={contentContainerClasses}>
+            <div className="p-3 space-y-2 flex-grow">
               <h3 className={getTitleClasses()}>
                 {localBook.isbn ? (
                   <Link 
@@ -335,31 +347,34 @@ export const BookCard: React.FC<BookCardProps> = ({
               </h3>
               <p className="text-xs text-muted-foreground truncate">by {authorDisplayName}</p>
               
-              {showRating && (
-                <BookRating 
-                  rating={localBook.readingStatus?.rating} 
-                  readingStatus={mappedReadingStatus}
-                />
-              )}
-              
-              {showCategories && (
-                <BookCategories categories={localBook.categories} />
-              )}
-              
               {showDescription && localBook.description && (
-                <p className="text-xs line-clamp-2">{localBook.description}</p>
+                <p className="text-xs line-clamp-2 text-gray-600 dark:text-gray-300">{localBook.description}</p>
               )}
               
-              <BookActions
+              <BookStatusButton
                 book={localBook}
-                onUpdate={handleBookUpdate}
+                pendingAction={pendingAction}
+                onAddToTbr={handleAddToTBR}
+                onStartReading={handleStartReading}
+                onMarkAsRead={handleMarkAsRead}
+                onRemove={handleRemove}
+                onRatingChange={handleRating}
                 size={size}
-                horizontal={true}
               />
             </div>
           </>
         )}
       </CardContent>
+      
+      <ISBNEntryModal
+        book={localBook}
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setPendingActionType(null);
+        }}
+        onSubmit={handleManualIsbn}
+      />
     </Card>
   );
-}
+};

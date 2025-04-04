@@ -151,6 +151,11 @@ export async function updateNostrProfile(
       mergedContent = mergeProfileContent(latestProfileEvent.content, event.content || "{}");
     }
 
+    // Ensure we have the client tag
+    if (!mergedTags.some(tag => tag[0] === 'client')) {
+      mergedTags.push(["client", "Bookstr"]);
+    }
+
     // 4. Create the unsigned event with merged data
     const unsignedEvent: UnsignedEvent = {
       kind: NOSTR_KINDS.SET_METADATA,

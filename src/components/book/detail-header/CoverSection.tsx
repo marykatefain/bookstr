@@ -1,9 +1,10 @@
 
 import React from "react";
 import { Book } from "@/lib/nostr/types";
-import { BookOpen, Check, Star, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookCover } from "@/components/book/BookCover";
+import { BookStatusButton } from "@/components/book/BookStatusButton";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -25,13 +26,11 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
   handleRemove 
 }) => {
   const readingStatus = book.readingStatus?.status;
-  const isTbr = readingStatus === 'tbr';
-  const isReading = readingStatus === 'reading';
-  const isFinished = readingStatus === 'finished';
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
-  const showActionButtons = !isFinished;
+  const handleAddToTbr = () => addBookToList(book, 'tbr');
+  const handleStartReading = () => addBookToList(book, 'reading');
   
   const handleBookshopSearch = () => {
     if (!book.title) {
@@ -60,48 +59,20 @@ export const BookCoverSection: React.FC<BookCoverSectionProps> = ({
             title={book.title}
             author={book.author}
             coverUrl={book.coverUrl}
-            isRead={isRead}
-            pendingAction={pendingAction}
-            onReadAction={handleMarkAsRead}
-            onRemoveAction={handleRemove}
-            readingStatus={readingStatus as 'tbr' | 'reading' | 'finished' | null}
-            rating={book.readingStatus?.rating}
-            book={book}
             size="large"
+            book={book}
           />
         </div>
         
         <div className="mt-4 flex flex-col gap-2">
-          {showActionButtons && (
-            <div className="flex gap-2">
-              <Button 
-                className={`flex-1 ${isTbr ? "bg-bookverse-highlight" : ""}`}
-                variant={isTbr ? "default" : "outline"}
-                onClick={() => addBookToList(book, 'tbr')}
-                disabled={pendingAction !== null}
-              >
-                {isTbr ? (
-                  <Check className="mr-2 h-4 w-4" />
-                ) : (
-                  <BookOpen className="mr-2 h-4 w-4" />
-                )}
-                {isTbr ? "On TBR List" : "To Be Read"}
-              </Button>
-              
-              <Button 
-                className={`flex-1 ${isReading ? "bg-bookverse-highlight" : "bg-bookverse-accent hover:bg-bookverse-highlight"}`}
-                onClick={() => addBookToList(book, 'reading')}
-                disabled={pendingAction !== null}
-              >
-                {isReading ? (
-                  <Check className="mr-2 h-4 w-4" />
-                ) : (
-                  <Star className="mr-2 h-4 w-4" />
-                )}
-                {isReading ? "Reading" : isMobile ? "Start Reading" : "Start"}
-              </Button>
-            </div>
-          )}
+          <BookStatusButton
+            book={book}
+            pendingAction={pendingAction}
+            onAddToTbr={handleAddToTbr}
+            onStartReading={handleStartReading}
+            onMarkAsRead={handleMarkAsRead}
+            onRemove={handleRemove ? () => handleRemove() : undefined}
+          />
           
           <Button 
             variant="outline"

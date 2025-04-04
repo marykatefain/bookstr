@@ -70,10 +70,18 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
       }
     }
 
+    // Prepare tags, ensuring client tag is included
+    let tags = event.tags || [];
+    
+    // Add client tag if not already present
+    if (!tags.some(tag => tag[0] === 'client')) {
+      tags.push(["client", "Bookstr"]);
+    }
+    
     const unsignedEvent: UnsignedEvent = {
       kind: event.kind || NOSTR_KINDS.TEXT_NOTE,
       created_at: Math.floor(Date.now() / 1000),
-      tags: event.tags || [],
+      tags: tags,
       content: event.content || "",
       pubkey: currentUser.pubkey || ""
     };
@@ -251,6 +259,11 @@ export async function updateNostrEvent(
     console.log("Found existing event:", existingEvent);
     
     const updatedTags = updateTags(existingEvent.tags as string[][]);
+    
+    // Ensure client tag is included
+    if (!updatedTags.some(tag => tag[0] === 'client')) {
+      updatedTags.push(["client", "Bookstr"]);
+    }
     
     const unsignedEvent: UnsignedEvent = {
       kind: filter.kind,

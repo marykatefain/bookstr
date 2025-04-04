@@ -142,8 +142,8 @@ export const MobileSidebar = ({
             
             <Separator className="my-2" />
             
-            <div className="px-4 pt-2 pb-2">
-              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+            <div className="px-4 py-3">
+              <div className="space-y-3">
                 <h3 className="font-medium text-sm">What is Nostr?</h3>
                 <p className="text-xs text-muted-foreground">
                   Nostr is a decentralized protocol enabling censorship-resistant social networking and content sharing.
@@ -159,8 +159,10 @@ export const MobileSidebar = ({
               </div>
             </div>
             
-            <div className="px-4 pt-2 pb-2">
-              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+            <Separator className="my-2" />
+            
+            <div className="px-4 py-3">
+              <div className="space-y-3">
                 <h3 className="font-medium text-sm">Open Library Data</h3>
                 <p className="text-xs text-muted-foreground">
                   Bookstr uses Open Library's API for book data. Help improve the ecosystem by contributing missing book information.
@@ -177,15 +179,17 @@ export const MobileSidebar = ({
               </div>
             </div>
             
-            <div className="px-4 pt-2 pb-4">
-              <div className="space-y-4 p-3 bg-bookverse-cream/50 rounded-md">
+            <Separator className="my-2" />
+            
+            <div className="px-4 py-3">
+              <div className="space-y-3">
                 <h3 className="font-medium text-sm">Support Bookstr</h3>
                 <p className="text-xs text-muted-foreground">
                   Help us keep Bookstr running by donating Bitcoin. Your support makes a difference!
                 </p>
                 <button
                   onClick={copyBitcoinAddress}
-                  className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full"
+                  className="flex items-center space-x-2 text-xs text-bookverse-accent hover:text-bookverse-highlight w-full text-left"
                 >
                   <Bitcoin className="h-4 w-4" />
                   <span>Copy Bitcoin Address</span>
@@ -195,8 +199,6 @@ export const MobileSidebar = ({
                 </p>
               </div>
             </div>
-            
-            <Separator className="my-2" />
           </ScrollArea>
         </div>
         <div 
@@ -208,4 +210,3 @@ export const MobileSidebar = ({
     </aside>
   );
 };
-
