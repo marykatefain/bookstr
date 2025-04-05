@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Separator } from "@/components/ui/separator";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -13,6 +13,13 @@ import { useToast } from "@/hooks/use-toast";
 
 const Library: React.FC = () => {
   const [activeTab, setActiveTab] = useState("books");
+
+  // Reset to books tab if current tab is posts (which we've removed)
+  useEffect(() => {
+    if (activeTab === "posts") {
+      setActiveTab("books");
+    }
+  }, [activeTab]);
   const [showRelaySettings, setShowRelaySettings] = useState(false);
   const { toast } = useToast();
   const { 
@@ -80,7 +87,8 @@ const Library: React.FC = () => {
 
           <StatsCards 
             books={books} 
-            postsCount={posts.length} 
+            postsCount={posts.length}
+            reviewsCount={reviews.length} 
             onTabChange={handleTabChange}
           />
 
