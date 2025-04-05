@@ -1,3 +1,4 @@
+
 import React, { ReactNode } from "react";
 import { Users } from "lucide-react";
 
@@ -14,7 +15,7 @@ export function FeedHeader({
     <div className="flex items-center justify-between">
       <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center">
         <Users className="mr-2 h-5 w-5" />
-        #Bookstr Community on Nostr
+        Bookstr Community Across Nostr
       </h2>
       
       {showFeedTypeSelector && children && (
