@@ -11,6 +11,7 @@ import {
   fetchReplies
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
+import { Rating } from "@/lib/utils/Rating";
 
 export const useBookReviews = (isbn: string | undefined) => {
   const [reviews, setReviews] = useState<BookReview[]>([]);
@@ -71,11 +72,11 @@ export const useBookReviews = (isbn: string | undefined) => {
   }, [fetchReviewsData]);
 
   // This function now only updates the local state without submitting to the network
-  const handleRateBook = useCallback(async (book: Book | null, rating: number) => {
+  const handleRateBook = useCallback(async (book: Book | null, rating: Rating) => {
     if (!book || !isLoggedIn()) return;
     
-    // Just update the local state
-    setUserRating(rating);
+    // Just update the local state with the raw fraction value
+    setUserRating(rating.fraction);
   }, []);
 
   const handleSubmitReview = useCallback(async (book: Book | null) => {
@@ -98,8 +99,11 @@ export const useBookReviews = (isbn: string | undefined) => {
         }
       }
       
+      // Create Rating object from userRating value (which is stored on 0-1 scale)
+      const ratingObj = userRating > 0 ? new Rating(userRating) : undefined;
+      
       // Pass isSpoiler as the optional 4th parameter
-      await reviewBook(book, finalReviewText, userRating > 0 ? userRating : undefined, isSpoiler);
+      await reviewBook(book, finalReviewText, ratingObj, isSpoiler);
       
       toast({
         title: "Review submitted",
@@ -125,7 +129,7 @@ export const useBookReviews = (isbn: string | undefined) => {
   return {
     reviews,
     ratings,
-    userRating,
+    userRating: userRating > 0 ? new Rating(userRating) : new Rating(0),
     reviewText,
     setReviewText,
     isSpoiler,

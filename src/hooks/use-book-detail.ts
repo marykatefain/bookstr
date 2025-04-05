@@ -4,6 +4,7 @@ import { useBookReviews } from "./book/use-book-reviews";
 import { useBookActions } from "./book/use-book-actions";
 import { useBookActivity } from "./book/use-book-activity";
 import { useCallback } from "react";
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Hook that aggregates all book-related data and actions for a book detail page
@@ -59,7 +60,7 @@ export const useBookDetail = (isbn: string | undefined) => {
   }, [markAsRead, book, setIsRead]);
   
   // Modify handleRateBook to not require the book parameter when called from BookReviewSection
-  const handleRateBookWrapper = useCallback((rating: number) => {
+  const handleRateBookWrapper = useCallback((rating: Rating) => {
     if (!book) return;
     return handleRateBook(book, rating);
   }, [handleRateBook, book]);
