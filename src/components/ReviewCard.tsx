@@ -32,7 +32,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const displayRating = (): number | undefined => {
     if (review.rating === undefined) return undefined;
     
-    // Convert rating to 1-5 scale
+    // Convert rating to 0-5 scale
     return review.rating.toScale(5);
   };
 

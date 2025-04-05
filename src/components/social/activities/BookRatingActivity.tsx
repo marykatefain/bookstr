@@ -13,7 +13,7 @@ interface BookRatingActivityProps {
 }
 
 export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, rating }: BookRatingActivityProps) {
-  // Convert rating to 1-5 scale 
+  // Convert rating to 0-5 scale 
   const displayRating = rating?.toScale(5);
   
   return (

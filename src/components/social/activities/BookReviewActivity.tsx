@@ -27,7 +27,7 @@ export function BookReviewActivity({
 }: BookReviewActivityProps) {
   const [imageError, setImageError] = useState(false);
   
-  // Convert rating to 1-5 scale for display
+  // Convert rating to 0-5 scale for display
   const displayRating = rating ? rating.toScale(5) : undefined;
   
   return (

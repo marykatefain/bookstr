@@ -18,7 +18,7 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus })
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
   
-  // Convert rating to display scale (1-5)
+  // Convert rating to display scale (0-5)
   const displayRating = rating.toScale(5);
   
   return (

@@ -44,7 +44,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   const [hasExistingReview, setHasExistingReview] = useState(false);
   const currentUser = getCurrentUser();
   
-  // Convert rating to 1-5 scale for display
+  // Convert rating to 0-5 scale for display
   const displayRating = userRating ? userRating.toScale(5) : 0;
   
   // Check if the current user has an existing review

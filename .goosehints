@@ -444,7 +444,7 @@ See [NIP 51](https://github.com/nostr-protocol/nips/blob/master/51.md) for gener
 
 Please note that here the review uses d tags instead of i tags for ISBN (versus in the other event kinds). This is a common point of error, so pay attention to get it right!
 
-Please also note that although the Bookstr UI displays ratings on a scale of 1-5 stars, the underlying data model is a scale of 0-1. In the updated codebase, we use a `Rating` class to handle this conversion consistently throughout the application.
+Please also note that although the Bookstr UI displays ratings on a scale of 0-5 stars, the underlying data model is a scale of 0-1. In the updated codebase, we use a `Rating` class to handle this conversion consistently throughout the application.
 
 ## Rating Class Overview
 
@@ -467,7 +467,7 @@ export class Rating {
     return this.fraction * outOf;
   }
 
-  /** Creates a Rating from a scaled value (e.g., 1-5 stars to 0-1 fraction) */
+  /** Creates a Rating from a scaled value (e.g., 0-5 stars to 0-1 fraction) */
   static fromScale(fraction: number, outOf: number = 5): Rating {
     return new Rating(fraction / outOf);
   }
@@ -477,11 +477,12 @@ export class Rating {
 ## Key Rating Conversion Patterns
 
 - **Creating a Rating from raw value (0-1 scale)**: `new Rating(0.8)`
-- **Creating a Rating from UI stars (1-5 scale)**: `Rating.fromScale(4, 5)` 
+- **Creating a Rating from UI stars (0-5 scale)**: `Rating.fromScale(4, 5)` 
 - **Converting a Rating to display stars (for UI)**: `rating.toScale(5)`
 - **Storing a Rating in Nostr event**: `["rating", rating.fraction.toString()]`
 
 ## Rating Conversion Table
+- Rating with fraction less than `0.2` → 0 stars
 - Rating with fraction `0.2` → 1 star (using `rating.toScale(5)`)
 - Rating with fraction `0.4` → 2 stars
 - Rating with fraction `0.6` → 3 stars 
@@ -512,7 +513,7 @@ This ensures consistent handling of ratings throughout the application.
 **Common Pitfalls to Avoid:**
 - Using raw number values instead of the `Rating` class for rating data
 - Manually converting between rating scales (always use `Rating.fromScale()` and `rating.toScale()`)
-- Storing display ratings (1-5 scale) in Nostr events instead of the raw 0-1 fraction
+- Storing display ratings (0-5 scale) in Nostr events instead of the raw 0-1 fraction
 - Not handling undefined/null ratings properly (use conditional checks before calling methods)
 - Forgetting to convert to a string when adding rating to event tags (`rating.fraction.toString()`)
 - Mixing primitive number types with `Rating` objects in component props
@@ -626,7 +627,7 @@ Do NOT:
 - Store user data server-side — use localStorage or Nostr events.
 - Mix up the `d` and `i` tags for ISBNs - they're used in different contexts.
 - Implement direct API calls to OpenLibrary without using the caching proxy.
-- Manually convert between rating scales (0-1 fraction ↔ 1-5 stars) - use the Rating class methods.
+- Manually convert between rating scales (0-1 fraction ↔ 0-5 stars) - use the Rating class methods.
 
 
 
