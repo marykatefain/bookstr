@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, ChangeEvent, KeyboardEvent } from 'react';
 import { Textarea as ShadcnTextarea } from "@/components/ui/textarea";
 import { EmojiPicker } from '@/components/emoji/EmojiPicker';
@@ -101,23 +102,25 @@ export function EmojiTextarea({ value, onChange, ...props }: EmojiTextareaProps)
 
     try {
       // Ensure we have proper emoji data
-      if (!data || !data.emojis) {
+      if (!data) {
         return;
       }
 
       // Filter emojis from emoji-mart data
       const filteredEmojis: EmojiSuggestion[] = [];
       
-      // Search through each category's emojis
-      Object.entries(data.emojis).forEach(([id, emoji]: [string, any]) => {
+      // The data structure is different than expected, let's use type assertion to handle it
+      const emojiData = data as any;
+      
+      // Search through each emoji
+      Object.entries(emojiData.emoji || {}).forEach(([id, emoji]: [string, any]) => {
         // Check if we have all required properties
-        if (!emoji.native) return;
+        if (!emoji || !emoji.native) return;
         
-        // Check if the emoji name, shortcodes, or keywords match the search term
+        // Check if the emoji name, id, or keywords match the search term
         if (
           emoji.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (emoji.shortcodes && Array.isArray(emoji.shortcodes) && emoji.shortcodes.some((sc: string) => sc.toLowerCase().includes(searchTerm.toLowerCase()))) ||
           (emoji.keywords && Array.isArray(emoji.keywords) && emoji.keywords.some((kw: string) => kw.toLowerCase().includes(searchTerm.toLowerCase())))
         ) {
           filteredEmojis.push({
@@ -135,6 +138,7 @@ export function EmojiTextarea({ value, onChange, ...props }: EmojiTextareaProps)
 
       setEmojiSuggestions(filteredEmojis);
     } catch (error) {
+      console.error("Error searching emojis:", error);
       setEmojiSuggestions([]);
     }
   };

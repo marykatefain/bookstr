@@ -220,7 +220,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
           });
           
           // Wait for all publish attempts to complete
-          Promise.all(publishPromises).then(results => {
+          Promise.all(publishPromises).then((results) => {
             clearTimeout(timeoutId);
             console.log("Publish results:", results);
             
@@ -463,7 +463,7 @@ export async function updateNostrEvent(
         });
         
         // Wait for all publish attempts to complete
-        Promise.all(publishPromises).then(results => {
+        Promise.all(publishPromises).then((results) => {
           clearTimeout(timeoutId);
           console.log("Update publish results:", results);
           
