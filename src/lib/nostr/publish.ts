@@ -203,7 +203,8 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
           const publishPromises = relayUrls.map(url => {
             return new Promise<boolean>((resolveRelay, rejectRelay) => {
               try {
-                pool.publish([url], signedEvent as Event)
+                const publishPromise = pool.publish([url], signedEvent as Event);
+                Promise.all(publishPromise)
                   .then(() => {
                     console.log(`Successfully published to ${url}`);
                     resolveRelay(true);
@@ -445,7 +446,8 @@ export async function updateNostrEvent(
         const publishPromises = relayUrls.map(url => {
           return new Promise<boolean>((resolveRelay, rejectRelay) => {
             try {
-              pool.publish([url], signedEvent as Event)
+              const publishPromise = pool.publish([url], signedEvent as Event);
+              Promise.all(publishPromise)
                 .then(() => {
                   console.log(`Successfully published update to ${url}`);
                   resolveRelay(true);
