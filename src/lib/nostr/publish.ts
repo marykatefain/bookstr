@@ -232,7 +232,6 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
               resolve(signedEvent.id);
             } else {
               // Optimistic approach: resolve with the event ID even if no relays confirmed success
-              // This is often necessary because some relays don't properly acknowledge
               console.warn("No relays confirmed successful publish, but the event is valid. Proceeding optimistically.");
               resolve(signedEvent.id);
             }
