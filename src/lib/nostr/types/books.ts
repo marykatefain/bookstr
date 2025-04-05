@@ -1,5 +1,6 @@
 
 import { Reply } from './common';
+import { Rating } from '@/lib/utils/Rating';
 
 export interface Book {
   id: string;
@@ -14,7 +15,7 @@ export interface Book {
   readingStatus?: {
     status: 'tbr' | 'reading' | 'finished';
     dateAdded: number;
-    rating?: number;
+    rating?: Rating;
   };
   // Add author_name field for compatibility with OpenLibrary data
   author_name?: string[];
@@ -26,7 +27,7 @@ export interface BookReview {
   id: string;
   pubkey: string;
   content?: string;
-  rating?: number;
+  rating?: Rating;
   createdAt: number;
   bookIsbn?: string;
   bookTitle?: string;

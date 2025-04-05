@@ -6,7 +6,7 @@ import { getUserRelays } from "./relay";
 import { fetchFollowingList } from "./fetch";
 import { toast } from "@/hooks/use-toast";
 import { getSharedPool } from "./utils/poolManager";
-import { convertDisplayRatingToRawRating } from "../utils/ratings";
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Fetch all ISBNs from a specific list type
@@ -168,7 +168,7 @@ export async function markBookAsReading(book: Book): Promise<string | null> {
 /**
  * Mark a book as read
  */
-export async function markBookAsRead(book: Book, rating?: number): Promise<string | null> {
+export async function markBookAsRead(book: Book, rating?: Rating): Promise<string | null> {
   console.log("==== Marking book as read ====");
   console.log("Book details:", book.title, book.author, book.isbn);
   
@@ -216,7 +216,7 @@ export async function markBookAsRead(book: Book, rating?: number): Promise<strin
 /**
  * Rate a book separately
  */
-export async function rateBook(bookOrIsbn: Book | string, rating: number): Promise<string | null> {
+export async function rateBook(bookOrIsbn: Book | string, rating: Rating | number): Promise<string | null> {
   // Determine if we have a book object or just an ISBN string
   const isbn = typeof bookOrIsbn === 'string' ? bookOrIsbn : bookOrIsbn.isbn;
   
@@ -224,19 +224,18 @@ export async function rateBook(bookOrIsbn: Book | string, rating: number): Promi
     console.error("Cannot rate book: ISBN is missing");
     return null;
   }
-  const rawRating = convertDisplayRatingToRawRating(rating);
-  // Ensure rawRating is now between 0 and 1
-  if (rawRating < 0 || rawRating > 1) {
-    console.error("rawRating must be between 0 and 1");
-    return null;
-  }
+  
+  // Convert to Rating type if it's a number
+  const ratingObj = typeof rating === 'number' 
+    ? new Rating(rating)
+    : rating;
   
   const event = {
     kind: NOSTR_KINDS.REVIEW,
     tags: [
       ["d", `isbn:${isbn}`],
       ["k", "isbn"],
-      ["rating", rawRating.toString()]
+      ["rating", ratingObj.fraction.toString()]
     ],
     content: ""
   };
@@ -247,7 +246,7 @@ export async function rateBook(bookOrIsbn: Book | string, rating: number): Promi
 /**
  * Post a review for a book
  */
-export async function reviewBook(book: Book, reviewText: string, rating?: number, isSpoiler?: boolean): Promise<string | null> {
+export async function reviewBook(book: Book, reviewText: string, rating?: Rating, isSpoiler?: boolean): Promise<string | null> {
   if (!book.isbn) {
     console.error("Cannot review book: ISBN is missing");
     return null;
@@ -261,7 +260,7 @@ export async function reviewBook(book: Book, reviewText: string, rating?: number
   
   // Add rating tag if provided
   if (rating !== undefined) {
-    tags.push(["rating", rating.toString()]);
+    tags.push(["rating", rating.fraction.toString()]);
   }
   
   // Add spoiler tag if true
