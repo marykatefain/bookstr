@@ -21,6 +21,7 @@ interface SocialFeedProps {
   refreshTrigger?: number;
   isBackgroundRefresh?: boolean;
   onRefreshComplete?: () => void;
+  enablePagination?: boolean;
 }
 
 // Memoize FeedContent to prevent unnecessary re-renders
@@ -33,21 +34,27 @@ export function SocialFeed({
   maxItems,
   refreshTrigger = 0,
   isBackgroundRefresh = false,
-  onRefreshComplete
+  onRefreshComplete,
+  enablePagination = false
 }: SocialFeedProps) {
   const { 
     activities, 
     loading, 
     backgroundLoading, 
     error,
-    refreshFeed
+    refreshFeed,
+    loadMore,
+    hasMore,
+    loadingMore
   } = useSocialFeed({
     type,
     useMockData,
     maxItems,
     refreshTrigger,
     providedActivities,
-    isBackgroundRefresh
+    isBackgroundRefresh,
+    onRefreshComplete,
+    enablePagination
   });
 
   const { activities: reactiveActivities, handleReact } = useFeedReactions(activities);
@@ -127,6 +134,33 @@ export function SocialFeed({
         onReaction={handleReact} 
         refreshTrigger={refreshTrigger}
       />
+
+      {/* Load More Button (only shown when pagination is enabled) */}
+      {enablePagination && reactiveActivities.length > 0 && (
+        <div className="flex justify-center pt-6 pb-4">
+          {hasMore ? (
+            <Button 
+              variant="outline"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full max-w-[200px]"
+            >
+              {loadingMore ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <span>Load More</span>
+                </>
+              )}
+            </Button>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">No more posts to load</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

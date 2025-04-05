@@ -107,6 +107,13 @@ export function getGlobalRefreshCooldownRemaining(): number {
 }
 
 /**
+ * Get the default refresh interval for feeds
+ */
+export function getFeedRefreshInterval(): number {
+  return 60000; // Default refresh every 60 seconds
+}
+
+/**
  * Lazily fetch and populate author details for activities
  */
 export async function lazyLoadActivityAuthors(activities: SocialActivity[]): Promise<void> {

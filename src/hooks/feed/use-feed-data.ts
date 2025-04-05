@@ -60,7 +60,9 @@ export function useFeedData({
     
     try {
       if (type === "followers") {
-        feed = await fetchSocialFeed(maxItems || 20);
+        // For following feed, convert milliseconds to seconds for Nostr timestamps
+        const untilSeconds = until ? Math.floor(until / 1000) : undefined;
+        feed = await fetchSocialFeed(maxItems || 20, untilSeconds);
       } else {
         // For global feed, update timestamp (but not for paginated requests)
         if (type === "global" && !isBackgroundFetch && !until) {

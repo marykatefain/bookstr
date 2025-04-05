@@ -18,6 +18,7 @@ import UserProfile from "./pages/UserProfile";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
+import Following from "./pages/Following";
 
 // Service imports
 import { initNostr, cleanupNostr } from "./lib/nostr";
@@ -49,6 +50,7 @@ function App() {
               <Route path="/library" element={<Library />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/social" element={<Index />} />
+              <Route path="/following" element={<Following />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/users" element={<UserSearch />} />
               <Route path="/users/:pubkey" element={<UserProfile />} />

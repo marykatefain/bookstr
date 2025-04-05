@@ -1,23 +1,14 @@
-
-import React from "react";
+import React, { ReactNode } from "react";
 import { Users } from "lucide-react";
-import { FeedTypeSelector } from "./FeedTypeSelector";
-import { RefreshButton } from "./RefreshButton";
 
 interface FeedHeaderProps {
-  feedType: "followers" | "global";
-  setFeedType: (type: "followers" | "global") => void;
-  onRefresh: () => void;
-  isRefreshing: boolean;
-  isLoggedIn: boolean;
+  children?: ReactNode;
+  showFeedTypeSelector?: boolean;
 }
 
 export function FeedHeader({
-  feedType,
-  setFeedType,
-  onRefresh,
-  isRefreshing,
-  isLoggedIn
+  children,
+  showFeedTypeSelector = true
 }: FeedHeaderProps) {
   return (
     <div className="flex items-center justify-between">
@@ -26,18 +17,11 @@ export function FeedHeader({
         #Bookstr Community on Nostr
       </h2>
       
-      <div className="flex items-center gap-2">
-        <FeedTypeSelector 
-          feedType={feedType} 
-          setFeedType={setFeedType} 
-          isLoggedIn={isLoggedIn} 
-        />
-        
-        <RefreshButton 
-          onRefresh={onRefresh} 
-          isRefreshing={isRefreshing} 
-        />
-      </div>
+      {showFeedTypeSelector && children && (
+        <div className="flex items-center gap-2">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
