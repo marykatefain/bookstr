@@ -1,6 +1,7 @@
 
 import { Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../../types";
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Extract ISBN from event tags
@@ -35,13 +36,19 @@ export function extractISBNsFromTags(event: Event): string[] {
 /**
  * Extract rating value from event tags
  */
-export function extractRatingFromTags(event: Event): number | undefined {
+export function extractRatingFromTags(event: Event): Rating | undefined {
   if (!event.tags) return undefined;
   
   for (const tag of event.tags) {
     if (tag[0] === 'rating' && tag[1]) {
-      const rating = parseInt(tag[1], 10);
-      return isNaN(rating) ? undefined : rating;
+      const ratingValue = parseFloat(tag[1]);
+      if (!isNaN(ratingValue)) {
+        try {
+          return new Rating(ratingValue);
+        } catch (e) {
+          console.error('Invalid rating value in event tag:', ratingValue, e);
+        }
+      }
     }
   }
   

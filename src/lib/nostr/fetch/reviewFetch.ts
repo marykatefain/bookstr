@@ -1,11 +1,34 @@
 import { type Filter, type Event } from "nostr-tools";
 import { BookReview, NOSTR_KINDS } from "../types";
 import { getUserRelays } from "../relay";
-import { extractISBNFromTags, extractRatingFromTags } from "../utils/eventUtils";
+import { extractISBNFromTags } from "../utils/eventUtils";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { getSharedPool } from "../utils/poolManager";
 import { throttlePromises } from "@/lib/utils";
 import { filterBlockedEvents, isBlocked } from "../utils/blocklist";
+import { Rating } from "@/lib/utils/Rating";
+
+/**
+ * Extracts rating value from event tags
+ */
+function extractRatingFromTags(event: Event): Rating | undefined {
+  if (!event.tags) return undefined;
+  
+  for (const tag of event.tags) {
+    if (tag[0] === 'rating' && tag[1]) {
+      const ratingValue = parseFloat(tag[1]);
+      if (!isNaN(ratingValue)) {
+        try {
+          return new Rating(ratingValue);
+        } catch (e) {
+          console.error('Invalid rating value in event tag:', ratingValue, e);
+        }
+      }
+    }
+  }
+  
+  return undefined;
+}
 
 /**
  * Extracts spoiler information from event tags
@@ -285,7 +308,7 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
       const isSpoiler = extractSpoilerInfo(event);
       
       // Log review info for debugging
-      console.log(`Review ${event.id}: ISBN=${isbn}, Rating=${rating}, isSpoiler=${isSpoiler}`);
+      console.log(`Review ${event.id}: ISBN=${isbn}, Rating=${rating.toScale(5)}, isSpoiler=${isSpoiler}`);
       
       reviews.push({
         id: event.id,

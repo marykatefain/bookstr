@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, BookOpen, Star, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { rateBook } from "@/lib/nostr";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookStatusButtonProps {
   book: Book;
@@ -11,7 +12,7 @@ interface BookStatusButtonProps {
   onAddToTbr: () => void;
   onStartReading: () => void;
   onMarkAsRead: () => void;
-  onRatingChange?: (rating: number) => void;
+  onRatingChange?: (rating: Rating) => void;
   onRemove?: () => void;
   horizontal?: boolean;
   size?: "small" | "medium" | "large";
@@ -38,7 +39,7 @@ export function BookStatusButton({
   const isFinished = readingStatus === 'finished';
   
   const rating = book.readingStatus?.rating;
-  const displayRating = rating ? Math.round(rating * 5) : 0;
+  const displayRating = rating ? rating.toScale(5) : 0;
 
   const handleRating = async (newRating: number) => {
     if (!book.isbn) return;
@@ -46,10 +47,13 @@ export function BookStatusButton({
     try {
       setIsRating(true);
       
+      // Create a Rating object from the star selection
+      const ratingObj = Rating.fromScale(newRating, 5);
+      
       if (onRatingChange) {
-        onRatingChange(newRating / 5); // Convert to 0-1 scale
+        onRatingChange(ratingObj);
       } else {
-        await rateBook(book.isbn, newRating / 5);
+        await rateBook(book.isbn, ratingObj);
         toast({
           title: "Rating saved",
           description: `You've rated "${book.title}" ${newRating} stars`

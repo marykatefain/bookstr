@@ -13,7 +13,7 @@ import { fetchReplies } from "@/lib/nostr";
 import { RepliesSection } from "@/components/social/RepliesSection";
 import { getBookByISBN } from "@/lib/openlibrary";
 import { Skeleton } from "@/components/ui/skeleton";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
+import { Rating } from "@/lib/utils/Rating";
 
 const ReviewDetail = () => {
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -56,14 +56,12 @@ const ReviewDetail = () => {
           return;
         }
         
-        let rating = null;
+        let rating: Rating | null = null;
         const ratingTag = event.tags.find(tag => tag[0] === 'rating');
         if (ratingTag && ratingTag[1]) {
           try {
-            rating = parseFloat(ratingTag[1]);
-            console.log("Raw rating from API:", rating);
-            rating = convertRawRatingToDisplayRating(rating);
-            console.log("Setting Display rating to: ", rating);
+            rating = new Rating(parseFloat(ratingTag[1]));
+            console.log("Raw rating from API:", rating.fraction);
           } catch (e) {
             console.error("Error parsing rating:", e);
           }
@@ -260,7 +258,7 @@ const ReviewDetail = () => {
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < rating
+                        i < rating.toScale(5)
                           ? "text-bookverse-highlight fill-bookverse-highlight"
                           : "text-muted-foreground"
                       }`}

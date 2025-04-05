@@ -454,9 +454,7 @@ Please also note that although the Bookstr UI displays ratings on a scale of 1-5
 
 The raw rating of 1 -> 5 stars is a common point of error, as well, because 1 (without context) could also be 1 star. This is why it's always important to double check if you are using raw or converted rating data before displaying it in the UI. 
 
-**IMPORTANT**: Use the utility functions from `src/lib/utils/ratings.ts` to convert between rating scales:
-- `convertRawRatingToDisplayRating(rawRating)`: Converts from 0-1 scale to 1-5 scale
-- `convertDisplayRatingToRawRating(displayRating)`: Converts from 1-5 scale to 0-1 scale
+**IMPORTANT**: Use the `Rating` type from `src/lib/utils/Rating.ts` any time a rating value is accepted as a prop to a component or an argument to a function.
 
 Example Review event: 
 

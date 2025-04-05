@@ -12,17 +12,17 @@ import { RepliesSection } from "@/components/social/RepliesSection";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { BookRating } from "./BookRating";
 import { Switch } from "@/components/ui/switch";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
 import { EmojiTextarea } from "@/components/emoji/EmojiTextarea";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
-  userRating: number;
+  userRating: Rating;
   reviewText: string;
   setReviewText: (text: string) => void;
   submitting: boolean;
   handleSubmitReview: () => void;
-  handleRateBook: (rating: number) => void;
+  handleRateBook: (rating: Rating) => void;
   handleReactToReview: (reviewId: string) => void;
   isSpoiler: boolean;
   setIsSpoiler: (value: boolean) => void;
@@ -44,8 +44,8 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
   const [hasExistingReview, setHasExistingReview] = useState(false);
   const currentUser = getCurrentUser();
   
-  // Convert rating from 0-1 scale to 1-5 scale for display
-  const displayRating = userRating > 0 ? convertRawRatingToDisplayRating(userRating) : 0;
+  // Convert rating to 1-5 scale for display
+  const displayRating = userRating ? userRating.toScale(5) : 0;
   
   // Check if the current user has an existing review
   useEffect(() => {
@@ -79,13 +79,13 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
     return (
       <div className="mt-4">
         <p className="text-sm font-medium mb-2">
-          {userRating > 0 ? 'Your Rating:' : 'Rate this book:'}
+          {userRating && userRating.fraction > 0 ? 'Your Rating:' : 'Rate this book:'}
         </p>
         <div className="flex gap-2 items-center">
           {[1, 2, 3, 4, 5].map((rating) => (
             <button
               key={rating}
-              onClick={() => handleRateBook(rating / 5)}
+              onClick={() => handleRateBook(Rating.fromScale(rating, 5))}
               disabled={submitting}
               className={`rounded-full p-1 ${displayRating === rating ? 'bg-yellow-100 dark:bg-yellow-900/30' : ''}`}
               aria-label={`Rate ${rating} stars`}
@@ -100,7 +100,7 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
             </button>
           ))}
           
-          {userRating > 0 && (
+          {userRating && userRating.fraction > 0 && (
             <span className="text-sm text-muted-foreground ml-2">
               {displayRating}/5
             </span>
