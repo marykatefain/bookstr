@@ -22,4 +22,8 @@ export interface Reply {
     npub?: string;
   };
   parentId: string;
+  reactions?: {
+    count: number;
+    userReacted: boolean;
+  };
 }

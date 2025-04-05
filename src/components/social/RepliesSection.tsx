@@ -226,7 +226,11 @@ export function RepliesSection({
             </div>
           ) : (
             replies.map(reply => (
-              <ReplyItem key={reply.id} reply={reply} />
+              <ReplyItem 
+                key={reply.id} 
+                reply={reply}
+                onReaction={(replyId) => console.log(`Reaction toggled for reply: ${replyId}`)} 
+              />
             ))
           )}
         </div>
