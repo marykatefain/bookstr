@@ -7,6 +7,7 @@ import { NostrEventData } from "./types/common";
 import { Book } from "./types/books";
 import { toast } from "@/hooks/use-toast";
 import { isBlocked } from "./utils/blocklist";
+import { Rating } from "@/lib/utils/Rating";
 
 interface UpdateEventFilter {
   kind: number;
@@ -576,7 +577,7 @@ export async function reactToContent(eventId: string, emoji: string = "+"): Prom
 export async function reviewBook(
   book: Book, 
   content: string, 
-  rating?: number,
+  rating?: Rating,
   isSpoiler?: boolean
 ): Promise<void> {
   if (!isLoggedIn()) {
@@ -600,7 +601,7 @@ export async function reviewBook(
     ];
 
     if (rating !== undefined) {
-      tags.push(["rating", rating.toString()]);
+      tags.push(["rating", rating.fraction.toString()]);
     }
 
     if (isSpoiler) {

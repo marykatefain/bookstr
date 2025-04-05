@@ -444,19 +444,52 @@ See [NIP 51](https://github.com/nostr-protocol/nips/blob/master/51.md) for gener
 
 Please note that here the review uses d tags instead of i tags for ISBN (versus in the other event kinds). This is a common point of error, so pay attention to get it right!
 
-Please also note that although the Bookstr UI displays ratings on a scale of 1-5 stars, the underlying data model is a scale of 0-1. So all ratings must be numerically converted when the data enters before displaying in the UI. Here is a basic conversion chart: 
+Please also note that although the Bookstr UI displays ratings on a scale of 0-5 stars, the underlying data model is a scale of 0-1. In the updated codebase, we use a `Rating` class to handle this conversion consistently throughout the application.
 
-- raw rating .20 -> 1 star
-- raw rating .40 -> 2 stars
-- raw rating .60 -> 3 stars
-- raw rating .80 -> 4 stars
-- raw rating 1 -> 5 stars
+## Rating Class Overview
 
-The raw rating of 1 -> 5 stars is a common point of error, as well, because 1 (without context) could also be 1 star. This is why it's always important to double check if you are using raw or converted rating data before displaying it in the UI. 
+The `Rating` class in `src/lib/utils/Rating.ts` provides a standardized way to handle ratings throughout the app:
 
-**IMPORTANT**: Use the utility functions from `src/lib/utils/ratings.ts` to convert between rating scales:
-- `convertRawRatingToDisplayRating(rawRating)`: Converts from 0-1 scale to 1-5 scale
-- `convertDisplayRatingToRawRating(displayRating)`: Converts from 1-5 scale to 0-1 scale
+```typescript
+export class Rating {
+  /** Fraction of the rating, between 0 and 1. */
+  readonly fraction: number;
+
+  constructor(fraction: number) {
+    if (fraction < 0 || fraction > 1) {
+      throw new Error('Fraction must be between 0 and 1');
+    }
+    this.fraction = fraction;
+  }
+
+  /** Returns the rating as a number between 0 and `outOf`. */
+  toScale(outOf: number = 5): number {
+    return this.fraction * outOf;
+  }
+
+  /** Creates a Rating from a scaled value (e.g., 0-5 stars to 0-1 fraction) */
+  static fromScale(fraction: number, outOf: number = 5): Rating {
+    return new Rating(fraction / outOf);
+  }
+}
+```
+
+## Key Rating Conversion Patterns
+
+- **Creating a Rating from raw value (0-1 scale)**: `new Rating(0.8)`
+- **Creating a Rating from UI stars (0-5 scale)**: `Rating.fromScale(4, 5)` 
+- **Converting a Rating to display stars (for UI)**: `rating.toScale(5)`
+- **Storing a Rating in Nostr event**: `["rating", rating.fraction.toString()]`
+
+## Rating Conversion Table
+- Rating with fraction less than `0.2` → 0 stars
+- Rating with fraction `0.2` → 1 star (using `rating.toScale(5)`)
+- Rating with fraction `0.4` → 2 stars
+- Rating with fraction `0.6` → 3 stars 
+- Rating with fraction `0.8` → 4 stars
+- Rating with fraction `1.0` → 5 stars
+
+**IMPORTANT**: Always use the `Rating` class from `src/lib/utils/Rating.ts` when handling ratings. Never manually convert between scales, and always use the proper methods when displaying or storing ratings.
 
 Example Review event: 
 
@@ -478,10 +511,12 @@ Example Review event:
 This ensures consistent handling of ratings throughout the application.
 
 **Common Pitfalls to Avoid:**
-- Displaying raw ratings (0-1 scale) directly in the UI
-- Storing display ratings (1-5 scale) in Nostr events
-- Manual conversion calculations without using the utility functions
-- Confusing the two scales when passing rating values between components
+- Using raw number values instead of the `Rating` class for rating data
+- Manually converting between rating scales (always use `Rating.fromScale()` and `rating.toScale()`)
+- Storing display ratings (0-5 scale) in Nostr events instead of the raw 0-1 fraction
+- Not handling undefined/null ratings properly (use conditional checks before calling methods)
+- Forgetting to convert to a string when adding rating to event tags (`rating.fraction.toString()`)
+- Mixing primitive number types with `Rating` objects in component props
 
 ### Posts, replies, and reactions
 
@@ -584,7 +619,7 @@ For large images or videos, use the /media endpoint on a trusted server to optim
 - Use `/src/lib/nostr/` for anything Nostr-related.
 - Use `/src/lib/openlibrary/` for book data functions.
 - Book ISBN is always the **source of truth** – all user actions on books should use ISBN.
-- Ratings are **0–1 float**, not 1–5 stars. Always normalize or denormalize accordingly.
+- Use the `Rating` class for all rating operations – never use raw numeric values.
 - All book list updates must **overwrite the full list** (replacable events per NIP-51).
 
 Do NOT:
@@ -592,6 +627,7 @@ Do NOT:
 - Store user data server-side — use localStorage or Nostr events.
 - Mix up the `d` and `i` tags for ISBNs - they're used in different contexts.
 - Implement direct API calls to OpenLibrary without using the caching proxy.
+- Manually convert between rating scales (0-1 fraction ↔ 0-5 stars) - use the Rating class methods.
 
 
 

@@ -15,6 +15,7 @@ import {
   deduplicateBookLists 
 } from "./deduplication";
 import { enhanceBooksWithDetails } from "./fetchDetails";
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Fetch user's books from relays
@@ -88,14 +89,14 @@ export async function fetchUserBooks(pubkey: string): Promise<{
     }
     
     // Create a map of ISBN to rating from rating events
-    const ratingsMap = new Map<string, number>();
+    const ratingsMap = new Map<string, Rating>();
 
     for (const event of uniqueRatingEvents) {
       const isbn = extractISBNFromTags(event);
       if (!isbn) continue;
       
       const rating = extractRatingFromTags(event);
-      if (rating !== undefined) {
+      if (rating) {
         ratingsMap.set(isbn, rating);
         console.log(`Added rating ${rating} for ISBN ${isbn} to ratings map`);
       }
@@ -106,7 +107,7 @@ export async function fetchUserBooks(pubkey: string): Promise<{
       return books.map(book => {
         if (book.isbn && ratingsMap.has(book.isbn)) {
           const rating = ratingsMap.get(book.isbn);
-          console.log(`Applying rating ${rating} to book ${book.title} (${book.isbn})`);
+          console.log(`Applying rating ${rating.toScale(5)} to book ${book.title} (${book.isbn})`);
           return {
             ...book,
             readingStatus: {

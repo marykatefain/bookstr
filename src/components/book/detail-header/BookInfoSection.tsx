@@ -3,10 +3,11 @@ import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookOpen, Star, Calendar, Clock } from "lucide-react";
 import { BookRating } from "@/components/book/BookRating";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookInfoSectionProps {
   book: Book;
-  avgRating: number;
+  avgRating: Rating;
   ratingsCount: number;
 }
 
@@ -32,7 +33,7 @@ export const BookInfoSection: React.FC<BookInfoSectionProps> = ({
       <h2 className="text-xl text-muted-foreground mt-2">{book.author}</h2>
       
       <div className="flex flex-wrap gap-4 mt-4">
-        {avgRating > 0 && (
+        {avgRating && avgRating.fraction > 0 && (
           <div className="flex items-center gap-1">
             <BookRating 
               rating={avgRating} 

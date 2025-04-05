@@ -12,6 +12,7 @@ import {
   removeBookFromList, 
   rateBook 
 } from "@/lib/nostr";
+import { Rating } from "@/lib/utils/Rating";
 
 import { BookCover } from "./book/BookCover";
 import { BookStatusButton } from "./book/BookStatusButton";
@@ -212,7 +213,7 @@ export const BookCard: React.FC<BookCardProps> = ({
     }
   };
   
-  const handleRating = async (rating: number) => {
+  const handleRating = async (rating: Rating) => {
     if (!checkLogin() || !checkIsbn()) return;
 
     try {

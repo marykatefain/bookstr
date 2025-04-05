@@ -2,19 +2,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookRatingActivityProps {
   userName: string;
   userPubkey: string;
   bookTitle: string;
   bookIsbn: string;
-  rating?: number;
+  rating?: Rating;
 }
 
 export function BookRatingActivity({ userName, userPubkey, bookTitle, bookIsbn, rating }: BookRatingActivityProps) {
-  // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = convertRawRatingToDisplayRating(rating);
+  // Convert rating to 0-5 scale 
+  const displayRating = rating?.toScale(5);
   
   return (
     <div>

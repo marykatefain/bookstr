@@ -1,10 +1,10 @@
 
 import React from "react";
 import { Star } from "lucide-react";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookRatingProps {
-  rating?: number;
+  rating?: Rating;
   readingStatus?: 'tbr' | 'reading' | 'finished';
 }
 
@@ -14,12 +14,12 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus })
     return null;
   }
 
-  if (!rating && rating !== 0) {
+  if (!rating) {
     return <span className="text-xs text-muted-foreground">No ratings yet</span>;
   }
   
-  // Convert raw rating (0-1 scale) to display rating (1-5 scale)
-  const displayRating = convertRawRatingToDisplayRating(rating);
+  // Convert rating to display scale (0-5)
+  const displayRating = rating.toScale(5);
   
   return (
     <div className="flex items-center space-x-1">
@@ -27,7 +27,7 @@ export const BookRating: React.FC<BookRatingProps> = ({ rating, readingStatus })
         <Star
           key={i}
           className={`h-4 w-4 ${
-            i < (displayRating || 0)
+            i < displayRating
               ? "text-bookverse-highlight fill-bookverse-highlight" 
               : "text-muted-foreground"
           }`}
