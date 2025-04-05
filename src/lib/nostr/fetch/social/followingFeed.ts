@@ -10,6 +10,7 @@ import { getCurrentUser } from "../../user";
 import { batchFetchReactions, batchFetchReplies } from "./interactions";
 import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
 import { fetchBooksByISBN as getBooksByISBN } from "../../fetch/book";
+import { filterBlockedEvents } from "../../utils/blocklist";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -84,12 +85,16 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
     // Convert back to array
     const allEvents = Array.from(eventMap.values());
     
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(allEvents);
+    console.log(`Filtered out ${allEvents.length - filteredEvents.length} events from blocked users`);
+    
     // Filter out reply posts (those with 'e' tags)
-    const nonReplyEvents = allEvents.filter(event => 
+    const nonReplyEvents = filteredEvents.filter(event => 
       !event.tags.some(tag => tag[0] === 'e')
     );
     
-    console.log(`Filtered out ${allEvents.length - nonReplyEvents.length} reply posts`);
+    console.log(`Filtered out ${filteredEvents.length - nonReplyEvents.length} reply posts`);
     
     // Get all unique pubkeys to fetch profiles
     const uniquePubkeys = [...new Set(nonReplyEvents.map(event => event.pubkey))];

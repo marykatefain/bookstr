@@ -1,0 +1,14 @@
+{
+  "blockedUsers": [
+    {
+      "pubkey": "d2e97f7320554e1306951a7caebe0c5a962c464d151324ec960655b3ea9a4d1b",
+      "reason": "Spam/bot account",
+      "notes": "Impersonating Jack with a fake nip05"
+    },
+    {
+      "pubkey": "1bc70a0148b3f316da33fe3c89f23e3e71ac4ff998027ec712b905cd24f6a411",
+      "reason": "sample",
+      "notes": "update"
+    }
+  ]
+}

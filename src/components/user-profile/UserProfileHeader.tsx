@@ -3,10 +3,22 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, Plus, AlertTriangle, ExternalLink, Link as LinkIcon } from "lucide-react";
+import { 
+  Check, 
+  Plus, 
+  AlertTriangle, 
+  ExternalLink, 
+  Link as LinkIcon,
+  ShieldAlert
+} from "lucide-react";
 import { NostrProfile } from "@/lib/nostr/types";
 import { nip19 } from "nostr-tools";
-import { isLoggedIn, fetchFollowingList, followUser } from "@/lib/nostr";
+import { 
+  isLoggedIn, 
+  fetchFollowingList, 
+  followUser,
+  isBlocked
+} from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getDisplayIdentifier } from "@/lib/utils/user-display";
@@ -95,10 +107,11 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
   if (!profile) return null;
 
   const displayId = getDisplayIdentifier(profile);
+  const profIsBlocked = isBlocked(profile.pubkey);
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <Avatar className="h-24 w-24 border-2 border-bookverse-accent">
+      <Avatar className={`h-24 w-24 ${profIsBlocked ? 'border-2 border-red-400 dark:border-red-800' : 'border-2 border-bookverse-accent'}`}>
         <AvatarImage src={profile?.picture} />
         <AvatarFallback className="text-xl">
           {(profile?.name?.[0] || 'U').toUpperCase()}
@@ -106,8 +119,17 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       </Avatar>
       
       <div className="text-center">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
           {profile?.name || formatPubkey(profile?.npub || '')}
+          {profile && isBlocked(profile.pubkey) && (
+            <span 
+              className="text-red-600 dark:text-red-500 text-sm bg-red-100 dark:bg-red-900/30 p-1 px-2 rounded-md flex items-center"
+              title="This user has been blocked from the platform"
+            >
+              <ShieldAlert className="h-3 w-3 mr-1" />
+              Blocked
+            </span>
+          )}
         </h1>
         <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
           {displayId}
@@ -146,10 +168,15 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
       {currentUserPubkey && profile && currentUserPubkey !== profile.pubkey && (
         <Button 
           onClick={handleFollow} 
-          disabled={following || followLoading}
-          variant={following ? "outline" : "default"}
+          disabled={following || followLoading || profIsBlocked}
+          variant={profIsBlocked ? "destructive" : (following ? "outline" : "default")}
         >
-          {following ? (
+          {profIsBlocked ? (
+            <>
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Blocked Account
+            </>
+          ) : following ? (
             <>
               <Check className="mr-2 h-4 w-4" />
               Following

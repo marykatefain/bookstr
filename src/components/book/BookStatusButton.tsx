@@ -158,6 +158,12 @@ export function BookStatusButton({
     if (horizontal) {
       return (
         <div className="w-full">
+          <div className="flex items-center mb-2">
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <BookOpen className="mr-1 h-3 w-3" />
+              Reading
+            </div>
+          </div>
           <Button
             className="w-full flex-1 bg-green-600 hover:bg-green-700"
             size="sm"
@@ -177,9 +183,17 @@ export function BookStatusButton({
     
     return (
       <div className="w-full">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <BookOpen className="mr-1 h-3 w-3" />
+              Reading
+            </div>
+          </div>
+        </div>
         <div className="flex gap-1">
           <Button
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            className="w-full bg-green-600 hover:bg-green-700"
             size="sm"
             onClick={onMarkAsRead}
             disabled={pendingAction !== null}
@@ -191,22 +205,6 @@ export function BookStatusButton({
             )}
             <span className="ml-1 text-xs">Mark as Read</span>
           </Button>
-          
-          {onRemove && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRemove}
-              disabled={pendingAction !== null}
-              className="px-2"
-            >
-              {pendingAction === 'reading' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <span className="text-xs">Remove</span>
-              )}
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -217,6 +215,12 @@ export function BookStatusButton({
     if (horizontal) {
       return (
         <div className="w-full">
+          <div className="flex items-center mb-2">
+            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <Star className="mr-1 h-3 w-3" />
+              TBR
+            </div>
+          </div>
           <Button
             className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
             size="sm"
@@ -236,9 +240,17 @@ export function BookStatusButton({
     
     return (
       <div className="w-full">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-md flex items-center">
+              <Star className="mr-1 h-3 w-3" />
+              TBR
+            </div>
+          </div>
+        </div>
         <div className="flex gap-1">
           <Button
-            className="flex-1 bg-bookverse-accent hover:bg-bookverse-highlight"
+            className="w-full bg-bookverse-accent hover:bg-bookverse-highlight"
             size="sm"
             onClick={onStartReading}
             disabled={pendingAction !== null}
@@ -250,22 +262,6 @@ export function BookStatusButton({
             )}
             <span className="ml-1 text-xs">Start Reading</span>
           </Button>
-          
-          {onRemove && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRemove}
-              disabled={pendingAction !== null}
-              className="px-2"
-            >
-              {pendingAction === 'tbr' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <span className="text-xs">Remove</span>
-              )}
-            </Button>
-          )}
         </div>
       </div>
     );

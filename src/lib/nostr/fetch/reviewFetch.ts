@@ -5,6 +5,7 @@ import { extractISBNFromTags, extractRatingFromTags } from "../utils/eventUtils"
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { getSharedPool } from "../utils/poolManager";
 import { throttlePromises } from "@/lib/utils";
+import { filterBlockedEvents, isBlocked } from "../utils/blocklist";
 
 /**
  * Extracts spoiler information from event tags
@@ -112,9 +113,16 @@ export async function fetchBookReviews(isbn: string): Promise<BookReview[]> {
     };
     
     const events = await pool.querySync(relays, filter);
+    
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(events);
+    if (filteredEvents.length !== events.length) {
+      console.log(`Filtered out ${events.length - filteredEvents.length} reviews from blocked users`);
+    }
+    
     const reviews: BookReview[] = [];
     
-    for (const event of events) {
+    for (const event of filteredEvents) {
       // Extract rating from tags - if present
       const rating = extractRatingFromTags(event);
       
@@ -164,9 +172,16 @@ export async function fetchBookRatings(isbn: string): Promise<BookReview[]> {
     };
     
     const events = await pool.querySync(relays, filter);
+    
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(events);
+    if (filteredEvents.length !== events.length) {
+      console.log(`Filtered out ${events.length - filteredEvents.length} ratings from blocked users`);
+    }
+    
     const ratings: BookReview[] = [];
     
-    for (const event of events) {
+    for (const event of filteredEvents) {
       const rating = extractRatingFromTags(event);
       
       if (rating !== null) {
@@ -250,9 +265,16 @@ export async function fetchUserReviews(pubkey: string): Promise<BookReview[]> {
     const events = await pool.querySync(relays, filter);
     console.log(`Found ${events.length} review events for user ${pubkey}`);
     
+    // Only filter if the user isn't the blocked user we're viewing
+    // This allows viewing a blocked user's profile while still blocking their interactions
+    const filteredEvents = isBlocked(pubkey) ? events : filterBlockedEvents(events);
+    if (filteredEvents.length !== events.length) {
+      console.log(`Filtered out ${events.length - filteredEvents.length} user reviews from blocked users`);
+    }
+    
     const reviews: BookReview[] = [];
     
-    for (const event of events) {
+    for (const event of filteredEvents) {
       // Extract ISBN from event tags
       const isbn = extractISBNFromEventTags(event);
       
