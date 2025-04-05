@@ -4,32 +4,15 @@ import { Book, NOSTR_KINDS } from "../../types";
 import { Rating } from "@/lib/utils/Rating";
 
 /**
- * Extract a value from the first matching tag
- */
-export function extractFirstEventTag(event: Event, tagName: string, tagValue?: string): string | null {
-  if (!event.tags) return null;
-  
-  for (const tag of event.tags) {
-    if (tag[0] === tagName) {
-      if (tagValue) {
-        if (tag[1] === tagValue && tag[2]) {
-          return tag[2];
-        }
-      } else if (tag[1]) {
-        return tag[1];
-      }
-    }
-  }
-  
-  return null;
-}
-
-/**
  * Extract ISBN from event tags
  */
 export function extractISBNFromTags(event: Event): string | null {
-  const isbn = extractFirstEventTag(event, 'k', 'isbn');
-  return isbn;
+  if (event.kind === 31985) {
+    return event.tags.find(([name, value]) => name === 'd' && value.startsWith('isbn:'))?.[1].replace(/^isbn:/, '') || null;
+  } else {
+    const [isbn] = extractISBNsFromTags(event);
+    return isbn || null;
+  }
 }
 
 /**
