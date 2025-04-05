@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Books from "./pages/Books";
 import BookDetail from "./pages/BookDetail";
 import ReviewDetail from "./pages/ReviewDetail";
+import PostDetail from "./pages/PostDetail";
 import Library from "./pages/Library";
 import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
@@ -47,6 +48,7 @@ function App() {
               <Route path="/books" element={<Books />} />
               <Route path="/book/:isbn" element={<BookDetail />} />
               <Route path="/review/:reviewId" element={<ReviewDetail />} />
+              <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/library" element={<Library />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/social" element={<Index />} />
