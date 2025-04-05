@@ -225,21 +225,38 @@ export function useSocialFeed({
     setLoadingMore(true);
     
     try {
-      // Use the fetchGlobalSocialFeed function directly for pagination
-      const fetchMoreActivities = async () => {
-        // Import directly from the source to avoid module resolution issues
-        const { fetchGlobalSocialFeed } = await import('@/lib/nostr/fetch/social/global');
-        
-        // Calculate the timestamp in seconds (Nostr uses seconds, not milliseconds)
-        // The createdAt property is already in milliseconds, so we divide by 1000
-        const timestampInSeconds = Math.floor(timestamp / 1000);
-        
-        console.log(`Fetching activities before timestamp (seconds): ${timestampInSeconds}`);
-        return fetchGlobalSocialFeed(maxItems || 10, timestampInSeconds);
-      };
+      let moreActivities: SocialActivity[] = [];
       
-      // Fetch the paginated data
-      const moreActivities = await fetchMoreActivities();
+      if (type === "global") {
+        // Use the fetchGlobalSocialFeed function directly for global feed pagination
+        const fetchMoreGlobalActivities = async () => {
+          // Import directly from the source to avoid module resolution issues
+          const { fetchGlobalSocialFeed } = await import('@/lib/nostr/fetch/social/global');
+          
+          // Calculate the timestamp in seconds (Nostr uses seconds, not milliseconds)
+          const timestampInSeconds = Math.floor(timestamp / 1000);
+          
+          console.log(`Fetching global activities before timestamp (seconds): ${timestampInSeconds}`);
+          return fetchGlobalSocialFeed(maxItems || 10, timestampInSeconds);
+        };
+        
+        moreActivities = await fetchMoreGlobalActivities();
+      } else if (type === "followers") {
+        // Use the fetchSocialFeed function directly for following feed pagination
+        const fetchMoreFollowingActivities = async () => {
+          // Import directly from the source to avoid module resolution issues
+          const { fetchSocialFeed } = await import('@/lib/nostr/fetch/social/followingFeed');
+          
+          // Calculate the timestamp in seconds (Nostr uses seconds, not milliseconds)
+          const timestampInSeconds = Math.floor(timestamp / 1000);
+          
+          console.log(`Fetching following activities before timestamp (seconds): ${timestampInSeconds}`);
+          return fetchSocialFeed(maxItems || 10, timestampInSeconds);
+        };
+        
+        moreActivities = await fetchMoreFollowingActivities();
+      }
+      
       console.log(`Loaded ${moreActivities.length} more activities`);
       
       // Update the state with the new activities
@@ -282,7 +299,7 @@ export function useSocialFeed({
     } finally {
       setLoadingMore(false);
     }
-  }, [type, maxItems, useMockData, loadingMore, loading, hasMore, enablePagination]);
+  }, [type, maxItems, useMockData, loadingMore, loading, hasMore, enablePagination, allActivities]);
 
   // Effect to keep timestamp synced with activities
   useEffect(() => {

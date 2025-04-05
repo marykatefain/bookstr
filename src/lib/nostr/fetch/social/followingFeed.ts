@@ -17,8 +17,10 @@ const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
 /**
  * Fetch social activity from people you follow
+ * @param limit Maximum number of events to fetch
+ * @param until Optional timestamp (in seconds) to fetch events before
  */
-export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
+export async function fetchSocialFeed(limit = 20, until?: number): Promise<SocialActivity[]> {
   const currentUser = getCurrentUser();
   
   if (!currentUser) {
@@ -52,6 +54,12 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
       limit
     };
     
+    // Add until to filter for pagination
+    if (until) {
+      filter.until = until;
+      console.log(`Fetching following feed with until=${until}`);
+    }
+    
     // Add filters for k=isbn and t=bookstr for TEXT_NOTE kind
     const textNoteFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
@@ -60,12 +68,22 @@ export async function fetchSocialFeed(limit = 20): Promise<SocialActivity[]> {
       limit
     };
     
+    // Add until to this filter too for pagination
+    if (until) {
+      textNoteFilter.until = until;
+    }
+    
     const isbnFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
       authors: follows,
       "#k": ["isbn"],
       limit
     };
+    
+    // Add until to this filter too for pagination
+    if (until) {
+      isbnFilter.until = until;
+    }
     
     // Execute all queries in parallel
     const [events, textNoteEvents, isbnEvents] = await Promise.all([

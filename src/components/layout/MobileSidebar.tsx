@@ -11,7 +11,8 @@ import {
   Search,
   Info,
   Database,
-  Bitcoin
+  Bitcoin,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -41,6 +42,7 @@ export const MobileSidebar = ({
   const navLinks = [
     { path: "/", label: "Home", icon: Home },
     { path: "/library", label: "Library", icon: Library },
+    { path: "/following", label: "Following", icon: Users },
     { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];

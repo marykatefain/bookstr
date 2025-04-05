@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isLoggedIn, replyToContent } from "@/lib/nostr";
 import { NOSTR_KINDS } from "@/lib/nostr/types";
+import { EmojiTextarea } from "@/components/emoji/EmojiTextarea";
 
 interface ReplyFormProps {
   eventId: string;
@@ -70,10 +70,16 @@ export function ReplyForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2 w-full">
-      <Textarea
+      <EmojiTextarea
         placeholder="Write your reply..."
         value={replyText}
-        onChange={(e) => setReplyText(e.target.value)}
+        onChange={(e) => {
+          if (typeof e === 'string') {
+            setReplyText(e);
+          } else {
+            setReplyText(e.target.value);
+          }
+        }}
         className="min-h-[80px] text-sm w-full"
         disabled={isSubmitting}
       />

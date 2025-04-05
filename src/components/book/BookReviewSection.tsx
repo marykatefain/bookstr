@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, ExternalLink, AlertTriangle, Info } from "lucide-react";
 import { BookReview } from "@/lib/nostr/types";
@@ -14,6 +13,7 @@ import { NOSTR_KINDS } from "@/lib/nostr/types";
 import { BookRating } from "./BookRating";
 import { Switch } from "@/components/ui/switch";
 import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
+import { EmojiTextarea } from "@/components/emoji/EmojiTextarea";
 
 interface BookReviewSectionProps {
   reviews: BookReview[];
@@ -131,13 +131,19 @@ export const BookReviewSection: React.FC<BookReviewSectionProps> = ({
         </CardHeader>
         <CardContent>
           {renderRatingControls()}
-          <Textarea
+          <EmojiTextarea
             className="mt-4"
             placeholder={hasExistingReview && !reviewText ? 
               "Leave empty to preserve your previous review text when updating rating" : 
               "Write your review here..."}
             value={reviewText}
-            onChange={(e) => setReviewText(e.target.value)}
+            onChange={(e) => {
+              if (typeof e === 'string') {
+                setReviewText(e);
+              } else {
+                setReviewText(e.target.value);
+              }
+            }}
             rows={4}
           />
           {hasExistingReview && !reviewText && (

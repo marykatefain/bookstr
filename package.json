@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@hookform/resolvers": "^3.9.0",
     "@nostr-dev-kit/ndk": "^2.5.1",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -46,6 +48,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "emoji-mart": "^5.6.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.483.0",
     "next-themes": "^0.3.0",

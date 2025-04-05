@@ -21,6 +21,8 @@ export function ActivityCard({ activity, onReaction }: ActivityCardProps) {
           name={activity.author?.name}
           picture={activity.author?.picture}
           createdAt={activity.createdAt}
+          activityId={activity.id}
+          activityType={activity.type}
         />
       </CardHeader>
       <CardContent className="py-2">

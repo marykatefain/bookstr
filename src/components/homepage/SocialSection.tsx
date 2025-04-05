@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { isLoggedIn } from "@/lib/nostr";
 import { CreatePostBox } from "@/components/post/CreatePostBox";
@@ -37,7 +38,7 @@ export function SocialSection() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-serif text-bookverse-ink flex items-center py-[3px]">
           <Users className="mr-2 h-5 w-5" />
-          #Bookstr Community on Nostr
+          Bookstr Community Across Nostr
         </h2>
       </div>
       

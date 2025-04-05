@@ -1,40 +1,50 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import { Users, Globe } from "lucide-react";
 
-interface FeedTypeSelectorProps {
-  feedType: "followers" | "global";
-  setFeedType: (type: "followers" | "global") => void;
-  isLoggedIn: boolean;
+interface PathOption {
+  label: string;
+  path: string;
 }
 
-export function FeedTypeSelector({ feedType, setFeedType, isLoggedIn }: FeedTypeSelectorProps) {
-  if (!isLoggedIn) return null;
+interface FeedTypeSelectorProps {
+  activePath: string;
+  paths: PathOption[];
+}
+
+export function FeedTypeSelector({
+  activePath,
+  paths
+}: FeedTypeSelectorProps) {
+  // Return null if paths is undefined or empty
+  if (!paths || paths.length === 0) {
+    return null;
+  }
   
   return (
-    <div className="inline-flex h-9 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-      <button
-        onClick={() => setFeedType("followers")}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-          feedType === "followers" 
-            ? "bg-background text-foreground shadow-sm" 
-            : ""
-        }`}
-      >
-        <Users className="h-4 w-4 mr-2" />
-        <span>Following</span>
-      </button>
-      <button
-        onClick={() => setFeedType("global")}
-        className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-          feedType === "global" 
-            ? "bg-background text-foreground shadow-sm" 
-            : ""
-        }`}
-      >
-        <Globe className="h-4 w-4 mr-2" />
-        <span>Global</span>
-      </button>
+    <div className="flex items-center bg-muted/40 rounded-lg p-1">
+      {paths.map((option) => {
+        const isActive = activePath === option.path;
+        return (
+          <Link
+            key={option.path}
+            to={option.path}
+            className={`${
+              isActive 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            } px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center`}
+          >
+            {option.label === "Global" ? (
+              <Globe className="w-4 h-4 mr-1.5" />
+            ) : option.label === "Following" ? (
+              <Users className="w-4 h-4 mr-1.5" />
+            ) : null}
+            {option.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

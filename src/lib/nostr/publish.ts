@@ -203,7 +203,8 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
           const publishPromises = relayUrls.map(url => {
             return new Promise<boolean>((resolveRelay, rejectRelay) => {
               try {
-                pool.publish([url], signedEvent as Event)
+                const publishPromise = pool.publish([url], signedEvent as Event);
+                Promise.all(publishPromise)
                   .then(() => {
                     console.log(`Successfully published to ${url}`);
                     resolveRelay(true);
@@ -220,7 +221,7 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
           });
           
           // Wait for all publish attempts to complete
-          Promise.all(publishPromises).then(results => {
+          Promise.all(publishPromises).then((results) => {
             clearTimeout(timeoutId);
             console.log("Publish results:", results);
             
@@ -232,7 +233,6 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
               resolve(signedEvent.id);
             } else {
               // Optimistic approach: resolve with the event ID even if no relays confirmed success
-              // This is often necessary because some relays don't properly acknowledge
               console.warn("No relays confirmed successful publish, but the event is valid. Proceeding optimistically.");
               resolve(signedEvent.id);
             }
@@ -446,7 +446,8 @@ export async function updateNostrEvent(
         const publishPromises = relayUrls.map(url => {
           return new Promise<boolean>((resolveRelay, rejectRelay) => {
             try {
-              pool.publish([url], signedEvent as Event)
+              const publishPromise = pool.publish([url], signedEvent as Event);
+              Promise.all(publishPromise)
                 .then(() => {
                   console.log(`Successfully published update to ${url}`);
                   resolveRelay(true);
@@ -463,7 +464,7 @@ export async function updateNostrEvent(
         });
         
         // Wait for all publish attempts to complete
-        Promise.all(publishPromises).then(results => {
+        Promise.all(publishPromises).then((results) => {
           clearTimeout(timeoutId);
           console.log("Update publish results:", results);
           

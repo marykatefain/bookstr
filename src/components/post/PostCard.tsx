@@ -249,7 +249,15 @@ export function PostCard({ post, onReaction }: PostCardProps) {
                 >
                   {authorName}
                 </Link>
-                <p className="text-xs text-muted-foreground">{timeAgo}</p>
+                <div className="flex items-center">
+                  <p className="text-xs text-muted-foreground">{timeAgo}</p>
+                  <Link 
+                    to={`/post/${postData.id}`} 
+                    className="text-xs ml-2 text-muted-foreground hover:text-bookverse-accent hover:underline"
+                  >
+                    View post
+                  </Link>
+                </div>
               </div>
             </div>
             

@@ -6,6 +6,9 @@ import { ActivityCard } from "@/components/social/ActivityCard";
 import { useReactionContext } from "@/contexts/ReactionContext";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { FeedTypeSelector } from "./social/FeedTypeSelector";
+import { isLoggedIn } from "@/lib/nostr";
 
 interface UserPostsFeedProps {
   refreshTrigger?: number;
@@ -14,6 +17,9 @@ interface UserPostsFeedProps {
 export function UserPostsFeed({
   refreshTrigger = 0
 }: UserPostsFeedProps) {
+  const location = useLocation();
+  const isLoggedInUser = isLoggedIn();
+  
   const {
     activities,
     loading,
@@ -91,7 +97,19 @@ export function UserPostsFeed({
 
   return (
     <div className="space-y-4 mt-6">
-      <h3 className="text-lg font-medium my-[4px]">#Bookstr Community Feed</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium my-[4px]">#Bookstr Community Feed</h3>
+        
+        {isLoggedInUser && (
+          <FeedTypeSelector 
+            activePath={location.pathname} 
+            paths={[
+              { label: "Global", path: "/" },
+              { label: "Following", path: "/following" }
+            ]} 
+          />
+        )}
+      </div>
       
       {activities.map(activity => 
         activity.type === 'post' ? (
@@ -107,7 +125,6 @@ export function UserPostsFeed({
           {hasMore ? (
             <Button 
               variant="outline"
-
               onClick={handleLoadMore}
               disabled={loadingMore}
               className="w-full max-w-[200px]"
