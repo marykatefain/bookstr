@@ -7,8 +7,13 @@
     },
     {
       "pubkey": "ea38ff72f3e93428e270848d48076d30d0c5d0485c9538835b9e7e6257a5fb3b",
-      "reason": "Spam'scammer",
+      "reason": "Spam/scammer",
       "notes": "Whatsapp scammer"
+    },
+    {
+      "pubkey": "c9f48a5652f6a019cbe432bcacea97f8fea9703590f46c18a608d4a6234112d2",
+      "reason": "Hashtag spamming",
+      "notes": "Using #bookstr (among many other popular hashtags) with unrelated bitcoin content."
     }
   ]
 }
