@@ -11,10 +11,11 @@ interface StatsCardsProps {
     read: BookType[];
   };
   postsCount: number;
+  reviewsCount?: number;
   onTabChange: (tab: string) => void;
 }
 
-export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount, onTabChange }) => {
+export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount, reviewsCount = 0, onTabChange }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
       <Card 
@@ -55,13 +56,13 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ books, postsCount, onTab
       </Card>
       <Card 
         className="cursor-pointer hover:border-bookverse-accent transition-colors"
-        onClick={() => onTabChange("posts")}
+        onClick={() => onTabChange("reviews")}
       >
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <FileText className="h-8 w-8 text-bookverse-accent mb-2" />
-            <div className="text-2xl font-bold">{postsCount}</div>
-            <p className="text-muted-foreground">Posts</p>
+            <div className="text-2xl font-bold">{reviewsCount}</div>
+            <p className="text-muted-foreground">Reviews</p>
           </div>
         </CardContent>
       </Card>

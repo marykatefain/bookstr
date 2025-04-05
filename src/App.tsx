@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,7 +16,6 @@ import Library from "./pages/Library";
 import Stats from "./pages/Stats";
 import UserSearch from "./pages/UserSearch";
 import UserProfile from "./pages/UserProfile";
-import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Following from "./pages/Following";
@@ -50,7 +49,7 @@ function App() {
               <Route path="/review/:reviewId" element={<ReviewDetail />} />
               <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/library" element={<Library />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile" element={<Navigate to="/library" replace />} />
               <Route path="/social" element={<Index />} />
               <Route path="/following" element={<Following />} />
               <Route path="/stats" element={<Stats />} />

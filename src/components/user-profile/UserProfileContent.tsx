@@ -5,7 +5,6 @@ import { UserPostsTab } from "./UserPostsTab";
 import { UserReviewsTab } from "./UserReviewsTab";
 import { UserLibraryTab } from "./UserLibraryTab";
 import { UserAboutTab } from "./UserAboutTab";
-import { SocialFeed } from "@/components/SocialFeed";
 import { NostrProfile, BookReview, Post } from "@/lib/nostr/types";
 
 interface UserProfileContentProps {
@@ -43,10 +42,6 @@ export const UserProfileContent: React.FC<UserProfileContentProps> = ({
       
       <TabsContent value="library">
         <UserLibraryTab userBooks={userBooks} />
-      </TabsContent>
-      
-      <TabsContent value="activity">
-        <SocialFeed />
       </TabsContent>
       
       <TabsContent value="about">

@@ -25,6 +25,13 @@ const UserProfile = () => {
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey: string }>();
   const [activeTab, setActiveTab] = useState("posts");
+  
+  // Redirect from activity tab to posts tab if needed
+  useEffect(() => {
+    if (activeTab === "activity") {
+      setActiveTab("posts");
+    }
+  }, [activeTab]);
   const { toast } = useToast();
   const currentUser = getCurrentUser();
   const [redirected, setRedirected] = useState(false);

@@ -30,10 +30,6 @@ export const LibraryTabList: React.FC<LibraryTabListProps> = ({
       id: "reviews",
       label: "Reviews",
       icon: MessageCircle
-    }, {
-      id: "posts",
-      label: "Posts",
-      icon: FileText
     }].map(tab => <TabsTrigger key={tab.id} value={tab.id} onClick={() => setActiveTab(tab.id)} className="relative h-auto flex-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-bookverse-accent data-[state=active]:font-medium flex items-center justify-center gap-2 mx-0 px-0 py-[8px]">
           <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? "text-bookverse-accent" : ""}`} />
           {tab.label}
