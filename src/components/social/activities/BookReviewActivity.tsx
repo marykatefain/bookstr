@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, ExternalLink } from "lucide-react";
-import { convertRawRatingToDisplayRating } from "@/lib/utils/ratings";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookReviewActivityProps {
   userName: string;
@@ -10,7 +10,7 @@ interface BookReviewActivityProps {
   bookTitle: string;
   bookIsbn: string;
   bookCover?: string;
-  rating?: number;
+  rating?: Rating;
   content?: string;
   reviewId?: string;
 }
@@ -27,8 +27,8 @@ export function BookReviewActivity({
 }: BookReviewActivityProps) {
   const [imageError, setImageError] = useState(false);
   
-  // Convert rating from 0-1 scale to 1-5 scale
-  const displayRating = rating !== undefined ? convertRawRatingToDisplayRating(rating) : undefined;
+  // Convert rating to 0-5 scale for display
+  const displayRating = rating ? rating.toScale(5) : undefined;
   
   return (
     <div className="flex gap-3">

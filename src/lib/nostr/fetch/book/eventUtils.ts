@@ -1,34 +1,18 @@
 
 import { Event } from "nostr-tools";
 import { Book, NOSTR_KINDS } from "../../types";
-
-/**
- * Extract a value from the first matching tag
- */
-export function extractFirstEventTag(event: Event, tagName: string, tagValue?: string): string | null {
-  if (!event.tags) return null;
-  
-  for (const tag of event.tags) {
-    if (tag[0] === tagName) {
-      if (tagValue) {
-        if (tag[1] === tagValue && tag[2]) {
-          return tag[2];
-        }
-      } else if (tag[1]) {
-        return tag[1];
-      }
-    }
-  }
-  
-  return null;
-}
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Extract ISBN from event tags
  */
 export function extractISBNFromTags(event: Event): string | null {
-  const isbn = extractFirstEventTag(event, 'k', 'isbn');
-  return isbn;
+  if (event.kind === 31985) {
+    return event.tags.find(([name, value]) => name === 'd' && value.startsWith('isbn:'))?.[1].replace(/^isbn:/, '') || null;
+  } else {
+    const [isbn] = extractISBNsFromTags(event);
+    return isbn || null;
+  }
 }
 
 /**
@@ -52,13 +36,19 @@ export function extractISBNsFromTags(event: Event): string[] {
 /**
  * Extract rating value from event tags
  */
-export function extractRatingFromTags(event: Event): number | undefined {
+export function extractRatingFromTags(event: Event): Rating | undefined {
   if (!event.tags) return undefined;
   
   for (const tag of event.tags) {
     if (tag[0] === 'rating' && tag[1]) {
-      const rating = parseInt(tag[1], 10);
-      return isNaN(rating) ? undefined : rating;
+      const ratingValue = parseFloat(tag[1]);
+      if (!isNaN(ratingValue)) {
+        try {
+          return new Rating(ratingValue);
+        } catch (e) {
+          console.error('Invalid rating value in event tag:', ratingValue, e);
+        }
+      }
     }
   }
   

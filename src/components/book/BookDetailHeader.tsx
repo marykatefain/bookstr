@@ -3,10 +3,11 @@ import React from "react";
 import { Book } from "@/lib/nostr/types";
 import { BookCoverSection } from "./detail-header/CoverSection";
 import { BookInfoSection } from "./detail-header/BookInfoSection";
+import { Rating } from "@/lib/utils/Rating";
 
 interface BookDetailHeaderProps {
   book: Book;
-  avgRating: number;
+  avgRating: Rating;
   ratingsCount: number;
   isRead: boolean;
   pendingAction: string | null;
