@@ -1,4 +1,3 @@
-
 // Re-export core functions
 export * from './user';
 export * from './profile';
@@ -146,3 +145,11 @@ export { fetchEventById } from './fetch/social/fetchEvent';
 // Export reactToContent directly for components to use
 // Make sure this is using the original function from publish.ts
 export { reactToContent } from './publish';
+
+// Export blocklist utilities
+export {
+  getBlockedPubkeys,
+  isBlocked,
+  getBlockReason,
+  filterBlockedEvents
+} from './utils/blocklist';

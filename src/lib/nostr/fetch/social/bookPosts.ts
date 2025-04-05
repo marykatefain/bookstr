@@ -5,6 +5,7 @@ import { getUserRelays } from "../../relay";
 import { fetchUserProfiles } from "../../profile";
 import { getBooksByISBN } from "@/lib/openlibrary";
 import { getSharedPool } from "../../utils/poolManager";
+import { filterBlockedEvents } from "../../utils/blocklist";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -57,12 +58,16 @@ export async function fetchBookPosts(pubkey?: string, useMockData: boolean = fal
     const allEvents = Array.from(eventMap.values());
     console.log(`Combined into ${allEvents.length} unique events`);
     
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(allEvents);
+    console.log(`Filtered out ${allEvents.length - filteredEvents.length} events from blocked users`);
+    
     // Filter out reply posts (posts with 'e' tags)
-    const nonReplyEvents = allEvents.filter(event => 
+    const nonReplyEvents = filteredEvents.filter(event => 
       !event.tags.some(tag => tag[0] === 'e')
     );
     
-    console.log(`Filtered out ${allEvents.length - nonReplyEvents.length} reply posts, leaving ${nonReplyEvents.length} top-level posts`);
+    console.log(`Filtered out ${filteredEvents.length - nonReplyEvents.length} reply posts, leaving ${nonReplyEvents.length} top-level posts`);
     
     // Process events to extract posts
     const posts: Post[] = [];

@@ -4,6 +4,7 @@ import { NOSTR_KINDS } from "../../../types";
 import { getUserRelays } from "../../../relay";
 import { cacheQueryResult, getCachedQueryResult, generateCacheKey } from "../../../relay/connection";
 import { getSharedPool } from "../../../utils/poolManager";
+import { filterBlockedEvents } from "../../../utils/blocklist";
 
 const MAX_REQUEST_TIME = 15000; // 15 seconds timeout
 const SHORT_CACHE_TTL = 60000; // 1 minute for short-term cache
@@ -116,13 +117,16 @@ async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: stri
       _cacheTimestamp: Date.now()
     }));
     
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(timestampedEvents);
+    
     // Cache the result for future use (only if not a paginated request)
-    if (!filter.until && timestampedEvents && timestampedEvents.length > 0) {
-      cacheQueryResult(cacheKey, timestampedEvents);
-      console.log(`Cached ${timestampedEvents.length} events for future use`);
+    if (!filter.until && filteredEvents && filteredEvents.length > 0) {
+      cacheQueryResult(cacheKey, filteredEvents);
+      console.log(`Cached ${filteredEvents.length} events for future use`);
     }
     
-    return timestampedEvents || [];
+    return filteredEvents || [];
   } catch (error) {
     console.error("Error fetching global events:", error);
     // Return empty array to allow graceful fallback

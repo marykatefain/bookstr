@@ -5,6 +5,7 @@ import { Reply } from "../../types/common";
 import { getSharedPool } from "../../utils/poolManager";
 import { cacheQueryResult, getCachedQueryResult, generateCacheKey } from "../../relay/connection";
 import { getCurrentUser } from "../../user";
+import { filterBlockedEvents, isBlocked } from "../../utils/blocklist";
 
 // Cache TTL for interactions (5 minutes)
 const CACHE_TTL = 5 * 60 * 1000;
@@ -62,8 +63,14 @@ export async function fetchReactionsForEvent(eventId: string): Promise<{
     }
   }
   
+  // Filter out events from blocked users
+  const filteredEvents = filterBlockedEvents(events);
+  if (filteredEvents.length !== events.length) {
+    console.log(`Filtered out ${events.length - filteredEvents.length} reactions from blocked users`);
+  }
+  
   // Count unique pubkeys (one reaction per user)
-  const uniquePubkeys = new Set(events.map(event => event.pubkey));
+  const uniquePubkeys = new Set(filteredEvents.map(event => event.pubkey));
   const userReacted = currentUser ? uniquePubkeys.has(currentUser.pubkey) : false;
   
   return {
@@ -112,10 +119,16 @@ export async function batchFetchReactions(eventIds: string[]): Promise<Record<st
     }
   }
   
+  // Filter out events from blocked users
+  const filteredEvents = filterBlockedEvents(events);
+  if (filteredEvents.length !== events.length) {
+    console.log(`Filtered out ${events.length - filteredEvents.length} batch reactions from blocked users`);
+  }
+  
   // Group reactions by event ID
   const reactionsByEvent: Record<string, Set<string>> = {};
   
-  for (const event of events) {
+  for (const event of filteredEvents) {
     const eTag = event.tags.find(tag => tag[0] === 'e');
     if (!eTag || !eTag[1]) continue;
     
@@ -208,8 +221,14 @@ export async function fetchRepliesForEvent(eventId: string): Promise<Reply[]> {
     }
   }
   
+  // Filter out events from blocked users
+  const filteredEvents = filterBlockedEvents(events);
+  if (filteredEvents.length !== events.length) {
+    console.log(`Filtered out ${events.length - filteredEvents.length} replies from blocked users`);
+  }
+  
   // Get all unique pubkeys to fetch profiles
-  const uniquePubkeys = [...new Set(events.map(event => event.pubkey))];
+  const uniquePubkeys = [...new Set(filteredEvents.map(event => event.pubkey))];
   
   // Fetch profiles (simplified for now)
   const profileFilter: Filter = {
@@ -241,7 +260,7 @@ export async function fetchRepliesForEvent(eventId: string): Promise<Reply[]> {
   }
   
   // Format events into replies
-  const replies: Reply[] = events.map(event => {
+  const replies: Reply[] = filteredEvents.map(event => {
     const profile = profileMap.get(event.pubkey);
     const reply = formatReplyEvent(event, profile?.name, profile?.picture);
     reply.parentId = eventId; // Set the parentId to the current eventId
@@ -291,8 +310,14 @@ export async function batchFetchReplies(eventIds: string[]): Promise<Record<stri
     }
   }
   
+  // Filter out events from blocked users
+  const filteredEvents = filterBlockedEvents(events);
+  if (filteredEvents.length !== events.length) {
+    console.log(`Filtered out ${events.length - filteredEvents.length} batch replies from blocked users`);
+  }
+  
   // Get all unique pubkeys to fetch profiles
-  const uniquePubkeys = [...new Set(events.map(event => event.pubkey))];
+  const uniquePubkeys = [...new Set(filteredEvents.map(event => event.pubkey))];
   
   // Fetch profiles
   const profileFilter: Filter = {
@@ -326,7 +351,7 @@ export async function batchFetchReplies(eventIds: string[]): Promise<Record<stri
   // Group replies by event ID
   const repliesByEvent: Record<string, Reply[]> = {};
   
-  for (const event of events) {
+  for (const event of filteredEvents) {
     const eTags = event.tags.filter(tag => tag[0] === 'e');
     if (!eTags.length) continue;
     

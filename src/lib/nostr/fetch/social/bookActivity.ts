@@ -7,6 +7,7 @@ import { getBooksByISBN } from "@/lib/openlibrary";
 import { fetchUserProfiles } from "../../profile";
 import { getSharedPool } from "../../utils/poolManager";
 import { batchFetchReactions, batchFetchReplies } from "../social/interactions";
+import { filterBlockedEvents } from "../../utils/blocklist";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
@@ -45,8 +46,12 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
     const events = await pool.querySync(relays, filter);
     console.log(`Found ${events.length} events for ISBN ${isbn}`);
     
+    // Filter out events from blocked users
+    const filteredEvents = filterBlockedEvents(events);
+    console.log(`Filtered out ${events.length - filteredEvents.length} events from blocked users`);
+    
     // Filter out reply events (those with 'e' tags)
-    const nonReplyEvents = events.filter(event => 
+    const nonReplyEvents = filteredEvents.filter(event => 
       !event.tags.some(tag => tag[0] === 'e')
     );
     

@@ -9,13 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   followUser,
   isLoggedIn,
-  getCurrentUser 
+  getCurrentUser,
+  isBlocked
 } from "@/lib/nostr";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfileHeader } from "@/components/user-profile/UserProfileHeader";
 import { UserProfileStats } from "@/components/user-profile/UserProfileStats";
 import { UserProfileTabs } from "@/components/user-profile/UserProfileTabs";
 import { UserProfileContent } from "@/components/user-profile/UserProfileContent";
+import { BlockedUserBanner } from "@/components/user-profile/BlockedUserBanner";
 import { useUserProfile } from "@/hooks/use-user-profile";
 
 const UserProfile = () => {
@@ -27,6 +29,10 @@ const UserProfile = () => {
   const currentUser = getCurrentUser();
   const [redirected, setRedirected] = useState(false);
   const [following, setFollowing] = useState<boolean>(false);
+  const [showBlockedContent, setShowBlockedContent] = useState(false);
+  
+  // Check if this user is blocked
+  const userIsBlocked = pubkey ? isBlocked(pubkey) : false;
 
   // Use our new hook for profile data
   const {
@@ -136,27 +142,39 @@ const UserProfile = () => {
             onFollow={handleFollow}
           />
           
-          <UserProfileStats 
-            totalBooks={totalBooks}
-            readingCount={userBooks.reading.length}
-            postsCount={posts.length}
-            reviewsCount={reviews.length}
-          />
-          
-          <Separator className="my-6" />
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <UserProfileTabs onTabChange={setActiveTab} />
-            
-            <UserProfileContent
-              activeTab={activeTab}
-              profile={profile}
-              posts={posts}
-              reviews={reviews}
-              userBooks={userBooks}
-              postsLoading={postsLoading}
+          {userIsBlocked && profile && (
+            <BlockedUserBanner 
+              profile={profile} 
+              onToggleContent={() => setShowBlockedContent(!showBlockedContent)} 
+              showContent={showBlockedContent}
             />
-          </Tabs>
+          )}
+          
+          {(!userIsBlocked || showBlockedContent) && (
+            <>
+              <UserProfileStats 
+                totalBooks={totalBooks}
+                readingCount={userBooks.reading.length}
+                postsCount={posts.length}
+                reviewsCount={reviews.length}
+              />
+              
+              <Separator className="my-6" />
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <UserProfileTabs onTabChange={setActiveTab} />
+                
+                <UserProfileContent
+                  activeTab={activeTab}
+                  profile={profile}
+                  posts={posts}
+                  reviews={reviews}
+                  userBooks={userBooks}
+                  postsLoading={postsLoading}
+                />
+              </Tabs>
+            </>
+          )}
         </div>
       </div>
     </Layout>

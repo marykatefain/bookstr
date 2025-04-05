@@ -6,6 +6,7 @@ import { NOSTR_KINDS } from "./types/constants";
 import { NostrEventData } from "./types/common";
 import { Book } from "./types/books";
 import { toast } from "@/hooks/use-toast";
+import { isBlocked } from "./utils/blocklist";
 
 interface UpdateEventFilter {
   kind: number;
@@ -43,6 +44,17 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     if (!currentUser) {
       console.error("No current user found despite isLoggedIn check passing");
       throw new Error("User not logged in");
+    }
+
+    // Check if the current user is blocked
+    if (isBlocked(currentUser.pubkey)) {
+      console.error("User is blocked from publishing");
+      toast({
+        title: "Action restricted",
+        description: "You are not allowed to publish content",
+        variant: "destructive"
+      });
+      return null;
     }
 
     console.log("Current user:", currentUser);
@@ -288,6 +300,17 @@ export async function updateNostrEvent(
     const currentUser = getCurrentUser();
     if (!currentUser) {
       throw new Error("User not logged in");
+    }
+
+    // Check if the current user is blocked
+    if (isBlocked(currentUser.pubkey)) {
+      console.error("User is blocked from updating events");
+      toast({
+        title: "Action restricted",
+        description: "You are not allowed to update content",
+        variant: "destructive"
+      });
+      return null;
     }
 
     await ensureConnections();
