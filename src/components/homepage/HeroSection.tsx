@@ -57,7 +57,7 @@ export function HeroSection() {
                     Discover Books
                   </Button>
                 </Link>
-                <Link to="/profile">
+                <Link to="/library">
                   <Button size="lg" variant="outline">
                     <Book className="mr-2 h-5 w-5" />
                     Your Library
