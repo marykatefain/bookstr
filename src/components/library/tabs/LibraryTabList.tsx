@@ -19,26 +19,31 @@ export const LibraryTabList: React.FC<LibraryTabListProps> = ({
     {
       id: "books",
       label: "All Books",
+      mobileLabel: "All",
       icon: Book
     }, 
     {
       id: "reading",
       label: "Reading",
+      mobileLabel: "Reading",
       icon: BookOpen
     }, 
     {
       id: "tbr",
       label: "To Read",
+      mobileLabel: "To Read",
       icon: BookMarked
     }, 
     {
       id: "read",
       label: "Read",
+      mobileLabel: "Read",
       icon: BookCheck
     }, 
     {
       id: "reviews",
       label: "Reviews",
+      mobileLabel: "Reviews",
       icon: MessageCircle
     }
   ];
@@ -60,7 +65,7 @@ export const LibraryTabList: React.FC<LibraryTabListProps> = ({
           `}
         >
           <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? "text-bookverse-accent" : ""}`} />
-          {isMobile ? (tab.label.length > 8 ? tab.label.substring(0, 5) + "..." : tab.label) : tab.label}
+          {isMobile ? tab.mobileLabel : tab.label}
           <div 
             className={`
               absolute bottom-0 left-0 right-0 transition-all duration-200 z-10
