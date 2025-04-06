@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentUser } from "@/lib/nostr";
 import { Link } from "react-router-dom";
@@ -58,7 +58,11 @@ const NotificationsFeed = () => {
     
     switch (kind) {
       case 7: // Reaction
-        return `${authorName} reacted to your post`;
+        return (
+          <>
+            {content === "+" ? "❤️" : content} {authorName} reacted to your post
+          </>
+        );
       case 1: // Reply to post
         return `${authorName} replied to your post`;
       case 1111: // Reply to a review
@@ -150,7 +154,7 @@ const NotificationsFeed = () => {
             
             <div className="flex-1">
               <p className="text-sm">{getNotificationText(notification)}</p>
-              {notification.content && (
+              {notification.content && notification.kind !== 7 && (
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.content}</p>
               )}
               <p className="text-xs text-muted-foreground mt-2">
