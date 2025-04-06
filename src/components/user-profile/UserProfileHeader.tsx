@@ -165,29 +165,44 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({
         </Alert>
       )}
       
-      {currentUserPubkey && profile && currentUserPubkey !== profile.pubkey && (
-        <Button 
-          onClick={handleFollow} 
-          disabled={following || followLoading || profIsBlocked}
-          variant={profIsBlocked ? "destructive" : (following ? "outline" : "default")}
-        >
-          {profIsBlocked ? (
-            <>
-              <ShieldAlert className="mr-2 h-4 w-4" />
-              Blocked Account
-            </>
-          ) : following ? (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Following
-            </>
-          ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
-              Follow
-            </>
-          )}
-        </Button>
+      {profile && (
+        <div className="flex gap-2">
+          {currentUserPubkey && currentUserPubkey !== profile.pubkey ? (
+            <Button 
+              onClick={handleFollow} 
+              disabled={following || followLoading || profIsBlocked}
+              variant={profIsBlocked ? "destructive" : (following ? "outline" : "default")}
+            >
+              {profIsBlocked ? (
+                <>
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  Blocked Account
+                </>
+              ) : following ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Following
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Follow
+                </>
+              )}
+            </Button>
+          ) : null}
+          
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              const npub = nip19.npubEncode(profile.pubkey);
+              window.open(`https://njump.me/${npub}`, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Profile on Njump
+          </Button>
+        </div>
       )}
     </div>
   );

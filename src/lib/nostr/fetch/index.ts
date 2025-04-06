@@ -40,6 +40,9 @@ import {
   batchFetchReplies
 } from './social/interactions';
 
+// Notifications fetch function
+import { fetchNotifications } from './notifications';
+
 export {
   // Book functions
   fetchUserBooks,
@@ -68,5 +71,8 @@ export {
   fetchReactions,
   fetchReplies,
   batchFetchReactions,
-  batchFetchReplies
+  batchFetchReplies,
+  
+  // Notifications function
+  fetchNotifications
 };
