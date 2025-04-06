@@ -120,6 +120,9 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
       const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
       
+      // Extract the Rating object from tags
+      const ratingFromTags = extractRatingFromTags(event);
+      
       // Create social activity object
       const activity: SocialActivity = {
         id: event.id,
@@ -127,7 +130,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
         type: activityType,
         book,
         content: event.content,
-        rating: extractRatingFromTags(event),
+        rating: ratingFromTags,
         createdAt: event.created_at * 1000,
         author: profileMap.get(event.pubkey),
         reactions: {
