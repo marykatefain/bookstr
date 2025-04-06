@@ -71,13 +71,19 @@ export const useBookDetail = (isbn: string | undefined) => {
     return handleSubmitReview(book);
   }, [handleSubmitReview, book]);
   
-  const handleReactToReview = useCallback((reviewId: string) => {
-    return handleReactToContent(reviewId);
+  const handleReactToReview = useCallback((reviewId: string, authorPubkey?: string) => {
+    // Set isReview to true since we're reacting to a review
+    return handleReactToContent(reviewId, authorPubkey, true);
   }, [handleReactToContent]);
   
-  const handleReactToActivity = useCallback((activityId: string) => {
-    return handleReactToContent(activityId);
-  }, [handleReactToContent]);
+  const handleReactToActivity = useCallback((activityId: string, authorPubkey?: string) => {
+    // Find the activity to get its author pubkey
+    const activity = bookActivity.find(a => a.id === activityId);
+    const pubkey = authorPubkey || activity?.pubkey;
+    const isReview = activity?.type === 'review';
+    
+    return handleReactToContent(activityId, pubkey, isReview);
+  }, [handleReactToContent, bookActivity]);
 
   // Add a wrapper for removing a book from a list
   const handleRemoveBookFromList = useCallback((book: any, listType: 'tbr' | 'reading' | 'finished') => {

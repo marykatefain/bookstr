@@ -1,6 +1,6 @@
 
 // Default relays used as fallbacks
-export const DEFAULT_RELAYS = ["wss://ditto.pub/relay", "wss://relay.nostr.band", "wss://relay.damus.io"];
+export const DEFAULT_RELAYS = ["wss://ditto.pub/relay", "wss://relay.nostr.band", "wss://relay.damus.io", "wss://relay.primal.net"];
 
 // Connection timing parameters
 export const CONNECTION_COOLDOWN = 2000; // 2 seconds cooldown between connection attempts

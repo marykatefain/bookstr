@@ -13,6 +13,10 @@ interface UseReactionOptions {
   onSuccess?: (state: ReactionState) => void;
   /** Optional callback to run when reactions fail to update */
   onError?: (error: unknown) => void;
+  /** If this content is a book review, provide the author's pubkey */
+  authorPubkey?: string;
+  /** Whether this is a reaction to a book review (Kind 31985) */
+  isBookReview?: boolean;
 }
 
 /**
@@ -65,7 +69,12 @@ export function useReaction(
    * @returns Promise that resolves when the reaction is complete
    */
   const handleToggleReaction = async (): Promise<boolean> => {
-    const result = await toggleReaction(contentId);
+    // Pass the authorPubkey and isBookReview flag if provided
+    const result = await toggleReaction(
+      contentId, 
+      options?.authorPubkey,
+      options?.isBookReview
+    );
     
     if (result && options?.onSuccess) {
       options.onSuccess(getReactionState(contentId));
@@ -100,6 +109,7 @@ export function useReactionLegacy(
     isLoading: false,
     toggleReaction: async (contentId: string) => {
       const { toggleReaction } = useReactionContext();
+      // Legacy hook won't support book review reactions
       return toggleReaction(contentId);
     },
     updateReactionState: () => {

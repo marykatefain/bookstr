@@ -12,7 +12,7 @@ import { extractMediaUrls, linkifyText } from "@/lib/utils/urlUtils";
 
 interface ReplyItemProps {
   reply: Reply;
-  onReaction?: (replyId: string) => void;
+  onReaction?: (replyId: string, authorPubkey: string) => void;
 }
 
 export function ReplyItem({ reply, onReaction }: ReplyItemProps) {
@@ -27,7 +27,9 @@ export function ReplyItem({ reply, onReaction }: ReplyItemProps) {
     toggleReaction 
   } = useReaction(reply.id, {
     count: reply.reactions?.count || 0,
-    userReacted: reply.reactions?.userReacted || false
+    userReacted: reply.reactions?.userReacted || false,
+    // Pass the author's pubkey for proper p tag inclusion
+    authorPubkey: reply.pubkey
   });
 
   const handleReaction = async () => {
@@ -38,7 +40,7 @@ export function ReplyItem({ reply, onReaction }: ReplyItemProps) {
     
     // Call the parent's onReaction callback if provided
     if (onReaction) {
-      onReaction(reply.id);
+      onReaction(reply.id, reply.pubkey);
     }
   };
 

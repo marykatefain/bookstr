@@ -11,7 +11,8 @@ import {
   Info,
   Database,
   Bitcoin,
-  Users
+  Users,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +24,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { NostrLoginButton } from "./NostrLoginButton";
 import { getDisplayIdentifier } from "@/lib/utils/user-display";
 import { NIP05VerificationIndicator } from "../profile/NIP05VerificationIndicator";
+import NotificationBadge from "../notifications/NotificationBadge";
 
 interface SidebarProps {
   user: any;
@@ -38,6 +40,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
     { path: "/", label: "Home", icon: Home },
     { path: "/library", label: "Library", icon: Library },
     { path: "/following", label: "Following", icon: Users },
+    { path: "/notifications", label: "Notifications", icon: Bell },
     { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
@@ -122,6 +125,7 @@ export const Sidebar = ({ user, handleLogout }: SidebarProps) => {
           >
             <link.icon className="h-5 w-5" />
             <span>{link.label}</span>
+            {link.path === "/notifications" && <NotificationBadge />}
           </Link>
         ))}
       </nav>

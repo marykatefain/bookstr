@@ -41,7 +41,19 @@ export function UserPostsFeed({
   // Handle reactions for any activity
   const handleReaction = async (activityId: string) => {
     console.log(`UserPostsFeed: Handling reaction for activity: ${activityId}`);
-    await toggleReaction(activityId);
+    
+    // Find the activity to get its author pubkey
+    const activity = activities.find(a => a.id === activityId);
+    if (activity) {
+      const authorPubkey = activity.pubkey;
+      const isReview = activity.type === 'review';
+      
+      console.log(`Activity reaction: authorPubkey=${authorPubkey}, isReview=${isReview}`);
+      await toggleReaction(activityId, authorPubkey, isReview);
+    } else {
+      // Fallback in case activity not found
+      await toggleReaction(activityId);
+    }
   };
 
   // Fetch posts on initial render and when refresh is triggered

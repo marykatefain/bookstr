@@ -61,40 +61,49 @@ export async function publishToNostr(event: Partial<NostrEventData>): Promise<st
     console.log("Current user:", currentUser);
     console.log("Preparing event:", event);
 
-    const hasIsbnTag = event.tags?.some(tag => tag[0] === 'i' && tag[1].includes('isbn:'));
-    if (hasIsbnTag) {
+    // Check if we have tags and add client tag if necessary
+    if (event.kind === NOSTR_KINDS.REACTION) {
+      const clonedTags = [...(event.tags || [])]; // Make a clone to avoid modifying the original array
+      console.log("In publishToNostr, original reaction tags:", JSON.stringify(clonedTags));
+      
+      // Add t=bookstr tag if not already present
+      if (!clonedTags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
+        clonedTags.push(["t", "bookstr"]);
+      }
+      
+      // Add client tag if not already present
+      if (!clonedTags.some(tag => tag[0] === 'client')) {
+        clonedTags.push(["client", "Bookstr"]);
+      }
+      
+      // CRITICAL: Make sure we preserve the updated tags array
+      event.tags = clonedTags;
+      console.log("In publishToNostr, updated reaction tags:", JSON.stringify(event.tags));
+    } else {
+      // For other event types
       event.tags = event.tags || [];
-      if (!event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
+      
+      // Handle ISBN tags
+      const hasIsbnTag = event.tags.some(tag => tag[0] === 'i' && tag[1].includes('isbn:'));
+      if (hasIsbnTag && !event.tags.some(tag => tag[0] === 'k' && tag[1] === 'isbn')) {
         event.tags.push(["k", "isbn"]);
       }
-    }
-
-    if (event.kind === NOSTR_KINDS.TEXT_NOTE) {
-      event.tags = event.tags || [];
-      if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
+      
+      // Add t=bookstr tag for TEXT_NOTE events
+      if (event.kind === NOSTR_KINDS.TEXT_NOTE && !event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
         event.tags.push(["t", "bookstr"]);
       }
-    }
-
-    if (event.kind === NOSTR_KINDS.REACTION) {
-      event.tags = event.tags || [];
-      if (!event.tags.some(tag => tag[0] === 't' && tag[1] === 'bookstr')) {
-        event.tags.push(["t", "bookstr"]);
+      
+      // Add client tag if not already present
+      if (!event.tags.some(tag => tag[0] === 'client')) {
+        event.tags.push(["client", "Bookstr"]);
       }
-    }
-
-    // Prepare tags, ensuring client tag is included
-    let tags = event.tags || [];
-    
-    // Add client tag if not already present
-    if (!tags.some(tag => tag[0] === 'client')) {
-      tags.push(["client", "Bookstr"]);
     }
     
     const unsignedEvent: UnsignedEvent = {
       kind: event.kind || NOSTR_KINDS.TEXT_NOTE,
       created_at: Math.floor(Date.now() / 1000),
-      tags: tags,
+      tags: event.tags || [],
       content: event.content || "",
       pubkey: currentUser.pubkey || ""
     };
@@ -520,12 +529,13 @@ export async function updateNostrEvent(
 /**
  * React to a post or other content (Kind 7)
  * @param eventId - The ID of the event to react to
+ * @param authorPubkey - The pubkey of the event author, needed for p tag
  * @param emoji - Optional emoji to use (defaults to "+")
  * @returns The ID of the reaction event if successfully published, null otherwise
  */
-export async function reactToContent(eventId: string, emoji: string = "+"): Promise<string | null> {
+export async function reactToContent(eventId: string, authorPubkey?: string, emoji: string = "+"): Promise<string | null> {
   try {
-    console.log(`reactToContent called with eventId: ${eventId}, emoji: ${emoji}`);
+    console.log(`reactToContent called with eventId: ${eventId}, authorPubkey: ${authorPubkey || 'unknown'}, emoji: ${emoji}`);
     
     if (!isLoggedIn()) {
       console.log("User not logged in when trying to react");
@@ -537,15 +547,31 @@ export async function reactToContent(eventId: string, emoji: string = "+"): Prom
       return null;
     }
 
+    // We always need the e tag (event we're reacting to)
     const tags = [
       ["e", eventId]
     ];
-
+    
+    // Add p tag (author of the original event) if provided
+    // This is crucial for proper notification routing in Nostr
+    if (authorPubkey) {
+      tags.push(["p", authorPubkey]);
+      console.log("Added p tag with author pubkey:", authorPubkey);
+    } else {
+      console.warn("Author pubkey not provided for reaction - notifications may not work correctly");
+    }
+    
+    console.log("Tags before creating event data:", tags);
+    
+    // Create the event data with our properly constructed tags
     const eventData: Partial<NostrEventData> = {
       kind: NOSTR_KINDS.REACTION,
       content: emoji,
       tags: tags
     };
+    
+    console.log("Final reaction event data:", eventData);
+    console.log("Tags include p tag:", tags.some(tag => tag[0] === 'p'));
 
     console.log("Reaction event data prepared:", eventData);
 
@@ -560,6 +586,64 @@ export async function reactToContent(eventId: string, emoji: string = "+"): Prom
     }
   } catch (error) {
     console.error("Error creating reaction:", error);
+    
+    toast({
+      title: "Failed to react",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
+      variant: "destructive"
+    });
+    
+    return null;
+  }
+}
+
+/**
+ * React to a book review (Kind 31985)
+ * @param eventId - The ID of the review event to react to
+ * @param authorPubkey - The pubkey of the review author
+ * @param emoji - Optional emoji to use (defaults to "+")
+ * @returns The ID of the reaction event if successfully published, null otherwise
+ */
+export async function reactToBookReview(eventId: string, authorPubkey: string, emoji: string = "+"): Promise<string | null> {
+  try {
+    console.log(`reactToBookReview called with eventId: ${eventId}, authorPubkey: ${authorPubkey}, emoji: ${emoji}`);
+    
+    if (!isLoggedIn()) {
+      console.log("User not logged in when trying to react to book review");
+      toast({
+        title: "Login required",
+        description: "Please sign in with Nostr to react to reviews",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    // Create tags according to NIP-25 and with the additional k tag for review kind
+    const tags = [
+      ["e", eventId],
+      ["p", authorPubkey],
+      ["k", "31985"]  // Tag for the kind of the review
+    ];
+
+    const eventData: Partial<NostrEventData> = {
+      kind: NOSTR_KINDS.REACTION,
+      content: emoji,
+      tags: tags
+    };
+
+    console.log("Book review reaction event data prepared:", eventData);
+
+    const reactionId = await publishToNostr(eventData);
+    
+    if (reactionId) {
+      console.log(`Successfully published reaction to book review ${eventId}, reaction ID: ${reactionId}`);
+      return reactionId;
+    } else {
+      console.error(`Failed to publish reaction to book review ${eventId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error creating reaction to book review:", error);
     
     toast({
       title: "Failed to react",

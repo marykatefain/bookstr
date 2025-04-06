@@ -52,7 +52,32 @@ export async function fetchReactionsForEvent(eventId: string): Promise<{
     events = cachedEvents;
   } else {
     try {
-      events = await pool.querySync(relays, filter);
+      // First, get standard reactions (just e tag)
+      const standardReactions = await pool.querySync(relays, filter);
+      
+      // Also look for reactions with the k=31985 tag (book review reactions)
+      // or any other specialized reactions (with p tag)
+      const specializedFilter: Filter = {
+        kinds: [NOSTR_KINDS.REACTION],
+        '#e': [eventId],
+        // Note: We're not filtering by #k or #p here to catch all types
+        // of specialized reactions in one query
+      };
+      
+      const specializedReactions = await pool.querySync(relays, specializedFilter);
+      
+      // Combine reactions, removing duplicates
+      const allReactions = [...standardReactions];
+      const eventIds = new Set(standardReactions.map(e => e.id));
+      
+      specializedReactions.forEach(reaction => {
+        if (!eventIds.has(reaction.id)) {
+          allReactions.push(reaction);
+          eventIds.add(reaction.id);
+        }
+      });
+      
+      events = allReactions;
       
       if (events.length > 0) {
         cacheQueryResult(cacheKey, events);
@@ -108,7 +133,31 @@ export async function batchFetchReactions(eventIds: string[]): Promise<Record<st
     events = cachedEvents;
   } else {
     try {
-      events = await pool.querySync(relays, filter);
+      // First, get standard reactions (just e tag)
+      const standardReactions = await pool.querySync(relays, filter);
+      
+      // Also look for reactions with specialized tags
+      const specializedFilter: Filter = {
+        kinds: [NOSTR_KINDS.REACTION],
+        '#e': eventIds,
+        // Note: We're not filtering by #k or #p here to catch all types
+        // of specialized reactions in one query
+      };
+      
+      const specializedReactions = await pool.querySync(relays, specializedFilter);
+      
+      // Combine reactions, removing duplicates
+      const allReactions = [...standardReactions];
+      const reactionIds = new Set(standardReactions.map(e => e.id));
+      
+      specializedReactions.forEach(reaction => {
+        if (!reactionIds.has(reaction.id)) {
+          allReactions.push(reaction);
+          reactionIds.add(reaction.id);
+        }
+      });
+      
+      events = allReactions;
       
       if (events.length > 0) {
         cacheQueryResult(cacheKey, events);

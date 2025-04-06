@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { isLoggedIn, reactToContent } from "@/lib/nostr";
+import { isLoggedIn, reactToContent, reactToBookReview } from "@/lib/nostr";
 
 // Define types for our reaction state and context
 interface ReactionState {
@@ -17,7 +17,7 @@ type ReactionAction =
 interface ReactionContextType {
   getReactionState: (contentId: string) => { count: number; userReacted: boolean };
   isPending: (contentId: string) => boolean;
-  toggleReaction: (contentId: string) => Promise<boolean>;
+  toggleReaction: (contentId: string, authorPubkey?: string, isReview?: boolean) => Promise<boolean>;
   updateReactionState: (contentId: string, count: number, userReacted: boolean) => void;
 }
 
@@ -100,8 +100,8 @@ export const ReactionProvider = React.memo(function ReactionProviderComponent({ 
   }, []);
 
   // Toggle reaction for a given content ID
-  const toggleReaction = useCallback(async (contentId: string): Promise<boolean> => {
-    console.log(`ReactionContext: toggleReaction called for ${contentId}`);
+  const toggleReaction = useCallback(async (contentId: string, authorPubkey?: string, isReview?: boolean): Promise<boolean> => {
+    console.log(`ReactionContext: toggleReaction called for ${contentId}${isReview ? ' (book review)' : ''}`);
     
     if (!isLoggedIn()) {
       console.log("ReactionContext: User not logged in");
@@ -127,7 +127,17 @@ export const ReactionProvider = React.memo(function ReactionProviderComponent({ 
 
     try {
       console.log(`ReactionContext: Sending reaction to content ${contentId}`);
-      const reactionId = await reactToContent(contentId);
+      
+      // If this is a book review reaction and we have the author pubkey, use the specialized function
+      let reactionId: string | null = null;
+      
+      if (isReview && authorPubkey) {
+        // This is a book review reaction
+        reactionId = await reactToBookReview(contentId, authorPubkey);
+      } else {
+        // This is a regular reaction - always pass authorPubkey if available
+        reactionId = await reactToContent(contentId, authorPubkey);
+      }
       
       if (reactionId) {
         console.log(`ReactionContext: Reaction successful, ID: ${reactionId}`);
