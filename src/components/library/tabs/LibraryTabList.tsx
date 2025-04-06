@@ -31,7 +31,7 @@ export const LibraryTabList: React.FC<LibraryTabListProps> = ({
     {
       id: "tbr",
       label: "To Read",
-      mobileLabel: "To Read",
+      mobileLabel: "TBR",
       icon: BookMarked
     }, 
     {
