@@ -84,6 +84,20 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
       textNoteFilter.until = until;
     }
     
+    // Add a specific filter for reviews (kind 31985)
+    // Their ISBN is in the "d" tag rather than the "i" tag
+    const reviewFilter: Filter = {
+      kinds: [NOSTR_KINDS.REVIEW],
+      authors: follows,
+      limit
+    };
+    
+    // Add until to this filter too for pagination
+    if (until) {
+      reviewFilter.until = until;
+    }
+    
+    // Filter for posts with k=isbn tag
     const isbnFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
       authors: follows,
@@ -97,9 +111,10 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
     }
     
     // Execute all queries in parallel
-    const [events, textNoteEvents, isbnEvents] = await Promise.all([
+    const [events, textNoteEvents, reviewEvents, isbnEvents] = await Promise.all([
       pool.querySync(relays, filter),
       pool.querySync(relays, textNoteFilter),
+      pool.querySync(relays, reviewFilter),
       pool.querySync(relays, isbnFilter)
     ]);
     
@@ -107,12 +122,15 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
     const eventMap = new Map();
     
     // Add all events to the map, using the event ID as the key
-    [...events, ...textNoteEvents, ...isbnEvents].forEach(event => {
+    [...events, ...textNoteEvents, ...reviewEvents, ...isbnEvents].forEach(event => {
       eventMap.set(event.id, event);
     });
     
     // Convert back to array
     const allEvents = Array.from(eventMap.values());
+    
+    console.log(`Fetched ${events.length} general events, ${textNoteEvents.length} text notes, ${reviewEvents.length} reviews, ${isbnEvents.length} ISBN-tagged posts`);
+    console.log(`Combined into ${allEvents.length} total unique events`);
     
     // Filter out events from blocked users
     const filteredEvents = filterBlockedEvents(allEvents);
@@ -228,7 +246,11 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
       
       // Find media tags for posts
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      
+      // Check for content-warning tag (new standard) or fallback to spoiler tag (legacy)
+      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
       
       // Create social activity object
       const activity: SocialActivity = {
@@ -246,7 +268,7 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
         },
         mediaUrl: mediaTag ? mediaTag[2] : undefined,
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
+        isSpoiler: isSpoiler
       };
       
       socialFeed.push(activity);
