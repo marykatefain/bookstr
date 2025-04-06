@@ -1,6 +1,7 @@
 
 import { Book } from './books';
 import { Reply } from './common';
+import { Rating } from '@/lib/utils/Rating';
 
 export interface Post {
   id: string;
@@ -33,7 +34,7 @@ export interface SocialActivity {
   type: 'review' | 'rating' | 'tbr' | 'reading' | 'finished' | 'post';
   book: Book;
   content?: string;
-  rating?: number;
+  rating?: Rating;
   createdAt: number;
   author?: {
     name?: string;

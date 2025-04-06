@@ -11,9 +11,20 @@ import { batchFetchReactions, batchFetchReplies } from "./interactions";
 import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
 import { fetchBooksByISBN as getBooksByISBN } from "../../fetch/book";
 import { filterBlockedEvents } from "../../utils/blocklist";
+import { Rating } from "@/lib/utils/Rating";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
+/**
+ * Convert a raw rating number to a Rating object
+ * @param rawRating The raw rating number from 0-1
+ * @returns A Rating object or undefined if input is undefined
+ */
+function convertToRatingObject(rawRating: number | undefined): Rating | undefined {
+  if (rawRating === undefined) return undefined;
+  return new Rating(rawRating);
+}
 
 /**
  * Fetch social activity from people you follow
@@ -226,7 +237,7 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
         type: activityType,
         book,
         content: event.content,
-        rating: extractRatingFromTags(event),
+        rating: convertToRatingObject(extractRatingFromTags(event)),
         createdAt: event.created_at * 1000,
         author: profileMap.get(event.pubkey),
         reactions: {
