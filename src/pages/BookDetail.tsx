@@ -12,6 +12,7 @@ import { BookDetailSkeleton } from "@/components/book/BookDetailSkeleton";
 import { BookNotFound } from "@/components/book/BookNotFound";
 import { useToast } from "@/hooks/use-toast";
 import { OpenLibraryContributionDialog } from "@/components/book/OpenLibraryContributionDialog";
+import { Rating } from "@/lib/utils/Rating";
 
 const BookDetail = () => {
   const { isbn } = useParams<{ isbn: string }>();
@@ -123,9 +124,10 @@ const BookDetail = () => {
     }
   };
 
+  // Calculate average rating, correctly handling the Rating objects
   const avgRating = ratings.length > 0
-    ? ratings.reduce((sum, r) => sum + (r.rating || 0), 0) / ratings.length
-    : 0;
+    ? new Rating(ratings.reduce((sum, r) => sum + (r.rating ? r.rating.fraction : 0), 0) / ratings.length)
+    : new Rating(0);
 
   if (loading) {
     return (

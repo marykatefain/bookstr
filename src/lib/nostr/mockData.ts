@@ -1,6 +1,7 @@
 
 import { SocialActivity } from "./types";
 import { mockPosts } from "./types";
+import { Rating } from "@/lib/utils/Rating";
 
 // Mock books data for activities
 export const mockBooks = [
@@ -92,7 +93,7 @@ export const mockFollowersActivities: SocialActivity[] = [
     pubkey: "user3pubkey",
     type: "rating",
     book: mockBooks[2],
-    rating: 4,
+    rating: new Rating(0.8), // Convert to Rating object with fraction 0.8 (4 out of 5)
     createdAt: Date.now() - 3600000 * 8,
     author: {
       name: "Night Reader",
@@ -123,7 +124,7 @@ export const mockGlobalActivities: SocialActivity[] = [
     type: "review",
     book: mockBooks[4],
     content: "This book changed my perspective on society. I couldn't put it down and finished it in two days.",
-    rating: 5,
+    rating: new Rating(1.0), // Convert to Rating object with fraction 1.0 (5 out of 5)
     createdAt: Date.now() - 3600000 * 15,
     author: {
       name: "Literary Critic",

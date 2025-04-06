@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Reply } from "@/lib/nostr/types";
@@ -27,8 +28,9 @@ export function ReplyItem({ reply, onReaction }: ReplyItemProps) {
     toggleReaction 
   } = useReaction(reply.id, {
     count: reply.reactions?.count || 0,
-    userReacted: reply.reactions?.userReacted || false,
-    // Pass the author's pubkey for proper p tag inclusion
+    userReacted: reply.reactions?.userReacted || false
+  }, {
+    // Pass the author's pubkey as part of the options object
     authorPubkey: reply.pubkey
   });
 

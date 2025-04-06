@@ -27,7 +27,9 @@ export function CompactActivityCard({ activity, onReaction }: CompactActivityCar
       case 'finished':
         return <span>finished <strong>{bookTitle}</strong></span>;
       case 'rating':
-        return <span>rated <strong>{bookTitle}</strong> ({activity.rating}★)</span>;
+        // Convert rating to display scale (0-5)
+        const displayRating = activity.rating ? activity.rating.toScale(5).toFixed(1) : "?";
+        return <span>rated <strong>{bookTitle}</strong> ({displayRating}★)</span>;
       case 'review':
         return <span>reviewed <strong>{bookTitle}</strong></span>;
       default:

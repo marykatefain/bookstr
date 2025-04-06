@@ -14,16 +14,6 @@ import { Rating } from "@/lib/utils/Rating";
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
 
 /**
- * Convert a raw rating number to a Rating object
- * @param rawRating The raw rating number from 0-1
- * @returns A Rating object or undefined if input is undefined
- */
-function convertToRatingObject(rawRating: number | undefined): Rating | undefined {
-  if (rawRating === undefined) return undefined;
-  return new Rating(rawRating);
-}
-
-/**
  * Fetch book-related events for a specific ISBN
  */
 export async function fetchBookActivity(isbn: string, limit = 20): Promise<SocialActivity[]> {
@@ -137,7 +127,7 @@ export async function fetchBookActivity(isbn: string, limit = 20): Promise<Socia
         type: activityType,
         book,
         content: event.content,
-        rating: convertToRatingObject(extractRatingFromTags(event)),
+        rating: extractRatingFromTags(event),
         createdAt: event.created_at * 1000,
         author: profileMap.get(event.pubkey),
         reactions: {
