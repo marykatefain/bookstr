@@ -562,12 +562,16 @@ export async function reactToContent(eventId: string, authorPubkey?: string, emo
     }
     
     console.log("Tags before creating event data:", tags);
-
+    
+    // Create the event data with our properly constructed tags
     const eventData: Partial<NostrEventData> = {
       kind: NOSTR_KINDS.REACTION,
       content: emoji,
       tags: tags
     };
+    
+    console.log("Final reaction event data:", eventData);
+    console.log("Tags include p tag:", tags.some(tag => tag[0] === 'p'));
 
     console.log("Reaction event data prepared:", eventData);
 

@@ -57,12 +57,18 @@ export function PostCard({ post, onReaction }: PostCardProps) {
     setSpoilerRevealed(true);
   };
   
-  const handleReaction = async () => {
+  const handleReaction = async (eventId?: string, authorPubkey?: string) => {
+    // If we're getting called from a child component with eventId, use that, otherwise use this post's ID
+    const targetId = eventId || postData.id;
+    // Similarly, use the provided authorPubkey or fall back to this post's author
+    const targetAuthorPubkey = authorPubkey || postData.pubkey;
+    
     if (onReaction) {
-      onReaction(postData.id);
+      onReaction(targetId);
     } else {
       try {
-        await reactToContent(postData.id);
+        // Pass the author's pubkey for proper p tag inclusion
+        await reactToContent(targetId, targetAuthorPubkey);
         toast({
           title: "Reaction sent",
           description: "You've reacted to this post"

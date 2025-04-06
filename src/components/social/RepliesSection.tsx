@@ -14,7 +14,7 @@ interface RepliesSectionProps {
   authorPubkey: string;
   initialReplies?: Reply[];
   buttonLayout?: "horizontal" | "vertical";
-  onReaction?: (eventId: string) => void;
+  onReaction?: (eventId: string, authorPubkey: string) => void;
   reactionCount?: number;
   userReacted?: boolean;
   eventKind?: number;
@@ -150,8 +150,8 @@ export function RepliesSection({
 
   const handleReaction = () => {
     if (onReaction) {
-      // Call the onReaction callback, which should handle passing author info
-      onReaction(eventId);
+      // Call the onReaction callback and pass the author pubkey
+      onReaction(eventId, authorPubkey);
       
       // Update local state optimistically
       setReactions(prev => ({
@@ -231,7 +231,12 @@ export function RepliesSection({
               <ReplyItem 
                 key={reply.id} 
                 reply={reply}
-                onReaction={(replyId) => console.log(`Reaction toggled for reply: ${replyId}`)} 
+                onReaction={(replyId) => {
+                  if (onReaction) {
+                    // Pass the author pubkey from the reply
+                    onReaction(replyId, reply.pubkey);
+                  }
+                }} 
               />
             ))
           )}
