@@ -12,7 +12,8 @@ import {
   Info,
   Database,
   Bitcoin,
-  Users
+  Users,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +22,7 @@ import { getDisplayIdentifier } from "@/lib/utils/user-display";
 import { NIP05VerificationIndicator } from "../profile/NIP05VerificationIndicator";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import NotificationBadge from "../notifications/NotificationBadge";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -43,6 +45,7 @@ export const MobileSidebar = ({
     { path: "/", label: "Home", icon: Home },
     { path: "/library", label: "Library", icon: Library },
     { path: "/following", label: "Following", icon: Users },
+    { path: "/notifications", label: "Notifications", icon: Bell },
     { path: "/books", label: "Search", icon: Search },
     { path: "/stats", label: "Stats", icon: BarChart2 },
   ];
@@ -138,6 +141,7 @@ export const MobileSidebar = ({
                 >
                   <link.icon className="h-5 w-5" />
                   <span>{link.label}</span>
+                  {link.path === "/notifications" && <NotificationBadge />}
                 </Link>
               ))}
             </nav>
