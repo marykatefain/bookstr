@@ -11,9 +11,20 @@ import { batchFetchReactions, batchFetchReplies } from "./interactions";
 import { extractISBNFromTags, extractRatingFromTags } from "../../utils/eventUtils";
 import { fetchBooksByISBN as getBooksByISBN } from "../../fetch/book";
 import { filterBlockedEvents } from "../../utils/blocklist";
+import { Rating } from "@/lib/utils/Rating";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
+
+/**
+ * Convert a raw rating number to a Rating object
+ * @param rawRating The raw rating number from 0-1
+ * @returns A Rating object or undefined if input is undefined
+ */
+function convertToRatingObject(rawRating: number | undefined): Rating | undefined {
+  if (rawRating === undefined) return undefined;
+  return new Rating(rawRating);
+}
 
 /**
  * Fetch social activity from people you follow
@@ -73,6 +84,20 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
       textNoteFilter.until = until;
     }
     
+    // Add a specific filter for reviews (kind 31985)
+    // Their ISBN is in the "d" tag rather than the "i" tag
+    const reviewFilter: Filter = {
+      kinds: [NOSTR_KINDS.REVIEW],
+      authors: follows,
+      limit
+    };
+    
+    // Add until to this filter too for pagination
+    if (until) {
+      reviewFilter.until = until;
+    }
+    
+    // Filter for posts with k=isbn tag
     const isbnFilter: Filter = {
       kinds: [NOSTR_KINDS.TEXT_NOTE],
       authors: follows,
@@ -86,9 +111,10 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
     }
     
     // Execute all queries in parallel
-    const [events, textNoteEvents, isbnEvents] = await Promise.all([
+    const [events, textNoteEvents, reviewEvents, isbnEvents] = await Promise.all([
       pool.querySync(relays, filter),
       pool.querySync(relays, textNoteFilter),
+      pool.querySync(relays, reviewFilter),
       pool.querySync(relays, isbnFilter)
     ]);
     
@@ -96,12 +122,15 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
     const eventMap = new Map();
     
     // Add all events to the map, using the event ID as the key
-    [...events, ...textNoteEvents, ...isbnEvents].forEach(event => {
+    [...events, ...textNoteEvents, ...reviewEvents, ...isbnEvents].forEach(event => {
       eventMap.set(event.id, event);
     });
     
     // Convert back to array
     const allEvents = Array.from(eventMap.values());
+    
+    console.log(`Fetched ${events.length} general events, ${textNoteEvents.length} text notes, ${reviewEvents.length} reviews, ${isbnEvents.length} ISBN-tagged posts`);
+    console.log(`Combined into ${allEvents.length} total unique events`);
     
     // Filter out events from blocked users
     const filteredEvents = filterBlockedEvents(allEvents);
@@ -217,7 +246,11 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
       
       // Find media tags for posts
       const mediaTag = event.tags.find(tag => tag[0] === 'media');
+      
+      // Check for content-warning tag (new standard) or fallback to spoiler tag (legacy)
+      const contentWarningTag = event.tags.find(tag => tag[0] === 'content-warning');
       const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
+      const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
       
       // Create social activity object
       const activity: SocialActivity = {
@@ -226,7 +259,7 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
         type: activityType,
         book,
         content: event.content,
-        rating: extractRatingFromTags(event),
+        rating: convertToRatingObject(extractRatingFromTags(event)),
         createdAt: event.created_at * 1000,
         author: profileMap.get(event.pubkey),
         reactions: {
@@ -235,7 +268,7 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
         },
         mediaUrl: mediaTag ? mediaTag[2] : undefined,
         mediaType: mediaTag ? (mediaTag[1] as "image" | "video") : undefined,
-        isSpoiler: !!spoilerTag && spoilerTag[1] === "true"
+        isSpoiler: isSpoiler
       };
       
       socialFeed.push(activity);

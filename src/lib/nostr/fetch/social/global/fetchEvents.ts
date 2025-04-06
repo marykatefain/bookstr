@@ -38,10 +38,18 @@ export async function fetchGlobalEvents(limit: number, until?: number): Promise<
     limit: limit * 2, // Increase limit as we'll filter later
     "#t": ["bookstr"]
   };
+  
+  // Add a specific filter for reviews/ratings (kind 31985)
+  // Their ISBN is in the "d" tag rather than the "i" tag
+  const reviewFilter: Filter = {
+    kinds: [NOSTR_KINDS.REVIEW],
+    limit: limit * 2
+  };
 
   // Add until parameter for pagination if provided
   if (until) {
     combinedFilter.until = until;
+    reviewFilter.until = until;
   }
   
   // Generate cache key for this query
@@ -83,13 +91,13 @@ export async function fetchGlobalEvents(limit: number, until?: number): Promise<
   }
   
   // No cache available or pagination request, wait for fresh data
-  return await fetchFreshEvents(relays, combinedFilter, cacheKey);
+  return await fetchFreshEvents(relays, combinedFilter, reviewFilter, cacheKey);
 }
 
 /**
  * Fetch fresh events from relays
  */
-async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: string): Promise<Event[]> {
+async function fetchFreshEvents(relays: string[], filter: Filter, reviewFilter: Filter, cacheKey: string): Promise<Event[]> {
   try {
     console.log(`Querying ${relays.length} relays for global feed events...`);
     
@@ -105,14 +113,32 @@ async function fetchFreshEvents(relays: string[], filter: Filter, cacheKey: stri
       setTimeout(() => reject(new Error("Query timed out")), MAX_REQUEST_TIME);
     });
     
-    // Execute the query with a timeout
+    // Execute the query with a timeout - fetch both regular events and reviews
     const queryPromise = pool.querySync(relays, filter);
-    const events = await Promise.race([queryPromise, timeoutPromise]);
+    const reviewQueryPromise = pool.querySync(relays, reviewFilter);
     
-    console.log(`Received ${events.length} raw events from relays`);
+    // Wait for both queries to complete with timeout
+    const [events, reviewEvents] = await Promise.all([
+      Promise.race([queryPromise, timeoutPromise]),
+      Promise.race([reviewQueryPromise, timeoutPromise.catch(() => [])])
+    ]);
+    
+    // Combine the events, removing duplicates
+    const allEvents = [...events];
+    
+    // Add review events, avoiding duplicates
+    const eventIds = new Set(events.map(e => e.id));
+    reviewEvents.forEach(event => {
+      if (!eventIds.has(event.id)) {
+        allEvents.push(event);
+        eventIds.add(event.id);
+      }
+    });
+    
+    console.log(`Received ${allEvents.length} raw events from relays (${events.length} regular, ${reviewEvents.length} reviews)`);
     
     // Add timestamp to events for cache age tracking
-    const timestampedEvents = events.map(event => ({
+    const timestampedEvents = allEvents.map(event => ({
       ...event,
       _cacheTimestamp: Date.now()
     }));
