@@ -401,6 +401,7 @@ The user's actions on books are stored as Nostr events, which are then published
 - wss://ditto.pub/relay: my default relay
 - wss://relay.nostr.band: good for account lookup
 - wss://relay.damus.io: good general purpose relay
+- wss://relay.primal.net is another good default relay
 
 The Nostr protocol is standardized with NIPS, the documentation of which can be found [here](https://github.com/nostr-protocol/nips)
 
