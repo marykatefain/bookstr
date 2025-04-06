@@ -1,4 +1,3 @@
-
 import { type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../types";
 import { getUserRelays } from "../../relay";
@@ -259,7 +258,7 @@ export async function fetchSocialFeed(limit = 20, until?: number): Promise<Socia
         type: activityType,
         book,
         content: event.content,
-        rating: convertToRatingObject(extractRatingFromTags(event)),
+        rating: extractRatingFromTags(event),
         createdAt: event.created_at * 1000,
         author: profileMap.get(event.pubkey),
         reactions: {

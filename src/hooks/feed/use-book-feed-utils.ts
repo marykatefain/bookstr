@@ -1,5 +1,6 @@
 
 import { Book } from "@/lib/nostr/types";
+import { Rating } from "@/lib/utils/Rating";
 
 /**
  * Utility functions for processing book feeds
@@ -45,8 +46,17 @@ export function calculateBookStats(books: {
   const pagesRead = books.read.reduce((sum, book) => sum + (book.pageCount || 0), 0);
   
   const ratedBooks = books.read.filter(book => book.readingStatus?.rating !== undefined);
+  
+  // Convert each Rating to a fraction value before summing
+  const ratingSum = ratedBooks.length > 0
+    ? ratedBooks.reduce((sum, book) => {
+        const rating = book.readingStatus?.rating;
+        return sum + rating.fraction;
+      }, 0)
+    : 0;
+  
   const averageRating = ratedBooks.length > 0
-    ? ratedBooks.reduce((sum, book) => sum + (book.readingStatus?.rating || 0), 0) / ratedBooks.length
+    ? ratingSum / ratedBooks.length
     : 0;
   
   return {

@@ -51,4 +51,17 @@ const TabsContent = React.forwardRef<
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
+// Add CSS for hiding scrollbar while allowing scrolling
+const styles = document.createElement('style');
+styles.textContent = `
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+`;
+document.head.appendChild(styles);
+
 export { Tabs, TabsList, TabsTrigger, TabsContent }

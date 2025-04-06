@@ -81,7 +81,7 @@ export async function fetchGlobalEvents(limit: number, until?: number): Promise<
         console.log("Using long-term cached events while fetching fresh data:", longTermCachedEvents.length);
         
         // Execute fetch in background
-        fetchFreshEvents(relays, combinedFilter, cacheKey).catch(error => {
+        fetchFreshEvents(relays, combinedFilter, reviewFilter, cacheKey).catch(error => {
           console.error("Background fetch error:", error);
         });
         

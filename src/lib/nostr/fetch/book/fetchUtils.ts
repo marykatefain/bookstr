@@ -2,6 +2,7 @@ import { Book } from "../../types";
 import { getBookByISBN, getBooksByISBN } from "@/lib/openlibrary";
 import { extractISBNFromTags, extractISBNsFromTags, extractRatingFromTags } from "./eventUtils";
 import { Event } from "nostr-tools";
+import { Rating } from "@/lib/utils/Rating";
 
 // Improved cache with longer TTL and better key structure
 const bookDataCache: Record<string, { data: Book, timestamp: number }> = {};
@@ -53,8 +54,8 @@ function getPreferredValue(newValue: string | undefined, oldValue: string | unde
 /**
  * Process book ratings from events and create a mapping of ISBN to rating
  */
-export function createRatingsMap(ratingEvents: Event[]): Map<string, number> {
-  const ratingsMap = new Map<string, number>();
+export function createRatingsMap(ratingEvents: Event[]): Map<string, Rating> {
+  const ratingsMap = new Map<string, Rating>();
 
   for (const event of ratingEvents) {
     const isbn = extractISBNFromTags(event);
@@ -72,7 +73,7 @@ export function createRatingsMap(ratingEvents: Event[]): Map<string, number> {
 /**
  * Apply ratings to books from a ratings map - optimized version
  */
-export function applyRatingsToBooks(books: Book[], ratingsMap: Map<string, number>): Book[] {
+export function applyRatingsToBooks(books: Book[], ratingsMap: Map<string, Rating>): Book[] {
   // If there are no ratings, return books unchanged
   if (ratingsMap.size === 0) return books;
   

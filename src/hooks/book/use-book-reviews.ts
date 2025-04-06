@@ -16,7 +16,7 @@ import { Rating } from "@/lib/utils/Rating";
 export const useBookReviews = (isbn: string | undefined) => {
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [ratings, setRatings] = useState<BookReview[]>([]);
-  const [userRating, setUserRating] = useState<number>(0);
+  const [userRating, setUserRating] = useState<Rating>(new Rating(0));
   const [reviewText, setReviewText] = useState("");
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +57,7 @@ export const useBookReviews = (isbn: string | undefined) => {
       if (currentUser && bookRatings.length > 0) {
         const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
         if (userRatingObj && userRatingObj.rating !== undefined) {
-          // Store in original 0-1 scale for consistency
+          // Store the Rating object directly
           setUserRating(userRatingObj.rating);
         }
       }
@@ -75,8 +75,8 @@ export const useBookReviews = (isbn: string | undefined) => {
   const handleRateBook = useCallback(async (book: Book | null, rating: Rating) => {
     if (!book || !isLoggedIn()) return;
     
-    // Just update the local state with the raw fraction value
-    setUserRating(rating.fraction);
+    // Update userRating with the Rating object
+    setUserRating(rating);
   }, []);
 
   const handleSubmitReview = useCallback(async (book: Book | null) => {
@@ -84,7 +84,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     
     setSubmitting(true);
     try {
-      console.log(`Submitting review with rating: ${userRating}`);
+      console.log(`Submitting review with rating: ${userRating ? userRating.fraction : 'undefined'}`);
       
       // Check if review text is empty, and if so, find user's previous review to preserve content
       let finalReviewText = reviewText.trim();
@@ -99,8 +99,8 @@ export const useBookReviews = (isbn: string | undefined) => {
         }
       }
       
-      // Create Rating object from userRating value (which is stored on 0-1 scale)
-      const ratingObj = userRating > 0 ? new Rating(userRating) : undefined;
+      // Create Rating object from userRating value
+      const ratingObj = userRating && userRating.fraction > 0 ? userRating : undefined;
       
       // Pass isSpoiler as the optional 4th parameter
       await reviewBook(book, finalReviewText, ratingObj, isSpoiler);
@@ -129,7 +129,8 @@ export const useBookReviews = (isbn: string | undefined) => {
   return {
     reviews,
     ratings,
-    userRating: userRating > 0 ? new Rating(userRating) : new Rating(0),
+    // Convert the raw userRating value to a Rating object when returning
+    userRating,
     reviewText,
     setReviewText,
     isSpoiler,

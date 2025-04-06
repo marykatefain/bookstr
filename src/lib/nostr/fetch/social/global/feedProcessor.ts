@@ -1,4 +1,3 @@
-
 import { Event, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
 import { extractISBNFromTags, extractRatingFromTags } from "../../../utils/eventUtils";
@@ -10,16 +9,6 @@ import { Rating } from "@/lib/utils/Rating";
 
 // Base URL for the Cloudflare Worker
 const API_BASE_URL = "https://bookstr.xyz/api/openlibrary";
-
-/**
- * Convert a raw rating number to a Rating object
- * @param rawRating The raw rating number from 0-1
- * @returns A Rating object or undefined if input is undefined
- */
-function convertToRatingObject(rawRating: number | undefined): Rating | undefined {
-  if (rawRating === undefined) return undefined;
-  return new Rating(rawRating);
-}
 
 /**
  * Process events into social activity feed
@@ -153,6 +142,9 @@ export async function processFeedEvents(events: Event[], limit: number = 20): Pr
     const spoilerTag = event.tags.find(tag => tag[0] === 'spoiler');
     const isSpoiler = !!contentWarningTag || (!!spoilerTag && spoilerTag[1] === "true");
     
+    // Extract rating as a Rating object if available
+    const rating = extractRatingFromTags(event);
+    
     // Create social activity object
     const activity: SocialActivity = {
       id: event.id,
@@ -160,7 +152,7 @@ export async function processFeedEvents(events: Event[], limit: number = 20): Pr
       type: activityType,
       book,
       content: event.content,
-      rating: convertToRatingObject(extractRatingFromTags(event)),
+      rating,
       createdAt: event.created_at * 1000,
       author: profileMap.get(event.pubkey),
       reactions: {
