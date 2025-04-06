@@ -3,8 +3,27 @@
 **Project Description:**  
 Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to allow users to track their reading lists, discover new books, and engage with the reading community. 
 
+## .goosehints File Maintenance
+
+This .goosehints file serves as a knowledge base for AI assistants to understand the Bookstr project. To ensure this documentation remains valuable:
+
+1. **Update when code changes**: When significant changes occur in the codebase (new features, architecture changes, refactoring), update relevant sections of this .goosehints file.
+
+2. **Document learned patterns**: As you learn effective patterns or encounter issues while working on the codebase, document them here for future reference.
+
+3. **Update API documentation**: When API endpoints or data structures change, ensure those changes are reflected in this file.
+
+4. **Add examples for complex flows**: For complex logic or user journeys, add code examples that demonstrate the proper implementation.
+
+5. **Maintain the "Pitfalls to Avoid" sections**: Actively update these sections based on recurring errors or challenges.
+
+6. **Keep architecture diagrams current**: As the application architecture evolves, update the related sections to match the current structure.
+
+When updating this file, maintain the established format and add appropriate cross-references to help navigate between related concepts.
+
 ## Table of Contents
 
+- [.goosehints File Maintenance](#goosehints-file-maintenance)
 - [1. Architecture Overview](#1-architecture-overview)
   - [Core Components](#core-components)
   - [Key Modules](#key-modules)
@@ -22,11 +41,13 @@ Bookstr Nostr is a web app that uses the decentralized social protocol Nostr to 
   - [Updating Book Lists: Kinds `10075`, `10074`, and `10073`](#updating-book-lists-kinds-10075-10074-and-10073)
   - [Ratings and Reviews: Kind 31985](#ratings-and-reviews-kind-31985)
   - [Posts, replies, and reactions](#posts-replies-and-reactions)
-- [4. AI Tips](#4-ai-tips)
+- [4. Media Upload to Blossom Servers](#4-media-upload-to-blossom-servers)
+- [5. AI Tips](#5-ai-tips)
   - [UI Component Organization](#ui-component-organization)
   - [Social Feed Implementation](#social-feed-implementation)
   - [Error & Loading States](#error--loading-states)
   - [Performance Optimization](#performance-optimization)
+  - [.goosehints Maintenance Best Practices](#goosehints-maintenance-best-practices)
 
 ---
 
@@ -722,3 +743,33 @@ Do NOT:
 - Batch related API requests where possible
 - Use the CloudFlare proxy for OpenLibrary requests to avoid rate limiting
 - Implement progressive loading for media content
+
+### .goosehints Maintenance Best Practices
+
+**When to Update**
+- After adding a new feature or component
+- When refactoring existing code patterns
+- After discovering and fixing a significant bug
+- When adding or changing API interactions
+- When modifying Nostr event structure or handling
+- After learning useful patterns that should be reused
+
+**How to Update**
+- Keep sections organized and consistently formatted
+- Use code examples to illustrate complex patterns
+- Add explicit warning labels for common pitfalls
+- Cross-reference related sections with anchor links
+- Add version/date information for significant updates
+- Update the table of contents when adding new sections
+- Check for accuracy in code examples and API documentation
+
+**Common Triggers for Updates**
+- Changes to Nostr event kinds or tag schemas
+- Updates to data models like the Rating class
+- Modified API response formats from Open Library
+- New UI component patterns or organization
+- Performance optimizations worth replicating
+- Refactored utility functions with changed signatures
+- Updated third-party dependencies that require code changes
+
+Remember to review this file occasionally for obsolete information and remove outdated guidance to keep it accurate and helpful.
