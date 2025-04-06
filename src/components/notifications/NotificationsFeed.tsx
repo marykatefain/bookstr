@@ -52,25 +52,6 @@ const NotificationsFeed = () => {
     }
   };
 
-  const getNotificationText = (notification: any) => {
-    const { kind, content, author } = notification;
-    const authorName = author?.name || author?.nip05 || 'Someone';
-    
-    switch (kind) {
-      case 7: // Reaction
-        return (
-          <>
-            {content === "+" ? "❤️" : content} {authorName} reacted to your post
-          </>
-        );
-      case 1: // Reply to post
-        return `${authorName} replied to your post`;
-      case 1111: // Reply to a review
-        return `${authorName} commented on your review`;
-      default:
-        return `${authorName} mentioned you`;
-    }
-  };
 
   const handleRefresh = () => {
     refetch();
@@ -137,8 +118,13 @@ const NotificationsFeed = () => {
       
       {notifications.map((notification: any) => (
         <Card key={notification.id} className="p-4 hover:bg-bookverse-cream/50 transition-colors">
-          <Link to={notification.link || "#"} className="flex items-start space-x-4">
-            <div className="flex-shrink-0 mt-1">
+          <div className="flex items-start space-x-4">
+            {/* Profile picture with link to author profile */}
+            <Link 
+              to={`/user/${notification.author?.pubkey}`} 
+              className="flex-shrink-0 mt-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               {notification.author?.picture ? (
                 <img 
                   src={notification.author.picture} 
@@ -150,18 +136,44 @@ const NotificationsFeed = () => {
                   {getNotificationIcon(notification.kind)}
                 </div>
               )}
-            </div>
+            </Link>
             
             <div className="flex-1">
-              <p className="text-sm">{getNotificationText(notification)}</p>
+              <p className="text-sm">
+                {/* Username with link to author profile */}
+                <Link 
+                  to={`/user/${notification.author?.pubkey}`} 
+                  className="font-semibold hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {notification.author?.name || notification.author?.nip05 || 'Someone'}
+                </Link>
+                {/* Notification text with link to original content */}
+                <Link 
+                  to={notification.link || "#"} 
+                  className="inline-block ml-1"
+                >
+                  {notification.kind === 7 ? (
+                    <> {notification.content === "+" ? "❤️" : notification.content} reacted to your post</>
+                  ) : notification.kind === 1 ? (
+                    <> replied to your post</>
+                  ) : notification.kind === 1111 ? (
+                    <> commented on your review</>
+                  ) : (
+                    <> mentioned you</>
+                  )}
+                </Link>
+              </p>
               {notification.content && notification.kind !== 7 && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.content}</p>
+                <Link to={notification.link || "#"}>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.content}</p>
+                </Link>
               )}
               <p className="text-xs text-muted-foreground mt-2">
                 {formatDistanceToNow(new Date(notification.created_at * 1000), { addSuffix: true })}
               </p>
             </div>
-          </Link>
+          </div>
         </Card>
       ))}
     </div>
