@@ -136,7 +136,7 @@ export const useBookActions = () => {
     return false;
   };
 
-  const handleReactToContent = async (contentId: string) => {
+  const handleReactToContent = async (contentId: string, authorPubkey?: string, isReview?: boolean) => {
     if (!isLoggedIn()) {
       toast({
         title: "Login required",
@@ -147,7 +147,8 @@ export const useBookActions = () => {
     }
     
     try {
-      await reactToContent(contentId);
+      // Pass the authorPubkey to the reaction function so it can include p tags
+      await reactToContent(contentId, authorPubkey);
       toast({
         title: "Reaction sent",
         description: "You've reacted to this content"

@@ -12,6 +12,7 @@ interface ActivityFooterProps {
   userReacted?: boolean;
   onReaction: (activityId: string) => void;
   replies?: Reply[];
+  isReview?: boolean;
 }
 
 export function ActivityFooter({ 
@@ -21,7 +22,8 @@ export function ActivityFooter({
   reactionCount, 
   userReacted, 
   onReaction,
-  replies = []
+  replies = [],
+  isReview = false
 }: ActivityFooterProps) {
   // Use our new reaction hook with the contentId
   const { 
@@ -29,7 +31,12 @@ export function ActivityFooter({
     toggleReaction
   } = useReaction(
     activityId,
-    reactionCount !== undefined ? { count: reactionCount, userReacted: userReacted || false } : undefined
+    reactionCount !== undefined ? { count: reactionCount, userReacted: userReacted || false } : undefined,
+    {
+      // If this is a review, pass the author's pubkey for proper reaction tagging
+      authorPubkey: isReview ? authorPubkey : undefined,
+      isBookReview: isReview
+    }
   );
 
   const handleReaction = async () => {

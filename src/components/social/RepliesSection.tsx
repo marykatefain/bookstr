@@ -150,7 +150,9 @@ export function RepliesSection({
 
   const handleReaction = () => {
     if (onReaction) {
+      // Call the onReaction callback, which should handle passing author info
       onReaction(eventId);
+      
       // Update local state optimistically
       setReactions(prev => ({
         count: prev.userReacted ? prev.count - 1 : prev.count + 1,

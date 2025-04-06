@@ -27,8 +27,15 @@ export function useFeedReactions(
     const currentUserReacted = activity.reactions?.userReacted || false;
     const currentCount = activity.reactions?.count || 0;
     
-    // Call our centralized reaction handler
-    const success = await toggleReaction(activityId);
+    // Get the author information to include in the p tag
+    const authorPubkey = activity.pubkey;
+    const isReview = activity.type === 'review';
+    
+    console.log(`Activity reaction: authorPubkey=${authorPubkey}, isReview=${isReview}, activity=`, 
+      { id: activity.id, type: activity.type, pubkey: activity.pubkey });
+    
+    // Call our centralized reaction handler, passing author pubkey
+    const success = await toggleReaction(activityId, authorPubkey, isReview);
     
     if (success) {
       const updatedActivities = localActivities.map(activity => {

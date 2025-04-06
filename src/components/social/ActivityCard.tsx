@@ -46,6 +46,7 @@ export function ActivityCard({ activity, onReaction }: ActivityCardProps) {
           userReacted={activity.reactions?.userReacted}
           onReaction={onReaction}
           replies={activity.replies}
+          isReview={activity.type === 'review'}
         />
       </CardFooter>
     </Card>

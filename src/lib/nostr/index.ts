@@ -129,8 +129,8 @@ export {
 };
 
 // Import reactToContent from publish separately and re-export with a different name
-import { reactToContent as reactToContentFromPublish } from './publish';
-export { reactToContentFromPublish };
+import { reactToContent as reactToContentFromPublish, reactToBookReview as reactToBookReviewFromPublish } from './publish';
+export { reactToContentFromPublish, reactToBookReviewFromPublish };
 
 // Now export the base functions that components are directly using
 // Export fetchReactions directly for components to use
@@ -144,7 +144,7 @@ export { fetchEventById } from './fetch/social/fetchEvent';
 
 // Export reactToContent directly for components to use
 // Make sure this is using the original function from publish.ts
-export { reactToContent } from './publish';
+export { reactToContent, reactToBookReview } from './publish';
 
 // Export blocklist utilities
 export {
