@@ -1,4 +1,3 @@
-
 import { Event, type Filter } from "nostr-tools";
 import { SocialActivity, NOSTR_KINDS, Book } from "../../../types";
 import { extractISBNFromTags, extractRatingFromTags } from "../../../utils/eventUtils";
