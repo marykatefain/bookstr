@@ -16,8 +16,7 @@ import { Rating } from "@/lib/utils/Rating";
 export const useBookReviews = (isbn: string | undefined) => {
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [ratings, setRatings] = useState<BookReview[]>([]);
-  // Store the raw fraction value (0-1) for userRating
-  const [userRating, setUserRating] = useState<number>(0);
+  const [userRating, setUserRating] = useState<Rating>(new Rating(0));
   const [reviewText, setReviewText] = useState("");
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +58,7 @@ export const useBookReviews = (isbn: string | undefined) => {
         const userRatingObj = bookRatings.find(r => r.pubkey === currentUser.pubkey);
         if (userRatingObj && userRatingObj.rating !== undefined) {
           // Store the raw fraction value (0-1) from the Rating object
-          setUserRating(userRatingObj.rating.fraction);
+          setUserRating(userRatingObj.rating);
         }
       }
     } catch (error) {
@@ -131,7 +130,7 @@ export const useBookReviews = (isbn: string | undefined) => {
     reviews,
     ratings,
     // Convert the raw userRating value to a Rating object when returning
-    userRating: userRating > 0 ? new Rating(userRating) : new Rating(0),
+    userRating,
     reviewText,
     setReviewText,
     isSpoiler,

@@ -51,7 +51,7 @@ export function calculateBookStats(books: {
   const ratingSum = ratedBooks.length > 0
     ? ratedBooks.reduce((sum, book) => {
         const rating = book.readingStatus?.rating;
-        return sum + (rating instanceof Rating ? rating.fraction : 0);
+        return sum + rating.fraction;
       }, 0)
     : 0;
   
