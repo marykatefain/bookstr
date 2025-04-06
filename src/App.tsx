@@ -24,7 +24,15 @@ import Following from "./pages/Following";
 import { initNostr, cleanupNostr } from "./lib/nostr";
 
 // Create a react-query client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 60000, // 1 minute
+      gcTime: Infinity,
+    },
+  },
+});
 
 function App() {
   useEffect(() => {
