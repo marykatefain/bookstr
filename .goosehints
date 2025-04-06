@@ -404,6 +404,8 @@ The user's actions on books are stored as Nostr events, which are then published
 
 The Nostr protocol is standardized with NIPS, the documentation of which can be found [here](https://github.com/nostr-protocol/nips)
 
+For additional context and comprehensive examples of all Nostr event types, refer to [Nostrbook](https://nostrbook.dev/), a valuable resource for understanding Nostr event structure and implementation details. Use Nostrbook as a reference when creating new types of events or when you need clarification about existing event kinds.
+
 ### Updating Book Lists: Kinds `10075`, `10074`, and `10073`
 
 These are new event kinds created specifically for Bookstr. They are replacable lists which should be fully updated with each action to either add or remove the respective books isbn from the list. 
